@@ -1,10 +1,10 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using UnityEngine;
 
 public partial class Planet : MonoBehaviour
 {
-
 	public float WeightNeededToSubdivide = 0.3f;
 	public float radiusMin = 100;
 	public float radiusVariation = 10;
@@ -21,9 +21,9 @@ public partial class Planet : MonoBehaviour
 	public bool useSkirts = false;
 	public int chunkNumberOfVerticesOnEdge = 10;
 
+	public static HashSet<Planet> allPlanets = new HashSet<Planet>();
 
-
-
+	public Vector3 Center { get { return transform.position; } }
 
 	public void SetComputeBuffer(ComputeShader c)
 	{
@@ -37,11 +37,13 @@ public partial class Planet : MonoBehaviour
 	// Use this for initialization
 	void Start()
 	{
+		allPlanets.Add(this);
 		InitializeRootSegments();
 	}
 
+
 	// Update is called once per frame
-	void Update()
+	void LateUpdate()
 	{
 		TrySubdivideOver(new SubdivisionData()
 		{
@@ -49,9 +51,18 @@ public partial class Planet : MonoBehaviour
 			fieldOfView = Camera.main.fieldOfView,
 		});
 
-		var s = toGenerate.GetMostImportantChunk();
-		if (s != null)
+		var sw = Stopwatch.StartNew();
+		foreach (var s in toGenerate.GetWeighted())
+		{
 			s.GenerateMesh();
+			//if (sw.Elapsed.TotalMilliseconds > 5f)
+				break;
+		}
+	}
+
+	private void OnGUI()
+	{
+		GUILayout.Button("segments to generate: " + toGenerate.Count);
 	}
 
 
@@ -138,5 +149,12 @@ public partial class Planet : MonoBehaviour
 	}
 
 
-
+	private void OnDrawGizmos()
+	{
+		if (rootSegments == null || rootSegments.Count == 0)
+		{
+			Gizmos.color = Color.blue;
+			Gizmos.DrawSphere(this.transform.position, this.radiusMin);
+		}
+	}
 }

@@ -6,7 +6,7 @@ public partial class Planet
 {
 	void GatherWeights(WeightedSegmentsList toGenerate, Segment segment, int recursionDepth)
 	{
-		if (toGenerate.Count > 500) return; // SAFE
+		//if (toGenerate.Count > 500) return; // SAFE
 
 
 		var weight = segment.GetGenerationWeight(toGenerate.data);

@@ -12,6 +12,7 @@ public class Segment : MonoBehaviour
 	public Segment parent;
 	public ulong generation;
 
+	public Range RangeToGenerateInto { get { return range; } }
 	public Range RangeToCalculateScreenSizeOn { get { return range; } }
 
 	public ChildPosition childPosition;
@@ -107,9 +108,9 @@ public class Segment : MonoBehaviour
 
 		var c = planet.segmentHeights;
 		c.SetBuffer(0, "vertices", b);
-		c.SetVector("rangeA", range.a);
-		c.SetVector("rangeB", range.b);
-		c.SetVector("rangeC", range.c);
+		c.SetVector("rangeA", RangeToGenerateInto.a);
+		c.SetVector("rangeB", RangeToGenerateInto.b);
+		c.SetVector("rangeC", RangeToGenerateInto.c);
 		planet.SetComputeBuffer(c);
 
 		c.Dispatch(0, b.count, 1, 1);
@@ -141,6 +142,7 @@ public class Segment : MonoBehaviour
 	{
 		if (gameObject && gameObject.activeSelf)
 		{
+			Gizmos.color = Color.cyan;
 			Gizmos.DrawLine(range.a, range.b);
 			Gizmos.DrawLine(range.b, range.c);
 			Gizmos.DrawLine(range.c, range.a);
