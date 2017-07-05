@@ -1,0 +1,30 @@
+#pragma kernel main
+
+// The same particle data structure used by both the compute shader and the shader.
+struct Particle
+{
+	float3 position;
+	float3 velocity;
+};
+
+// The buffer holding the particles shared with the regular shader.
+RWStructuredBuffer<Particle> particleBuffer;
+
+// parameters from GPU
+float deltaTime;									// Even here deltaTime is needed!
+float3 target;										// Mouse position.
+float targetStrengh;								// Strengh, from the inspector!
+
+[numthreads(32,1,1)] 								// 32 is the minimal size to fullfill the wrap. this is just the number of thread to run by wrap, "x, y, z" make easy 3D indexing.
+void main (uint3 id : SV_DispatchThreadID)
+{
+	// particleBuffer[id.x] is the particle this thread must Update, according to the thread ID.
+	
+	// Direction and distance to target.
+	float3 dir = normalize(target - particleBuffer[id.x].position);
+	float3 dist = distance(target, particleBuffer[id.x].position);
+	
+	// Compute velocity and position of this particle.
+	particleBuffer[id.x].velocity += targetStrengh * dir * deltaTime / dist;
+	particleBuffer[id.x].position += particleBuffer[id.x].velocity * deltaTime;
+}

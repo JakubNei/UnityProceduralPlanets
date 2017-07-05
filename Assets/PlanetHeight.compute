@@ -1,0 +1,59 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel main
+
+#pragma target 3.0
+#include "planet.cginc"
+
+RWStructuredBuffer<float3> vertices;
+
+float4 rangeA;
+float4 rangeB;
+float4 rangeC;
+
+int numberOfVerticesOnEdge;
+float radiusMin;
+float radiusVariation;
+
+[numthreads(1,1,1)]
+void main(uint3 id : SV_DispatchThreadID)
+{
+
+	int idTemp = id;
+	int idX = 0;
+	int idY = 0;
+
+	int numberOfVerticesOnLine = 1;
+	while (idTemp >= numberOfVerticesOnLine && numberOfVerticesOnLine < numberOfVerticesOnEdge)
+	{
+		idTemp -= numberOfVerticesOnLine;
+		numberOfVerticesOnLine++;
+		idY++;
+	}
+	idX = idTemp;
+
+	float x = 0;
+	float y = 0;
+	if (numberOfVerticesOnLine > 1) x = float(idX) / (numberOfVerticesOnLine - 1);
+	if (numberOfVerticesOnEdge > 1) y = float(idY) / (numberOfVerticesOnEdge - 1);
+
+	float3 positionInterpolated =
+		rangeA +
+		(rangeB - rangeA) * y * (1 - x) +
+		(rangeC - rangeA) * y * x;
+
+	float3 dirFromPlanetCenter = normalize(positionInterpolated);
+
+	float generatedHeight = GetProceduralHeight01(dirFromPlanetCenter);
+
+
+	vertices[id.x] = dirFromPlanetCenter * (radiusMin + generatedHeight * radiusVariation);
+}
+
+
+
+
+
+
+
+
+
