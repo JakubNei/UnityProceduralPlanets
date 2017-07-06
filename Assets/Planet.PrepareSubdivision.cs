@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 public partial class Planet
 {
-	void GatherWeights(WeightedSegmentsList toGenerate, Segment segment, int recursionDepth)
+	void GatherWeights(WeightedSegmentsList toGenerate, Chunk segment, int recursionDepth)
 	{
 		//if (toGenerate.Count > 500) return; // SAFE
 
@@ -18,7 +18,7 @@ public partial class Planet
 
 		if (recursionDepth < SubdivisionMaxRecurisonDepth)
 		{
-			if (weight > WeightNeededToSubdivide)
+			if (weight > weightNeededToSubdivide)
 			{
 				segment.EnsureChildrenInstancesAreCreated();
 
@@ -49,11 +49,11 @@ public partial class Planet
 	}
 
 
-	class WeightedSegmentsList : Dictionary<Segment, float>
+	class WeightedSegmentsList : Dictionary<Chunk, float>
 	{
 		public SubdivisionData data;
 
-		public new void Add(Segment segment, float weight)
+		public new void Add(Chunk segment, float weight)
 		{
 			PrivateAdd1(segment, weight);
 
@@ -65,7 +65,7 @@ public partial class Planet
 				PrivateAdd1(segment, Mathf.Max(w, weight));
 			}
 		}
-		private void PrivateAdd1(Segment segment, float weight)
+		private void PrivateAdd1(Chunk segment, float weight)
 		{
 			PrivateAdd2(segment, weight);
 
@@ -82,7 +82,7 @@ public partial class Planet
 				}
 			}
 		}
-		private void PrivateAdd2(Segment segment, float weight)
+		private void PrivateAdd2(Chunk segment, float weight)
 		{
 			if (segment.generationBegan) return;
 
@@ -94,11 +94,11 @@ public partial class Planet
 
 			this[segment] = weight;
 		}
-		public IEnumerable<Segment> GetWeighted(int maxCount = 100)
+		public IEnumerable<Chunk> GetWeighted(int maxCount = 100)
 		{
 			return this.OrderByDescending(i => i.Value).Take(maxCount).Select(i => i.Key);
 		}
-		public Segment GetMostImportantChunk()
+		public Chunk GetMostImportantChunk()
 		{
 			return this.OrderByDescending(i => i.Value).FirstOrDefault().Key;
 		}
@@ -119,7 +119,7 @@ public partial class Planet
 		toGenerate.data = data;
 
 
-		foreach (var rootSegment in rootSegments)
+		foreach (var rootSegment in rootChildren)
 		{
 			if (rootSegment.generationBegan == false)
 			{

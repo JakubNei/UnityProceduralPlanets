@@ -49,7 +49,7 @@ public partial class Planet
 			int numberOfVerticesInBetween = 0;
 			// we skip first triangle as it was done manually
 			// we skip last row of vertices as there are no triangles under it
-			for (int y = 1; y < chunkNumberOfVerticesOnEdge - 1; y++)
+			for (int y = 1; y < numberOfVerticesOnEdge - 1; y++)
 			{
 				lineStartIndex = nextLineStartIndex;
 				nextLineStartIndex = lineStartIndex + numberOfVerticesInBetween + 2;
@@ -75,4 +75,44 @@ public partial class Planet
 		return segmentIndicies;
 	}
 
+
+	Vector2[] segmentUVs;
+	public Vector2[] GetSefgmentUVs()
+	{
+		if (segmentUVs != null) return segmentUVs;
+
+		segmentUVs = new Vector2[NumberOfVerticesNeededTotal];
+		int i = 0;
+
+
+		/*
+			 A = 0,0 = black
+			 /\  top line
+			/\/\
+		   /\/\/\
+		  /\/\/\/\ middle lines
+		 /\/\/\/\/\
+		/\/\/\/\/\/\ bottom line
+	   B            C = 1,0 = red
+	     = 1,1 = yellow
+		*/
+
+		segmentUVs[i++] = new Vector2(0, 0);
+
+		int numberOfVerticesInBetween = 0;
+		// we skip first vertex as it was done manually
+		for (int y = 1; y < numberOfVerticesOnEdge; y++)
+		{
+			for (int x = 0; x < numberOfVerticesInBetween + 2; x++)
+			{
+				segmentUVs[i++] = new Vector2(
+					((float)x) / numberOfVerticesOnEdge,
+					((float)y) / numberOfVerticesOnEdge
+				);
+			}
+			numberOfVerticesInBetween++;
+		}
+
+		return segmentUVs;
+	}
 }

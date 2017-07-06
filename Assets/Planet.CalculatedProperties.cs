@@ -2,7 +2,7 @@
 
 public partial class Planet
 {
-	public int NumberOfVerticesNeededTotal { get { return (((chunkNumberOfVerticesOnEdge - 1) * chunkNumberOfVerticesOnEdge) / 2) + chunkNumberOfVerticesOnEdge; } }
+	public int NumberOfVerticesNeededTotal { get { return (((numberOfVerticesOnEdge - 1) * numberOfVerticesOnEdge) / 2) + numberOfVerticesOnEdge; } }
 
 	/// <summary>
 	/// top vertex index
@@ -11,16 +11,16 @@ public partial class Planet
 	/// <summary>
 	/// bottom left vertex index
 	/// </summary>
-	public int BIndex { get { return ((chunkNumberOfVerticesOnEdge - 1) * chunkNumberOfVerticesOnEdge) / 2; } }
+	public int BIndex { get { return ((numberOfVerticesOnEdge - 1) * numberOfVerticesOnEdge) / 2; } }
 	/// <summary>
 	/// bottom right vertex index
 	/// </summary>
-	public int CIndex { get { return BIndex + (chunkNumberOfVerticesOnEdge - 1); } }
+	public int CIndex { get { return BIndex + (numberOfVerticesOnEdge - 1); } }
 
 
 	public int AIndexWithSkirts { get { return AIndex + 4; } }
-	public int BIndexWithSkirts { get { return BIndex - (chunkNumberOfVerticesOnEdge - 1) + 1; } }
-	public int CIndexWithSkirts { get { return BIndexWithSkirts + ((chunkNumberOfVerticesOnEdge - 3) - 1); } }
+	public int BIndexWithSkirts { get { return BIndex - (numberOfVerticesOnEdge - 1) + 1; } }
+	public int CIndexWithSkirts { get { return BIndexWithSkirts + ((numberOfVerticesOnEdge - 3) - 1); } }
 
 
 	public int AIndexReal { get { return useSkirts ? AIndexWithSkirts : AIndex; } }

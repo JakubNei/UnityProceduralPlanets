@@ -1,0 +1,45 @@
+﻿#pragma kernel main
+
+#pragma target 3.0
+#include "planet.cginc"
+
+RWStructuredBuffer<float3> param_vertices;
+float3 param_rangeA;
+float3 param_rangeB;
+float3 param_rangeC;
+
+
+[numthreads(256,1,1)]
+void main(uint3 id : SV_DispatchThreadID)
+{
+
+	int idTemp = id;
+	int idX = 0;
+	int idY = 0;
+
+	int numberOfVerticesOnLine = 1;
+	while (idTemp >= numberOfVerticesOnLine && numberOfVerticesOnLine < param_numberOfVerticesOnEdge)
+	{
+		idTemp -= numberOfVerticesOnLine;
+		numberOfVerticesOnLine++;
+		idY++;
+	}
+	idX = idTemp;
+
+	float x = 0;
+	float y = 0;
+	if (numberOfVerticesOnLine > 1) x = float(idX) / (numberOfVerticesOnLine - 1);
+	if (param_numberOfVerticesOnEdge > 1) y = float(idY) / (param_numberOfVerticesOnEdge - 1);
+
+	float3 positionInterpolated =
+		param_rangeA +
+		(param_rangeB - param_rangeA) * y * (1 - x) +
+		(param_rangeC - param_rangeA) * y * x;
+
+	float3 dirFromPlanetCenter = normalize(positionInterpolated);
+
+	float altFromBottomOfSea = GetProceduralHeight01(dirFromPlanetCenter);
+
+
+	param_vertices[id.x] = dirFromPlanetCenter * (param_radiusMin + altFromBottomOfSea * param_radiusVariation);
+}

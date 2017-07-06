@@ -3,13 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Segment : MonoBehaviour
+public class Chunk : MonoBehaviour
 {
 
 	public Planet planet;
 	public Range range;
 	public ulong id;
-	public Segment parent;
+	public Chunk parent;
 	public ulong generation;
 
 	public Range RangeToGenerateInto { get { return range; } }
@@ -29,17 +29,17 @@ public class Segment : MonoBehaviour
 
 	public bool generationBegan;
 	public bool isGenerationDone;
-	public List<Segment> children = new List<Segment>(4);
+	public List<Chunk> children = new List<Chunk>(4);
 
 
-	public static Segment Create(Planet planet, Range range, ulong id, Segment parent = null, ulong generation = 0, ChildPosition childPosition = ChildPosition.NoneNoParent)
+	public static Chunk Create(Planet planet, Range range, ulong id, Chunk parent = null, ulong generation = 0, ChildPosition childPosition = ChildPosition.NoneNoParent)
 	{
-		var name = typeof(Segment) + " id:#" + id + " generation:" + generation;
+		var name = typeof(Chunk) + " id:#" + id + " generation:" + generation;
 
 		var go = new GameObject(name);
 		go.transform.parent = planet.transform;
 
-		var segment = go.AddComponent<Segment>();
+		var segment = go.AddComponent<Chunk>();
 		segment.planet = planet;
 		segment.range = range;
 		segment.id = id;
@@ -106,12 +106,12 @@ public class Segment : MonoBehaviour
 		var b = new ComputeBuffer(v.Length, 3 * sizeof(float));
 		b.SetData(v);
 
-		var c = planet.segmentHeights;
-		c.SetBuffer(0, "vertices", b);
-		c.SetVector("rangeA", RangeToGenerateInto.a);
-		c.SetVector("rangeB", RangeToGenerateInto.b);
-		c.SetVector("rangeC", RangeToGenerateInto.c);
-		planet.SetComputeBuffer(c);
+		var c = planet.generateVertices;
+		c.SetBuffer(0, "param_vertices", b);
+		c.SetVector("param_rangeA", RangeToGenerateInto.a);
+		c.SetVector("param_rangeB", RangeToGenerateInto.b);
+		c.SetVector("param_rangeC", RangeToGenerateInto.c);
+		planet.SetParams(c);
 
 		c.Dispatch(0, b.count, 1, 1);
 
@@ -121,6 +121,7 @@ public class Segment : MonoBehaviour
 		mesh = new Mesh();
 		mesh.vertices = v;
 		mesh.triangles = planet.GetSegmentIndicies();
+		mesh.uv = planet.GetSefgmentUVs();
 		mesh.RecalculateNormals();
 
 		var go = gameObject;
@@ -135,6 +136,30 @@ public class Segment : MonoBehaviour
 		meshCollider.sharedMesh = mesh;
 
 		isGenerationDone = true;
+	}
+
+	public void GenerateDiffuseMap()
+	{
+		var diffuse = new RenderTexture(256, 256, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+		diffuse.enableRandomWrite = true;
+		diffuse.Create();
+
+		var c = planet.generateDiffuseMap;
+		c.SetTexture(0, "param_texture", diffuse);
+		c.SetVector("param_rangeA", RangeToGenerateInto.a);
+		c.SetVector("param_rangeB", RangeToGenerateInto.b);
+		c.SetVector("param_rangeC", RangeToGenerateInto.c);
+		planet.SetParams(c);
+
+		c.Dispatch(0, diffuse.width, diffuse.height, 1);
+
+		var meshRenderer = gameObject.GetComponent<MeshRenderer>();
+		meshRenderer.material.mainTexture = diffuse;
+	}
+
+	public void GenerateNormalMap()
+	{
+
 	}
 
 

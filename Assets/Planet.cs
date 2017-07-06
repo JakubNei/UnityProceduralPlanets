@@ -5,31 +5,40 @@ using UnityEngine;
 
 public partial class Planet : MonoBehaviour
 {
-	public float WeightNeededToSubdivide = 0.3f;
+	public float weightNeededToSubdivide = 0.3f;
+
 	public float radiusMin = 100;
 	public float radiusVariation = 10;
+	public float seaLevel01 = 0.5f;
+
 	public float stopSegmentRecursionAtWorldSize = 5;
 
 	public Material segmentMaterial;
-	public ComputeShader segmentHeights;
+	public ComputeShader generateVertices;
+	public Texture2D biomesControlMap;
+	public ComputeShader generateDiffuseMap;
+	public ComputeShader generateNormapMap;
 
 	public ulong id;
 
-	public List<Segment> rootSegments;
+	public List<Chunk> rootChildren;
 
 
 	public bool useSkirts = false;
-	public int chunkNumberOfVerticesOnEdge = 10;
+	public int numberOfVerticesOnEdge = 10;
 
 	public static HashSet<Planet> allPlanets = new HashSet<Planet>();
 
 	public Vector3 Center { get { return transform.position; } }
 
-	public void SetComputeBuffer(ComputeShader c)
+	public void SetParams(ComputeShader c)
 	{
-		c.SetInt("numberOfVerticesOnEdge", chunkNumberOfVerticesOnEdge);
-		c.SetFloat("radiusMin", radiusMin);
-		c.SetFloat("radiusVariation", radiusVariation);
+		c.SetInt("param_numberOfVerticesOnEdge", numberOfVerticesOnEdge);
+		c.SetFloat("param_radiusMin", radiusMin);
+		c.SetFloat("param_radiusVariation", radiusVariation);
+		c.SetFloat("param_seaLevel01", seaLevel01);
+
+		c.SetTexture(0, "param_biomesControlMap", biomesControlMap);
 	}
 
 
@@ -55,6 +64,8 @@ public partial class Planet : MonoBehaviour
 		foreach (var s in toGenerate.GetWeighted())
 		{
 			s.GenerateMesh();
+			s.GenerateDiffuseMap();
+			s.GenerateNormalMap();
 			//if (sw.Elapsed.TotalMilliseconds > 5f)
 				break;
 		}
@@ -77,7 +88,7 @@ public partial class Planet : MonoBehaviour
 			c = vertices[C]
 		};
 
-		var child = Segment.Create(
+		var child = Chunk.Create(
 			planet: this,
 			parent: null,
 			generation: 0,
@@ -85,14 +96,14 @@ public partial class Planet : MonoBehaviour
 			id: id
 		);
 
-		rootSegments.Add(child);
+		rootChildren.Add(child);
 	}
 
 	private void InitializeRootSegments()
 	{
-		if (rootSegments != null && rootSegments.Count > 0) return;
-		if (rootSegments == null)
-			rootSegments = new List<Segment>(20);
+		if (rootChildren != null && rootChildren.Count > 0) return;
+		if (rootChildren == null)
+			rootChildren = new List<Chunk>(20);
 		//detailLevel = (int)ceil(planetInfo.rootChunks[0].range.ToBoundingSphere().radius / 100);
 
 		var vertices = new List<Vector3>();
@@ -151,7 +162,7 @@ public partial class Planet : MonoBehaviour
 
 	private void OnDrawGizmos()
 	{
-		if (rootSegments == null || rootSegments.Count == 0)
+		if (rootChildren == null || rootChildren.Count == 0)
 		{
 			Gizmos.color = Color.blue;
 			Gizmos.DrawSphere(this.transform.position, this.radiusMin);
