@@ -20,10 +20,10 @@ public class Chunk : MonoBehaviour
 	public enum ChildPosition
 	{
 		NoneNoParent = 0,
-		Top = 1,
-		Left = 2,
-		Middle = 3,
-		Right = 4,
+		TopLeft = 1,
+		TopRight = 2,
+		BottomLeft = 3,
+		BottomRight = 4,
 	}
 
 
@@ -49,13 +49,14 @@ public class Chunk : MonoBehaviour
 		return segment;
 	}
 
-	private void AddChild(Vector3 a, Vector3 b, Vector3 c, ChildPosition cp, ushort index)
+	private void AddChild(Vector3 a, Vector3 b, Vector3 c, Vector3 d, ChildPosition cp, ushort index)
 	{
 		var range = new Range()
 		{
 			a = a,
 			b = b,
-			c = c
+			c = c,
+			d = d,
 		};
 
 		var child = Create(
@@ -74,21 +75,34 @@ public class Chunk : MonoBehaviour
 	{
 		if (children.Count <= 0)
 		{
+			/*
+			a----ab---b
+			|    |    |
+			ad--mid---bc
+			|    |    |
+			d----dc---c
+			*/
+
 			var a = range.a;
 			var b = range.b;
 			var c = range.c;
+			var d = range.d;
 			var ab = Vector3.Normalize((a + b) / 2.0f);
-			var ac = Vector3.Normalize((a + c) / 2.0f);
+			var ad = Vector3.Normalize((a + d) / 2.0f);
 			var bc = Vector3.Normalize((b + c) / 2.0f);
+			var dc = Vector3.Normalize((d + c) / 2.0f);
+			var mid = Vector3.Normalize((ab + ad + dc + bc) / 4.0f);
 
 			ab *= planet.radiusMin;
-			ac *= planet.radiusMin;
+			ad *= planet.radiusMin;
 			bc *= planet.radiusMin;
+			dc *= planet.radiusMin;
+			mid *= planet.radiusMin;
 
-			AddChild(a, ab, ac, ChildPosition.Top, 0);
-			AddChild(ab, b, bc, ChildPosition.Left, 1);
-			AddChild(ac, bc, c, ChildPosition.Right, 2);
-			AddChild(ab, bc, ac, ChildPosition.Middle, 3);
+			AddChild(a, ab, mid, ad, ChildPosition.TopLeft, 0);
+			AddChild(ab, b, bc, mid, ChildPosition.TopRight, 1);
+			AddChild(ad, mid, dc, d, ChildPosition.BottomLeft, 2);
+			AddChild(mid, bc, c, dc, ChildPosition.BottomRight, 3);
 		}
 	}
 
@@ -108,12 +122,10 @@ public class Chunk : MonoBehaviour
 
 		var c = planet.generateVertices;
 		c.SetBuffer(0, "param_vertices", b);
-		c.SetVector("param_rangeA", RangeToGenerateInto.a);
-		c.SetVector("param_rangeB", RangeToGenerateInto.b);
-		c.SetVector("param_rangeC", RangeToGenerateInto.c);
+		RangeToGenerateInto.SetParams(c, "param_range");
 		planet.SetParams(c);
 
-		c.Dispatch(0, b.count, 1, 1);
+		c.Dispatch(0, v.Length, 1, 1);
 
 		b.GetData(v);
 
@@ -146,9 +158,7 @@ public class Chunk : MonoBehaviour
 
 		var c = planet.generateDiffuseMap;
 		c.SetTexture(0, "param_texture", diffuse);
-		c.SetVector("param_rangeA", RangeToGenerateInto.a);
-		c.SetVector("param_rangeB", RangeToGenerateInto.b);
-		c.SetVector("param_rangeC", RangeToGenerateInto.c);
+		RangeToGenerateInto.SetParams(c, "param_range");
 		planet.SetParams(c);
 
 		c.Dispatch(0, diffuse.width, diffuse.height, 1);
@@ -170,7 +180,8 @@ public class Chunk : MonoBehaviour
 			Gizmos.color = Color.cyan;
 			Gizmos.DrawLine(range.a, range.b);
 			Gizmos.DrawLine(range.b, range.c);
-			Gizmos.DrawLine(range.c, range.a);
+			Gizmos.DrawLine(range.c, range.d);
+			Gizmos.DrawLine(range.d, range.a);
 		}
 	}
 

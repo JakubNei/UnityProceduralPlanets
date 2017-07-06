@@ -9,14 +9,22 @@ public struct Range
 	public Vector3 a;
 	public Vector3 b;
 	public Vector3 c;
+	public Vector3 d;
 
+	/*
+	A -- B
+	|    |
+	D -- C
+
+	front face is clock wise face
+	*/
 
 
 	public Vector3 CenterPos
 	{
 		get
 		{
-			return (a + b + c) / 3.0f;
+			return (a + b + c +d) / 4.0f;
 		}
 	}
 
@@ -24,52 +32,39 @@ public struct Range
 	{
 		get
 		{
-			return Vector3.Normalize(Vector3.Cross(
-				b - a,
-				c - a
-			));
+			return Vector3.Normalize(
+				Vector3.Cross(
+					Vector3.Normalize(b - a),
+					Vector3.Normalize(d - a)
+				)
+			);
 		}
 	}
 
 
-	public Range(Vector3 a, Vector3 b, Vector3 c)
-	{
-		this.a = a;
-		this.b = b;
-		this.c = c;
-	}
-
 	public Sphere ToBoundingSphere()
 	{
-		var c = CenterPos;
+		var center = CenterPos;
 		var radius = (float)Math.Sqrt(
 			Math.Max(
 				Math.Max(
-					Vector3.Distance(a, b),
-					Vector3.Distance(a, c)
+					Vector3.Distance(center, a),
+					Vector3.Distance(center, b)
 				),
-				Vector3.Distance(b, c)
+				Math.Max(
+					Vector3.Distance(center, c),
+					Vector3.Distance(center, d)
+				)
 			)
 		);
-		return new Sphere(c, radius);
+		return new Sphere(center, radius);
 	}
 
-	// http://gamedev.stackexchange.com/questions/23743/whats-the-most-efficient-way-to-find-barycentric-coordinates
-	public Vector3 CalculateBarycentric(Vector3 p)
+	public void SetParams(ComputeShader s, string prefix)
 	{
-		var v0 = b - a;
-		var v1 = c - a;
-		var v2 = p - a;
-		var d00 = Vector3.Dot(v0, v0);
-		var d01 = Vector3.Dot(v0, v1);
-		var d11 = Vector3.Dot(v1, v1);
-		var d20 = Vector3.Dot(v2, v0);
-		var d21 = Vector3.Dot(v2, v1);
-		var denom = d00 * d11 - d01 * d01;
-		var result = new Vector3();
-		result.y = (d11 * d20 - d01 * d21) / denom;
-		result.z = (d00 * d21 - d01 * d20) / denom;
-		result.x = 1.0f - result.y - result.z;
-		return result;
+		s.SetVector(prefix + "A", a);
+		s.SetVector(prefix + "B", b);
+		s.SetVector(prefix + "C", c);
+		s.SetVector(prefix + "D", d);
 	}
 }

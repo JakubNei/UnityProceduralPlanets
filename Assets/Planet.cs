@@ -47,7 +47,7 @@ public partial class Planet : MonoBehaviour
 	void Start()
 	{
 		allPlanets.Add(this);
-		InitializeRootSegments();
+		InitializeRootChildren();
 	}
 
 
@@ -79,13 +79,14 @@ public partial class Planet : MonoBehaviour
 
 
 
-	void AddRootChunk(ulong id, List<Vector3> vertices, int A, int B, int C)
+	void AddRootChunk(ulong id, Vector3[] vertices, int a, int b, int c, int d)
 	{
 		var range = new Range()
 		{
-			a = vertices[A],
-			b = vertices[B],
-			c = vertices[C]
+			a = vertices[a],
+			b = vertices[b],
+			c = vertices[c],
+			d = vertices[d],
 		};
 
 		var child = Chunk.Create(
@@ -99,64 +100,45 @@ public partial class Planet : MonoBehaviour
 		rootChildren.Add(child);
 	}
 
-	private void InitializeRootSegments()
+	private void InitializeRootChildren()
 	{
 		if (rootChildren != null && rootChildren.Count > 0) return;
 		if (rootChildren == null)
-			rootChildren = new List<Chunk>(20);
-		//detailLevel = (int)ceil(planetInfo.rootChunks[0].range.ToBoundingSphere().radius / 100);
+			rootChildren = new List<Chunk>(6);
 
-		var vertices = new List<Vector3>();
 		var indicies = new List<uint>();
 
-		var r = radiusMin / 2.0f;
+		var halfSIze = Mathf.Sqrt((radiusMin * radiusMin) / 3.0f);
 
-		var t = (1 + Mathf.Sqrt(5.0f)) / 2.0f * r;
-		var d = r;
+		/* 3----------0
+		  /|         /|
+		 / |        / |
+		2----------1  |       y
+		|  |       |  |       |
+		|  7-------|--4       |  z
+		| /        | /        | /
+		|/         |/         |/
+		6----------5          0----------x  */
 
-		vertices.Add(new Vector3(-d, t, 0));
-		vertices.Add(new Vector3(d, t, 0));
-		vertices.Add(new Vector3(-d, -t, 0));
-		vertices.Add(new Vector3(d, -t, 0));
+		var vertices = new[] {
+			// top 4
+			new Vector3(halfSIze, halfSIze, halfSIze),
+			new Vector3(halfSIze, halfSIze, -halfSIze),
+			new Vector3(-halfSIze, halfSIze, -halfSIze),
+			new Vector3(-halfSIze, halfSIze, halfSIze),
+			// bottom 4
+			new Vector3(halfSIze, -halfSIze, halfSIze),
+			new Vector3(halfSIze, -halfSIze, -halfSIze),
+			new Vector3(-halfSIze, -halfSIze, -halfSIze),
+			new Vector3(-halfSIze, -halfSIze, halfSIze)
+		};
 
-		vertices.Add(new Vector3(0, -d, t));
-		vertices.Add(new Vector3(0, d, t));
-		vertices.Add(new Vector3(0, -d, -t));
-		vertices.Add(new Vector3(0, d, -t));
-
-		vertices.Add(new Vector3(t, 0, -d));
-		vertices.Add(new Vector3(t, 0, d));
-		vertices.Add(new Vector3(-t, 0, -d));
-		vertices.Add(new Vector3(-t, 0, d));
-
-		// 5 faces around point 0
-		AddRootChunk(0, vertices, 0, 11, 5);
-		AddRootChunk(1, vertices, 0, 5, 1);
-		AddRootChunk(2, vertices, 0, 1, 7);
-		AddRootChunk(3, vertices, 0, 7, 10);
-		AddRootChunk(4, vertices, 0, 10, 11);
-
-		// 5 adjacent faces
-		AddRootChunk(5, vertices, 1, 5, 9);
-		AddRootChunk(6, vertices, 5, 11, 4);
-		AddRootChunk(7, vertices, 11, 10, 2);
-		AddRootChunk(8, vertices, 10, 7, 6);
-		AddRootChunk(9, vertices, 7, 1, 8);
-
-		// 5 faces around point 3
-		AddRootChunk(10, vertices, 3, 9, 4);
-		AddRootChunk(11, vertices, 3, 4, 2);
-		AddRootChunk(12, vertices, 3, 2, 6);
-		AddRootChunk(13, vertices, 3, 6, 8);
-		AddRootChunk(14, vertices, 3, 8, 9);
-
-		// 5 adjacent faces
-		AddRootChunk(15, vertices, 4, 9, 5);
-		AddRootChunk(16, vertices, 2, 4, 11);
-		AddRootChunk(17, vertices, 6, 2, 10);
-		AddRootChunk(18, vertices, 8, 6, 7);
-		AddRootChunk(19, vertices, 9, 8, 1);
-
+		AddRootChunk(0, vertices, 0, 1, 2, 3); // top
+		AddRootChunk(1, vertices, 5, 4, 7, 6); // bottom
+		AddRootChunk(2, vertices, 1, 5, 6, 2); // front
+		AddRootChunk(3, vertices, 3, 7, 4, 0); // back
+		AddRootChunk(4, vertices, 0, 4, 5, 1); // right
+		AddRootChunk(5, vertices, 2, 6, 7, 3); // left
 	}
 
 

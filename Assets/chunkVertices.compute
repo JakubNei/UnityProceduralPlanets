@@ -7,34 +7,20 @@ RWStructuredBuffer<float3> param_vertices;
 float3 param_rangeA;
 float3 param_rangeB;
 float3 param_rangeC;
+float3 param_rangeD;
 
 
-[numthreads(256,1,1)]
+[numthreads(32, 1, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
+	float max = float(param_numberOfVerticesOnEdge);
+	float2 uv = float2(id.x % max, floor(id.x / max));
 
-	int idTemp = id;
-	int idX = 0;
-	int idY = 0;
-
-	int numberOfVerticesOnLine = 1;
-	while (idTemp >= numberOfVerticesOnLine && numberOfVerticesOnLine < param_numberOfVerticesOnEdge)
-	{
-		idTemp -= numberOfVerticesOnLine;
-		numberOfVerticesOnLine++;
-		idY++;
-	}
-	idX = idTemp;
-
-	float x = 0;
-	float y = 0;
-	if (numberOfVerticesOnLine > 1) x = float(idX) / (numberOfVerticesOnLine - 1);
-	if (param_numberOfVerticesOnEdge > 1) y = float(idY) / (param_numberOfVerticesOnEdge - 1);
 
 	float3 positionInterpolated =
-		param_rangeA +
-		(param_rangeB - param_rangeA) * y * (1 - x) +
-		(param_rangeC - param_rangeA) * y * x;
+		(param_rangeA * uv.x + param_rangeB * (1 - uv.x))  * uv.y +
+		(param_rangeD * uv.x + param_rangeC * (1 - uv.x)) * (1 - uv.y)
+		;
 
 	float3 dirFromPlanetCenter = normalize(positionInterpolated);
 

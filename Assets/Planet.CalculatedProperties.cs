@@ -2,30 +2,7 @@
 
 public partial class Planet
 {
-	public int NumberOfVerticesNeededTotal { get { return (((numberOfVerticesOnEdge - 1) * numberOfVerticesOnEdge) / 2) + numberOfVerticesOnEdge; } }
-
-	/// <summary>
-	/// top vertex index
-	/// </summary>
-	public int AIndex { get { return 0; } }
-	/// <summary>
-	/// bottom left vertex index
-	/// </summary>
-	public int BIndex { get { return ((numberOfVerticesOnEdge - 1) * numberOfVerticesOnEdge) / 2; } }
-	/// <summary>
-	/// bottom right vertex index
-	/// </summary>
-	public int CIndex { get { return BIndex + (numberOfVerticesOnEdge - 1); } }
-
-
-	public int AIndexWithSkirts { get { return AIndex + 4; } }
-	public int BIndexWithSkirts { get { return BIndex - (numberOfVerticesOnEdge - 1) + 1; } }
-	public int CIndexWithSkirts { get { return BIndexWithSkirts + ((numberOfVerticesOnEdge - 3) - 1); } }
-
-
-	public int AIndexReal { get { return useSkirts ? AIndexWithSkirts : AIndex; } }
-	public int BIndexReal { get { return useSkirts ? BIndexWithSkirts : BIndex; } }
-	public int CIndexReal { get { return useSkirts ? CIndexWithSkirts : CIndex; } }
+	public int NumberOfVerticesNeededTotal { get { return numberOfVerticesOnEdge * numberOfVerticesOnEdge; } }
 
 
 

@@ -23,7 +23,7 @@ float param_seaLevel01;
 float3 calestialToSpherical(float3 c /*calestial*/)
 {
 	float r = length(c);
-	if (r == 0) return float3(0,0,0);
+	if (r == 0) return float3(0, 0, 0);
 
 	// calculate
 	float3 p = float3(
@@ -229,7 +229,7 @@ float GetHumidity(float2 uvCenter)
 			uv = uvCenter + float2(
 				cos(angle) * distanceToWater,
 				sin(angle) * distanceToWater
-			);
+				);
 			if (GetProceduralHeight01(uv) < param_seaLevel01) return 1 - distanceToWater / maxDistanceToWater;
 		}
 
