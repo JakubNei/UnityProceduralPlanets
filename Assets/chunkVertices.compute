@@ -14,8 +14,7 @@ float3 param_rangeD;
 void main(uint3 id : SV_DispatchThreadID)
 {
 	float max = float(param_numberOfVerticesOnEdge);
-	float2 uv = float2(id.x % max, floor(id.x / max));
-
+	float2 uv = float2((id.x % max) / (max-1), floor(id.x / max) / (max-1));
 
 	float3 positionInterpolated =
 		(param_rangeA * uv.x + param_rangeB * (1 - uv.x))  * uv.y +
