@@ -1,0 +1,50 @@
+﻿#pragma kernel main
+
+#pragma target 3.0
+#include "planet.cginc"
+
+Texture2D<float4> _biomesControlMap;
+SamplerState sampler_biomesControlMap;
+
+RWTexture2D<float4> _texture;
+float3 _rangeA;
+float3 _rangeB;
+float3 _rangeC;
+float3 _rangeD;
+
+[numthreads(16, 16, 1)]
+void main(uint3 id : SV_DispatchThreadID)
+{
+	float w, h;
+	_texture.GetDimensions(w, h);
+	float2 uv = id.xy / float2(w, h);
+
+	/*
+	float3 positionInterpolated =
+		_rangeA +
+		(_rangeB - _rangeA) * uv.y * (1 - uv.x) +
+		(_rangeC - _rangeA) * uv.y * uv.x;
+
+	float3 dirFromPlanetCenter = normalize(positionInterpolated);
+	float2 spherical = calestialToSpherical(dirFromPlanetCenter).xy;
+	float humidity = GetHumidity(spherical);
+
+	float altFromBottomOfSea = GetProceduralHeight01(dirFromPlanetCenter);
+	float altFromSea = altFromBottomOfSea - _seaLevel01;
+	// 1 at meridian.. 0 at poles
+	float distanceFromPoles = 1 - abs(spherical.y - 0.5) * 2;
+	float temperature = (1 - abs(altFromSea)) * distanceFromPoles;
+
+	float4 biome = _biomesControlMap.SampleLevel(
+		sampler_biomesControlMap,
+		float2(temperature, humidity),
+		0 // 0 = biggest mip map
+	);
+	_texture[id.xy] = biome;
+	*/
+
+	// DEBUG
+	_texture[id.xy] = float4(uv.x, uv.y, 0, 0);
+	//if(altFromBottomOfSea > _seaLevel01) _texture[id.xy] = float4(0,0,1,0); else _texture[id.xy] = float4(1, 1, 0, 0);
+
+}

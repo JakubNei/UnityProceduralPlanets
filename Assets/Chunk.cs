@@ -120,9 +120,9 @@ public class Chunk : MonoBehaviour
 		var b = new ComputeBuffer(v.Length, 3 * sizeof(float));
 		b.SetData(v);
 
-		var c = planet.generateVertices;
-		c.SetBuffer(0, "param_vertices", b);
-		RangeToGenerateInto.SetParams(c, "param_range");
+		var c = planet.generateChunkVertices;
+		c.SetBuffer(0, "_vertices", b);
+		RangeToGenerateInto.SetParams(c, "_range");
 		planet.SetParams(c);
 
 		c.Dispatch(0, v.Length, 1, 1);
@@ -156,9 +156,9 @@ public class Chunk : MonoBehaviour
 		diffuse.enableRandomWrite = true;
 		diffuse.Create();
 
-		var c = planet.generateDiffuseMap;
-		c.SetTexture(0, "param_texture", diffuse);
-		RangeToGenerateInto.SetParams(c, "param_range");
+		var c = planet.generateChunkDiffuseMap;
+		c.SetTexture(0, "_texture", diffuse);
+		RangeToGenerateInto.SetParams(c, "_range");
 		planet.SetParams(c);
 
 		c.Dispatch(0, diffuse.width, diffuse.height, 1);

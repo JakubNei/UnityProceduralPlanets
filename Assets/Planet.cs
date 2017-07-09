@@ -14,10 +14,14 @@ public partial class Planet : MonoBehaviour
 	public float stopSegmentRecursionAtWorldSize = 5;
 
 	public Material segmentMaterial;
-	public ComputeShader generateVertices;
+	public ComputeShader generateChunkVertices;
 	public Texture2D biomesControlMap;
-	public ComputeShader generateDiffuseMap;
-	public ComputeShader generateNormapMap;
+	public ComputeShader generateChunkDiffuseMap;
+	public ComputeShader generateChunkNormapMap;
+
+	public RenderTexture planetHeightMap;
+	public ComputeShader generatePlanetHeightMap;
+	public ComputeShader generatePlanetBiomesData;
 
 	public ulong id;
 
@@ -33,12 +37,12 @@ public partial class Planet : MonoBehaviour
 
 	public void SetParams(ComputeShader c)
 	{
-		c.SetInt("param_numberOfVerticesOnEdge", numberOfVerticesOnEdge);
-		c.SetFloat("param_radiusMin", radiusMin);
-		c.SetFloat("param_radiusVariation", radiusVariation);
-		c.SetFloat("param_seaLevel01", seaLevel01);
+		c.SetInt("_numberOfVerticesOnEdge", numberOfVerticesOnEdge);
+		c.SetFloat("_radiusMin", radiusMin);
+		c.SetFloat("_radiusVariation", radiusVariation);
+		c.SetFloat("_seaLevel01", seaLevel01);
 
-		c.SetTexture(0, "param_biomesControlMap", biomesControlMap);
+		c.SetTexture(0, "_biomesControlMap", biomesControlMap);
 	}
 
 
@@ -48,6 +52,18 @@ public partial class Planet : MonoBehaviour
 	{
 		allPlanets.Add(this);
 		InitializeRootChildren();
+		GeneratePlanetData();
+	}
+
+	void GeneratePlanetData()
+	{
+		var h = new RenderTexture(1024, 1024, 1024, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+		h.dimension = UnityEngine.Rendering.TextureDimension.Cube;
+		h.enableRandomWrite = true;
+		h.Create();
+
+		generatePlanetHeightMap.SetTexture(0, "_heightCubeMap", h);
+		generatePlanetHeightMap.Dispatch(0, h.width, h.height, 6);
 	}
 
 

@@ -3,10 +3,10 @@
 
 
 
-int param_numberOfVerticesOnEdge;
-float param_radiusMin;
-float param_radiusVariation;
-float param_seaLevel01;
+int _numberOfVerticesOnEdge;
+float _radiusMin;
+float _radiusVariation;
+float _seaLevel01;
 
 
 
@@ -192,7 +192,7 @@ float GetProceduralHeight01(float3 dir)
 }
 float GetProceduralHeight(float3 dir)
 {
-	return GetProceduralHeight01(dir) * param_radiusVariation;
+	return GetProceduralHeight01(dir) * _radiusVariation;
 }
 float GetProceduralHeight01(float2 uv)
 {
@@ -200,7 +200,7 @@ float GetProceduralHeight01(float2 uv)
 }
 float GetProceduralHeight(float2 uv)
 {
-	return GetProceduralHeight01(uv) * param_radiusVariation;
+	return GetProceduralHeight01(uv) * _radiusVariation;
 }
 
 
@@ -214,7 +214,7 @@ float GetProceduralHeight(float2 uv)
 float GetHumidity(float2 uvCenter)
 {
 	float2 uv = uvCenter;
-	if (GetProceduralHeight01(uv) < param_seaLevel01) return 1;
+	if (GetProceduralHeight01(uv) < _seaLevel01) return 1;
 
 	const float maxDistanceToWater = 0.05;
 	const float distanceToWaterIncrease = 0.001;
@@ -230,7 +230,7 @@ float GetHumidity(float2 uvCenter)
 				cos(angle) * distanceToWater,
 				sin(angle) * distanceToWater
 				);
-			if (GetProceduralHeight01(uv) < param_seaLevel01) return 1 - distanceToWater / maxDistanceToWater;
+			if (GetProceduralHeight01(uv) < _seaLevel01) return 1 - distanceToWater / maxDistanceToWater;
 		}
 
 		distanceToWater += distanceToWaterIncrease;

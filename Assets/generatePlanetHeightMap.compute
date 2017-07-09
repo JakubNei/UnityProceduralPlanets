@@ -1,0 +1,37 @@
+﻿#pragma kernel main
+
+#pragma target 3.0
+#include "planet.cginc"
+
+RWTexture2D<float4> _heightMap;
+
+float3 _heightMapRangeA;
+float3 _heightMapRangeB;
+float3 _heightMapRangeC;
+float3 _heightMapRangeD;
+
+float3 _posRangeA;
+float3 _posRangeB;
+float3 _posRangeC;
+float3 _posRangeD;
+
+[numthreads(16, 16, 1)]
+void main(uint3 id : SV_DispatchThreadID)
+{
+	float w, h;
+	_texture.GetDimensions(w, h);
+	float2 posUV = id.xy / float2(w, h);
+
+	float2 heightMapUV
+
+	float3 pos =
+		_posRangeA +
+		(_posRangeB - _posRangeA) * posUV.y * (1 - posUV.x) +
+		(_posRangeC - _posRangeA) * posUV.y * posUV.x;
+
+	float3 dir = normalize(pos); // direction from planet center
+
+	float height01 = GetProceduralHeight01(dir);	
+
+	_texture[id.xy] = float4(1, 1, 1, 0) * height01;
+}
