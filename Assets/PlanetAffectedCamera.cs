@@ -8,7 +8,6 @@ public class PlanetAffectedCamera : MonoBehaviour
 	public float velocityChangeSpeed = 10.0f;
 	public float mouseSensitivty = 100f;
 
-	public bool disabledInput = false;
 	public bool speedBasedOnDistanceToPlanet = true;
 	public bool collideWithPlanetSurface = true;
 

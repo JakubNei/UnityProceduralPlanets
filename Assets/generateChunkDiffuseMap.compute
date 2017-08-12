@@ -45,6 +45,7 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	// DEBUG
 	_texture[id.xy] = float4(uv.x, uv.y, 0, 0);
+	//_texture[id.xy] = float4(1,1,1,1) * 0.7;
 	//if(altFromBottomOfSea > _seaLevel01) _texture[id.xy] = float4(0,0,1,0); else _texture[id.xy] = float4(1, 1, 0, 0);
 
 }

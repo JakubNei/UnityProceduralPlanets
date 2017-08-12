@@ -3,14 +3,70 @@
 #include "planet.cginc"
 
 Texture2D<float4> _heightMap;
-SamplerState sampler_heightMap;
 float GetCubicInterpolatedHeight(float2 uv)
 {
-	float w, h;
+	int w, h;
 	_heightMap.GetDimensions(w, h);
-	int2 xy = int2(uv.x * w, uv.y * h);
-	return _heightMap[xy].x;
+	float2 xy = uv * float2(w, h); // 0,0 ... w,h
+
+	/*
+	p03--p13-------p23--p33
+	 |    |         |    |
+	p02--p12-------p22--p32     1
+	 |    |         |    |     ...
+	 |   t.y  xy    |    |     t.y
+	 |    |         |    |     ...
+	p01--p11--t.x--p21--p31     0...tx...1
+	 |    |         |    |
+	p00--p10-------p20--p30
+	*/
+
+	float2 xyFloored = floor(xy);
+	float2 t = xy - xyFloored; // 0,0 ... 1,1
+	float2 t2 = t * t;
+	float2 t3 = t2 * t;
+
+	int2 p12 = int2(xyFloored);
+	int2 p00 = p12 - int2(1, 2);
+
+#define SAMPLE_HEIGHT(X, Y) (_heightMap[p00 + int2(X, Y)].x)
+
+	float v00 = SAMPLE_HEIGHT(0, 0);
+	float v01 = SAMPLE_HEIGHT(0, 1);
+	float v02 = SAMPLE_HEIGHT(0, 2);
+	float v03 = SAMPLE_HEIGHT(0, 3);
+
+	float v10 = SAMPLE_HEIGHT(1, 0);
+	float v11 = SAMPLE_HEIGHT(1, 1);
+	float v12 = SAMPLE_HEIGHT(1, 2);
+	float v13 = SAMPLE_HEIGHT(1, 3);
+
+	float v20 = SAMPLE_HEIGHT(2, 0);
+	float v21 = SAMPLE_HEIGHT(2, 1);
+	float v22 = SAMPLE_HEIGHT(2, 2);
+	float v23 = SAMPLE_HEIGHT(2, 3);
+
+	float v30 = SAMPLE_HEIGHT(3, 0);
+	float v31 = SAMPLE_HEIGHT(3, 1);
+	float v32 = SAMPLE_HEIGHT(3, 2);
+	float v33 = SAMPLE_HEIGHT(3, 3);
+
+
+	// https://en.wikipedia.org/wiki/Cubic_Hermite_spline
+#define CUBIC_HERMITE(T,T2,T3,P0,P1,P2,P3) ((2*T3-3*T2+1)*P1 + (T3-2*T2+T)*(P1-P0) + (-2*T3+3*T2)*P2 + (T3-T2)*(P3-P2))
+
+	// first interpolate on X
+	float c0 = CUBIC_HERMITE(t.x, t2.x, t3.x, v00, v10, v20, v30);
+	float c1 = CUBIC_HERMITE(t.x, t2.x, t3.x, v01, v11, v21, v31);
+	float c2 = CUBIC_HERMITE(t.x, t2.x, t3.x, v02, v12, v22, v32);
+	float c3 = CUBIC_HERMITE(t.x, t2.x, t3.x, v03, v13, v23, v33);
+
+	// then on Y
+	float f = CUBIC_HERMITE(t.y, t2.y, t3.y, c0, c1, c2, c3);
+
+	return f;
 }
+
 
 
 int _numberOfVerticesOnEdge;

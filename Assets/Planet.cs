@@ -60,6 +60,7 @@ public partial class Planet : MonoBehaviour
 		planetHeightMap = new RenderTexture(32 * 32, 32 * 32, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
 		planetHeightMap.dimension = UnityEngine.Rendering.TextureDimension.Tex2D;
 		planetHeightMap.enableRandomWrite = true;
+		planetHeightMap.wrapMode = TextureWrapMode.Mirror;
 		planetHeightMap.Create();
 
 		generatePlanetHeightMap.SetTexture(0, "_heightMap", planetHeightMap);
@@ -83,7 +84,7 @@ public partial class Planet : MonoBehaviour
 			s.GenerateDiffuseMap();
 			s.GenerateNormalMap();
 			//if (sw.Elapsed.TotalMilliseconds > 5f)
-				break;
+			break;
 		}
 	}
 
