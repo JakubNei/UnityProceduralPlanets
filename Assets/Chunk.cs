@@ -7,13 +7,12 @@ public class Chunk : MonoBehaviour
 {
 
 	public Planet planet;
-	public Range range;
 	public ulong id;
 	public Chunk parent;
 	public ulong generation;
 
-	public Range RangeToGenerateInto { get { return range; } }
-	public Range RangeToCalculateScreenSizeOn { get { return range; } }
+	public Range rangeToGenerateInto;
+	public Range rangeToCalculateScreenSizeOn;
 
 	public ChildPosition childPosition;
 
@@ -41,7 +40,8 @@ public class Chunk : MonoBehaviour
 
 		var segment = go.AddComponent<Chunk>();
 		segment.planet = planet;
-		segment.range = range;
+		segment.rangeToGenerateInto = range;
+		segment.rangeToCalculateScreenSizeOn = range;
 		segment.id = id;
 		segment.generation = generation;
 		segment.childPosition = childPosition;
@@ -83,10 +83,10 @@ public class Chunk : MonoBehaviour
 			d----dc---c
 			*/
 
-			var a = range.a;
-			var b = range.b;
-			var c = range.c;
-			var d = range.d;
+			var a = rangeToGenerateInto.a;
+			var b = rangeToGenerateInto.b;
+			var c = rangeToGenerateInto.c;
+			var d = rangeToGenerateInto.d;
 			var ab = Vector3.Normalize((a + b) / 2.0f);
 			var ad = Vector3.Normalize((a + d) / 2.0f);
 			var bc = Vector3.Normalize((b + c) / 2.0f);
@@ -122,10 +122,13 @@ public class Chunk : MonoBehaviour
 
 		var c = planet.generateChunkVertices;
 		c.SetBuffer(0, "_vertices", b);
-		RangeToGenerateInto.SetParams(c, "_range");
-		planet.SetParams(c);
+		rangeToGenerateInto.SetParams(c, "_range");
+		c.SetInt("_numberOfVerticesOnEdge", planet.numberOfVerticesOnEdge);
+		c.SetFloat("_radiusBase", planet.radiusMin);
+		c.SetFloat("_radiusHeightMap", planet.radiusVariation);
+		c.SetTexture(0, "_heightMap", planet.planetHeightMap);
 
-		c.Dispatch(0, v.Length, 1, 1);
+		c.Dispatch(0, planet.numberOfVerticesOnEdge, planet.numberOfVerticesOnEdge, 1);
 
 		b.GetData(v);
 
@@ -147,6 +150,19 @@ public class Chunk : MonoBehaviour
 		var meshCollider = go.AddComponent<MeshCollider>();
 		meshCollider.sharedMesh = mesh;
 
+
+		{
+			int aIndex = 0;
+			int bIndex = planet.numberOfVerticesOnEdge - 1;
+			int cIndex = planet.numberOfVerticesOnEdge * planet.numberOfVerticesOnEdge - 1;
+			int dIndex = cIndex - (planet.numberOfVerticesOnEdge - 1);
+			rangeToCalculateScreenSizeOn.a = v[aIndex];
+			rangeToCalculateScreenSizeOn.b = v[bIndex];
+			rangeToCalculateScreenSizeOn.c = v[cIndex];
+			rangeToCalculateScreenSizeOn.d = v[dIndex];
+		}
+
+
 		isGenerationDone = true;
 	}
 
@@ -158,8 +174,7 @@ public class Chunk : MonoBehaviour
 
 		var c = planet.generateChunkDiffuseMap;
 		c.SetTexture(0, "_texture", diffuse);
-		RangeToGenerateInto.SetParams(c, "_range");
-		planet.SetParams(c);
+		rangeToGenerateInto.SetParams(c, "_range");
 
 		c.Dispatch(0, diffuse.width, diffuse.height, 1);
 
@@ -178,10 +193,16 @@ public class Chunk : MonoBehaviour
 		if (gameObject && gameObject.activeSelf)
 		{
 			Gizmos.color = Color.cyan;
-			Gizmos.DrawLine(range.a, range.b);
-			Gizmos.DrawLine(range.b, range.c);
-			Gizmos.DrawLine(range.c, range.d);
-			Gizmos.DrawLine(range.d, range.a);
+			Gizmos.DrawLine(rangeToGenerateInto.a, rangeToGenerateInto.b);
+			Gizmos.DrawLine(rangeToGenerateInto.b, rangeToGenerateInto.c);
+			Gizmos.DrawLine(rangeToGenerateInto.c, rangeToGenerateInto.d);
+			Gizmos.DrawLine(rangeToGenerateInto.d, rangeToGenerateInto.a);
+
+			Gizmos.color = Color.red;
+			Gizmos.DrawLine(rangeToCalculateScreenSizeOn.a, rangeToCalculateScreenSizeOn.b);
+			Gizmos.DrawLine(rangeToCalculateScreenSizeOn.b, rangeToCalculateScreenSizeOn.c);
+			Gizmos.DrawLine(rangeToCalculateScreenSizeOn.c, rangeToCalculateScreenSizeOn.d);
+			Gizmos.DrawLine(rangeToCalculateScreenSizeOn.d, rangeToCalculateScreenSizeOn.a);
 		}
 	}
 
@@ -233,11 +254,11 @@ public class Chunk : MonoBehaviour
 
 	private float GetSizeOnScreen(Planet.SubdivisionData data)
 	{
-		var myPos = RangeToCalculateScreenSizeOn.CenterPos + planet.transform.position;
+		var myPos = rangeToCalculateScreenSizeOn.CenterPos + planet.transform.position;
 		var distanceToCamera = Vector3.Distance(myPos, data.pos);
 
-		// this is world space, doesnt take into consideration rotation, not good
-		var sphere = RangeToCalculateScreenSizeOn.ToBoundingSphere();
+		// TODO: this is world space, doesnt take into consideration rotation, not good, but we dont care about rotation ?, we want to have correct detail even if looking from side
+		var sphere = rangeToCalculateScreenSizeOn.ToBoundingSphere();
 		var radiusWorldSpace = sphere.radius;
 		var fov = data.fieldOfView;
 		var cot = 1.0f / Mathf.Tan(fov / 2f * Mathf.Deg2Rad);

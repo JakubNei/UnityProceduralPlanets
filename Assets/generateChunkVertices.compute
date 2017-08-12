@@ -1,10 +1,21 @@
 ﻿#pragma kernel main
 
-#pragma target 3.0
 #include "planet.cginc"
 
 Texture2D<float4> _heightMap;
 SamplerState sampler_heightMap;
+float GetCubicInterpolatedHeight(float2 uv)
+{
+	float w, h;
+	_heightMap.GetDimensions(w, h);
+	int2 xy = int2(uv.x * w, uv.y * h);
+	return _heightMap[xy].x;
+}
+
+
+int _numberOfVerticesOnEdge;
+float _radiusBase;
+float _radiusHeightMap;
 
 RWStructuredBuffer<float3> _vertices;
 float3 _rangeA;
@@ -13,19 +24,21 @@ float3 _rangeC;
 float3 _rangeD;
 
 
-[numthreads(32, 32, 1)]
+[numthreads(1, 1, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
-	float max = float(_numberOfVerticesOnEdge);
-	float2 uv = float2((id.x % max) / (max - 1), floor(id.x / max) / (max - 1));
-	
+	float max = float(_numberOfVerticesOnEdge - 1);
+	float2 uv = float2(id.x / max, id.y / max);
 
-	float3 pos =
-		_rangeA +
-		(_rangeB - _rangeA) * uv.y * (1 - uv.x) +
-		(_rangeC - _rangeA) * uv.y * uv.x;
+	float3 posTop = _rangeA * (1 - uv.x) + _rangeB * uv.x;
+	float3 posBottom = _rangeD * (1 - uv.x) + _rangeC * uv.x;
+	float3 pos = posTop * (1 - uv.y) + posBottom * uv.y;
 
+	float3 dir = normalize(pos);
 
+	float2 heightMapUv = dirFromCenterToBaseMapUv(dir);
 
-	_vertices[id.x] = pos;
+	float height = GetCubicInterpolatedHeight(heightMapUv);
+
+	_vertices[id.x + id.y * _numberOfVerticesOnEdge] = dir * (_radiusBase + _radiusHeightMap * height);
 }

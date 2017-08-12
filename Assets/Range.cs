@@ -45,7 +45,7 @@ public struct Range
 	public Sphere ToBoundingSphere()
 	{
 		var center = CenterPos;
-		var radius = (float)Math.Sqrt(
+		var radius = 
 			Math.Max(
 				Math.Max(
 					Vector3.Distance(center, a),
@@ -55,8 +55,8 @@ public struct Range
 					Vector3.Distance(center, c),
 					Vector3.Distance(center, d)
 				)
-			)
-		);
+			);
+		
 		return new Sphere(center, radius);
 	}
 

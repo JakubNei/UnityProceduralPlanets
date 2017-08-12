@@ -108,19 +108,23 @@ public class PlanetAffectedCamera : MonoBehaviour
 
 
 
-		var mouseDelta = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
+		var mouseDelta = Vector2.zero;
+
+		if (!Cursor.visible)
+			mouseDelta = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
 
 		var scrollWheelDelta = Input.mouseScrollDelta.x - scrollWheelValue;
 		scrollWheelValue = Input.mouseScrollDelta.x;
 
-		
+
 		if (Input.GetKeyDown(KeyCode.Escape))
 		{
 			/*if (Scene.Engine.WindowState == WindowState.Fullscreen)
 			{
 				Scene.Engine.WindowState = WindowState.Normal;
 			}
-			else*/ if (Cursor.lockState != CursorLockMode.None)
+			else*/
+			if (!Cursor.visible)
 			{
 				Cursor.lockState = CursorLockMode.None;
 				Cursor.visible = true;
@@ -133,13 +137,13 @@ public class PlanetAffectedCamera : MonoBehaviour
 
 		if (Input.GetMouseButtonDown(0))
 		{
-			if (Cursor.lockState != CursorLockMode.Locked)
+			if (Cursor.visible)
 			{
 				Cursor.lockState = CursorLockMode.Locked;
 				Cursor.visible = false;
 			}
 		}
-		
+
 
 		float planetSpeedModifier = 1;
 
@@ -263,7 +267,6 @@ public class PlanetAffectedCamera : MonoBehaviour
 
 
 
-			transform.rotation = rotation;
 
 			targetVelocity = rotation * targetVelocity;
 			currentVelocity = Vector3.Lerp(currentVelocity, targetVelocity, velocityChangeSpeed * (float)deltaTime);
@@ -288,8 +291,17 @@ public class PlanetAffectedCamera : MonoBehaviour
 			}
 			*/
 
-			transform.position = position; // += Entity.transform.position.Towards(position).ToVector3d() * deltaTime * 10;
-
+			var rb = GetComponent<Rigidbody>();
+			if (rb)
+			{
+				rb.AddForce(currentVelocity - rb.velocity, ForceMode.VelocityChange);
+				rb.MoveRotation(rotation);
+			}
+			else
+			{
+				transform.rotation = rotation;
+				transform.position = position; // += Entity.transform.position.Towards(position).ToVector3d() * deltaTime * 10;
+			}
 			//Log.Info(entity.transform.position);
 		}
 

@@ -5,6 +5,16 @@ using UnityEngine;
 
 public partial class Planet : MonoBehaviour
 {
+
+	public class PlanetConfig
+	{
+
+	}
+	public class ChunkConfig
+	{
+
+	}
+
 	public float weightNeededToSubdivide = 0.3f;
 
 	public float radiusMin = 100;
@@ -35,16 +45,6 @@ public partial class Planet : MonoBehaviour
 
 	public Vector3 Center { get { return transform.position; } }
 
-	public void SetParams(ComputeShader c)
-	{
-		c.SetInt("_numberOfVerticesOnEdge", numberOfVerticesOnEdge);
-		c.SetFloat("_radiusMin", radiusMin);
-		c.SetFloat("_radiusVariation", radiusVariation);
-		c.SetFloat("_seaLevel01", seaLevel01);
-
-		c.SetTexture(0, "_biomesControlMap", biomesControlMap);
-	}
-
 
 
 	// Use this for initialization
@@ -57,13 +57,13 @@ public partial class Planet : MonoBehaviour
 
 	void GeneratePlanetData()
 	{
-		var h = new RenderTexture(1024, 1024, 1024, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
-		h.dimension = UnityEngine.Rendering.TextureDimension.Cube;
-		h.enableRandomWrite = true;
-		h.Create();
+		planetHeightMap = new RenderTexture(32 * 32, 32 * 32, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+		planetHeightMap.dimension = UnityEngine.Rendering.TextureDimension.Tex2D;
+		planetHeightMap.enableRandomWrite = true;
+		planetHeightMap.Create();
 
-		generatePlanetHeightMap.SetTexture(0, "_heightCubeMap", h);
-		generatePlanetHeightMap.Dispatch(0, h.width, h.height, 6);
+		generatePlanetHeightMap.SetTexture(0, "_heightMap", planetHeightMap);
+		generatePlanetHeightMap.Dispatch(0, planetHeightMap.width / 32, planetHeightMap.height / 32, 6);
 	}
 
 

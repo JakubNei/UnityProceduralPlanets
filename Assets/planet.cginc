@@ -3,12 +3,6 @@
 
 
 
-int _numberOfVerticesOnEdge;
-float _radiusMin;
-float _radiusVariation;
-float _seaLevel01;
-
-
 
 
 
@@ -74,6 +68,15 @@ float3 sphericalToCalestial(float2 c /*spherical*/)
 
 
 
+
+
+float3 baseMapUvToDirFromCenter(float2 uv) {
+	return sphericalToCalestial(uv);
+}
+
+float2 dirFromCenterToBaseMapUv(float3 dir) {
+	return calestialToSpherical(dir).xy;
+}
 
 
 
@@ -190,26 +193,10 @@ float GetProceduralHeight01(float3 dir)
 	return result;
 
 }
-float GetProceduralHeight(float3 dir)
-{
-	return GetProceduralHeight01(dir) * _radiusVariation;
-}
-float GetProceduralHeight01(float2 uv)
-{
-	return GetProceduralHeight01(sphericalToCalestial(uv));
-}
-float GetProceduralHeight(float2 uv)
-{
-	return GetProceduralHeight01(uv) * _radiusVariation;
-}
 
 
 
-
-
-
-
-
+/*
 
 float GetHumidity(float2 uvCenter)
 {
@@ -282,7 +269,7 @@ float3 GetProceduralAndBaseHeightMapNormal(float3 direction, float3 normal, floa
 
 
 
-
+*/
 
 
 
