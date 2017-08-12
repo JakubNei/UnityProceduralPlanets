@@ -18,7 +18,7 @@ public partial class Planet
 
 		if (recursionDepth < SubdivisionMaxRecurisonDepth)
 		{
-			if (weight > weightNeededToSubdivide)
+			if (weight > chunkConfig.weightNeededToSubdivide)
 			{
 				segment.EnsureChildrenInstancesAreCreated();
 

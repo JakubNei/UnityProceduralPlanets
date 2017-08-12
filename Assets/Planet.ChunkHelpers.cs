@@ -40,13 +40,13 @@ public partial class Planet
 
 		var indicies = new List<int>(NumberOfVerticesNeededTotal);
 
-		for (int line = 0; line < numberOfVerticesOnEdge - 1; line++)
+		for (int line = 0; line < chunkConfig.numberOfVerticesOnEdge - 1; line++)
 		{
-			for (int column = 0; column < numberOfVerticesOnEdge - 1; column++)
+			for (int column = 0; column < chunkConfig.numberOfVerticesOnEdge - 1; column++)
 			{
-				var a = line * numberOfVerticesOnEdge + column;
+				var a = line * chunkConfig.numberOfVerticesOnEdge + column;
 				var b = a + 1;
-				var d = a + numberOfVerticesOnEdge;
+				var d = a + chunkConfig.numberOfVerticesOnEdge;
 				var c = d + 1;
 
 				indicies.Add(a);
@@ -73,13 +73,13 @@ public partial class Planet
 		segmentUVs = new Vector2[NumberOfVerticesNeededTotal];
 		int i = 0;
 
-		for (int y = 0; y < numberOfVerticesOnEdge; y++)
+		for (int y = 0; y < chunkConfig.numberOfVerticesOnEdge; y++)
 		{
-			for (int x = 0; x < numberOfVerticesOnEdge; x++)
+			for (int x = 0; x < chunkConfig.numberOfVerticesOnEdge; x++)
 			{
 				segmentUVs[i++] = new Vector2(
-					((float)x) / numberOfVerticesOnEdge,
-					((float)y) / numberOfVerticesOnEdge
+					((float)x) / chunkConfig.numberOfVerticesOnEdge,
+					((float)y) / chunkConfig.numberOfVerticesOnEdge
 				);
 			}
 		}

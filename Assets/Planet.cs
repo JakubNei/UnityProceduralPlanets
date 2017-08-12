@@ -5,41 +5,47 @@ using UnityEngine;
 
 public partial class Planet : MonoBehaviour
 {
-
+	[System.Serializable]
 	public class PlanetConfig
 	{
+		public RenderTexture planetHeightMap;
+		public ComputeShader generatePlanetHeightMap;
 
+		public Texture2D biomesControlMap;
+		public ComputeShader generatePlanetBiomesData;
+		public float radiusMin = 1000;
+		public float radiusVariation = 30;
+		public float seaLevel01 = 0.5f;
 	}
+	public PlanetConfig planetConfig;
+
+	[System.Serializable]
 	public class ChunkConfig
 	{
+		public bool useSkirts = false;
+		public int numberOfVerticesOnEdge = 20;
+		public float weightNeededToSubdivide = 0.70f;
+		public float stopSegmentRecursionAtWorldSize = 10;
 
+		public Material chunkMaterial;
+		public ComputeShader generateChunkVertices;
+		public ComputeShader generateChunkDiffuseMap;
+		public ComputeShader generateChunkNormapMap;
 	}
+	public ChunkConfig chunkConfig;
 
-	public float weightNeededToSubdivide = 0.3f;
 
-	public float radiusMin = 100;
-	public float radiusVariation = 10;
-	public float seaLevel01 = 0.5f;
 
-	public float stopSegmentRecursionAtWorldSize = 5;
 
-	public Material segmentMaterial;
-	public ComputeShader generateChunkVertices;
-	public Texture2D biomesControlMap;
-	public ComputeShader generateChunkDiffuseMap;
-	public ComputeShader generateChunkNormapMap;
 
-	public RenderTexture planetHeightMap;
-	public ComputeShader generatePlanetHeightMap;
-	public ComputeShader generatePlanetBiomesData;
+
+
 
 	public ulong id;
 
 	public List<Chunk> rootChildren;
 
 
-	public bool useSkirts = false;
-	public int numberOfVerticesOnEdge = 10;
 
 	public static HashSet<Planet> allPlanets = new HashSet<Planet>();
 
@@ -57,14 +63,14 @@ public partial class Planet : MonoBehaviour
 
 	void GeneratePlanetData()
 	{
-		planetHeightMap = new RenderTexture(32 * 32, 32 * 32, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
-		planetHeightMap.dimension = UnityEngine.Rendering.TextureDimension.Tex2D;
-		planetHeightMap.enableRandomWrite = true;
-		planetHeightMap.wrapMode = TextureWrapMode.Mirror;
-		planetHeightMap.Create();
+		var t = planetConfig.planetHeightMap = new RenderTexture(32 * 32, 32 * 32, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+		t.dimension = UnityEngine.Rendering.TextureDimension.Tex2D;
+		t.enableRandomWrite = true;
+		t.wrapMode = TextureWrapMode.Mirror;
+		t.Create();
 
-		generatePlanetHeightMap.SetTexture(0, "_heightMap", planetHeightMap);
-		generatePlanetHeightMap.Dispatch(0, planetHeightMap.width / 32, planetHeightMap.height / 32, 6);
+		planetConfig.generatePlanetHeightMap.SetTexture(0, "_heightMap", t);
+		planetConfig.generatePlanetHeightMap.Dispatch(0, t.width / 32, t.height / 32, 6);
 	}
 
 
@@ -125,7 +131,7 @@ public partial class Planet : MonoBehaviour
 
 		var indicies = new List<uint>();
 
-		var halfSIze = Mathf.Sqrt((radiusMin * radiusMin) / 3.0f);
+		var halfSIze = Mathf.Sqrt((planetConfig.radiusMin * planetConfig.radiusMin) / 3.0f);
 
 		/* 3----------0
 		  /|         /|
@@ -164,7 +170,7 @@ public partial class Planet : MonoBehaviour
 		if (rootChildren == null || rootChildren.Count == 0)
 		{
 			Gizmos.color = Color.blue;
-			Gizmos.DrawSphere(this.transform.position, this.radiusMin);
+			Gizmos.DrawSphere(this.transform.position, planetConfig.radiusMin);
 		}
 	}
 }

@@ -7,6 +7,10 @@ public class Chunk : MonoBehaviour
 {
 
 	public Planet planet;
+
+	public Planet.PlanetConfig planetConfig { get { return planet.planetConfig; } }
+	public Planet.ChunkConfig chunkConfig { get { return planet.chunkConfig; } }
+
 	public ulong id;
 	public Chunk parent;
 	public ulong generation;
@@ -93,11 +97,11 @@ public class Chunk : MonoBehaviour
 			var dc = Vector3.Normalize((d + c) / 2.0f);
 			var mid = Vector3.Normalize((ab + ad + dc + bc) / 4.0f);
 
-			ab *= planet.radiusMin;
-			ad *= planet.radiusMin;
-			bc *= planet.radiusMin;
-			dc *= planet.radiusMin;
-			mid *= planet.radiusMin;
+			ab *= planetConfig.radiusMin;
+			ad *= planetConfig.radiusMin;
+			bc *= planetConfig.radiusMin;
+			dc *= planetConfig.radiusMin;
+			mid *= planetConfig.radiusMin;
 
 			AddChild(a, ab, mid, ad, ChildPosition.TopLeft, 0);
 			AddChild(ab, b, bc, mid, ChildPosition.TopRight, 1);
@@ -120,15 +124,15 @@ public class Chunk : MonoBehaviour
 		var b = new ComputeBuffer(v.Length, 3 * sizeof(float));
 		b.SetData(v);
 
-		var c = planet.generateChunkVertices;
+		var c = chunkConfig.generateChunkVertices;
 		c.SetBuffer(0, "_vertices", b);
 		rangeToGenerateInto.SetParams(c, "_range");
-		c.SetInt("_numberOfVerticesOnEdge", planet.numberOfVerticesOnEdge);
-		c.SetFloat("_radiusBase", planet.radiusMin);
-		c.SetFloat("_radiusHeightMap", planet.radiusVariation);
-		c.SetTexture(0, "_heightMap", planet.planetHeightMap);
+		c.SetInt("_numberOfVerticesOnEdge", chunkConfig.numberOfVerticesOnEdge);
+		c.SetFloat("_radiusBase", planetConfig.radiusMin);
+		c.SetFloat("_radiusHeightMap", planetConfig.radiusVariation);
+		c.SetTexture(0, "_heightMap", planetConfig.planetHeightMap);
 
-		c.Dispatch(0, planet.numberOfVerticesOnEdge, planet.numberOfVerticesOnEdge, 1);
+		c.Dispatch(0, chunkConfig.numberOfVerticesOnEdge, chunkConfig.numberOfVerticesOnEdge, 1);
 
 		b.GetData(v);
 
@@ -145,23 +149,21 @@ public class Chunk : MonoBehaviour
 		meshFilter.mesh = mesh;
 
 		var meshRenderer = go.AddComponent<MeshRenderer>();
-		meshRenderer.material = planet.segmentMaterial;
+		meshRenderer.material = chunkConfig.chunkMaterial;
 
 		var meshCollider = go.AddComponent<MeshCollider>();
 		meshCollider.sharedMesh = mesh;
 
-
 		{
 			int aIndex = 0;
-			int bIndex = planet.numberOfVerticesOnEdge - 1;
-			int cIndex = planet.numberOfVerticesOnEdge * planet.numberOfVerticesOnEdge - 1;
-			int dIndex = cIndex - (planet.numberOfVerticesOnEdge - 1);
+			int bIndex = chunkConfig.numberOfVerticesOnEdge - 1;
+			int cIndex = chunkConfig.numberOfVerticesOnEdge * chunkConfig.numberOfVerticesOnEdge - 1;
+			int dIndex = cIndex - (chunkConfig.numberOfVerticesOnEdge - 1);
 			rangeToCalculateScreenSizeOn.a = v[aIndex];
 			rangeToCalculateScreenSizeOn.b = v[bIndex];
 			rangeToCalculateScreenSizeOn.c = v[cIndex];
 			rangeToCalculateScreenSizeOn.d = v[dIndex];
 		}
-
 
 		isGenerationDone = true;
 	}
@@ -172,9 +174,10 @@ public class Chunk : MonoBehaviour
 		diffuse.enableRandomWrite = true;
 		diffuse.Create();
 
-		var c = planet.generateChunkDiffuseMap;
+		var c = chunkConfig.generateChunkDiffuseMap;
 		c.SetTexture(0, "_texture", diffuse);
 		rangeToGenerateInto.SetParams(c, "_range");
+
 
 		c.Dispatch(0, diffuse.width, diffuse.height, 1);
 
