@@ -20,6 +20,7 @@ public class Chunk
 	public Chunk parent;
 	public ulong generation;
 
+	public Range rangeRealSubdivided;
 	public Range rangeToGenerateInto;
 	public Range rangeToCalculateScreenSizeOn;
 
@@ -38,7 +39,7 @@ public class Chunk
 	public bool generationBegan;
 	public bool isGenerationDone;
 	public List<Chunk> children = new List<Chunk>(4);
-
+	public float chunkRadius;
 
 	public class Behavior : MonoBehaviour
 	{
@@ -54,11 +55,31 @@ public class Chunk
 	{
 		var chunk = new Chunk();
 		chunk.planet = planet;
-		chunk.rangeToGenerateInto = range;
+		chunk.rangeRealSubdivided = range;
 		chunk.rangeToCalculateScreenSizeOn = range;
 		chunk.id = id;
 		chunk.generation = generation;
 		chunk.childPosition = childPosition;
+		chunk.chunkRadius = range.ToBoundingSphere().radius;
+
+		if (chunk.chunkConfig.useSkirts)
+		{
+			var ratio = ((chunk.chunkConfig.numberOfVerticesOnEdge - 1) / 2.0f) / ((chunk.chunkConfig.numberOfVerticesOnEdge - 1 - 2) / 2.0f);
+			var center = range.CenterPos;
+			var a = range.a - center;
+			var b = range.b - center;
+			var c = range.c - center;
+			var d = range.d - center;
+			range.a = a * ratio + center;
+			range.b = b * ratio + center;
+			range.c = c * ratio + center;
+			range.d = d * ratio + center;
+			chunk.rangeToGenerateInto = range;
+		}
+		else
+		{
+			chunk.rangeToGenerateInto = range;
+		}
 
 		return chunk;
 	}
@@ -97,10 +118,10 @@ public class Chunk
 			d----dc---c
 			*/
 
-			var a = rangeToGenerateInto.a;
-			var b = rangeToGenerateInto.b;
-			var c = rangeToGenerateInto.c;
-			var d = rangeToGenerateInto.d;
+			var a = rangeRealSubdivided.a;
+			var b = rangeRealSubdivided.b;
+			var c = rangeRealSubdivided.c;
+			var d = rangeRealSubdivided.d;
 			var ab = Vector3.Normalize((a + b) / 2.0f);
 			var ad = Vector3.Normalize((a + d) / 2.0f);
 			var bc = Vector3.Normalize((b + c) / 2.0f);
@@ -160,18 +181,30 @@ public class Chunk
 		var b = new ComputeBuffer(v.Length, 3 * sizeof(float));
 		b.SetData(v);
 
+		var verticesOnEdge = chunkConfig.numberOfVerticesOnEdge;
+
 		var c = chunkConfig.generateChunkVertices;
 		c.SetBuffer(0, "_vertices", b);
 		rangeToGenerateInto.SetParams(c, "_range");
-		c.SetInt("_numberOfVerticesOnEdge", chunkConfig.numberOfVerticesOnEdge);
+		c.SetInt("_numberOfVerticesOnEdge", verticesOnEdge);
 		c.SetFloat("_radiusBase", planetConfig.radiusMin);
 		c.SetFloat("_radiusHeightMap", planetConfig.radiusVariation);
 		c.SetTexture(0, "_chunkHeightMap", chunkHeightMap);
 
-		c.Dispatch(0, chunkConfig.numberOfVerticesOnEdge, chunkConfig.numberOfVerticesOnEdge, 1);
+		c.Dispatch(0, verticesOnEdge, verticesOnEdge, 1);
 
 		b.GetData(v);
 
+		{
+			int aIndex = 0;
+			int bIndex = verticesOnEdge - 1;
+			int cIndex = verticesOnEdge * verticesOnEdge - 1;
+			int dIndex = cIndex - (verticesOnEdge - 1);
+			rangeToCalculateScreenSizeOn.a = v[aIndex];
+			rangeToCalculateScreenSizeOn.b = v[bIndex];
+			rangeToCalculateScreenSizeOn.c = v[cIndex];
+			rangeToCalculateScreenSizeOn.d = v[dIndex];
+		}
 
 		mesh = new Mesh();
 		mesh.vertices = v;
@@ -180,15 +213,20 @@ public class Chunk
 		mesh.RecalculateNormals();
 		mesh.RecalculateTangents();
 
+		if (chunkConfig.useSkirts)
 		{
-			int aIndex = 0;
-			int bIndex = chunkConfig.numberOfVerticesOnEdge - 1;
-			int cIndex = chunkConfig.numberOfVerticesOnEdge * chunkConfig.numberOfVerticesOnEdge - 1;
-			int dIndex = cIndex - (chunkConfig.numberOfVerticesOnEdge - 1);
-			rangeToCalculateScreenSizeOn.a = v[aIndex];
-			rangeToCalculateScreenSizeOn.b = v[bIndex];
-			rangeToCalculateScreenSizeOn.c = v[cIndex];
-			rangeToCalculateScreenSizeOn.d = v[dIndex];
+			var decreaseSkirtsBy = -rangeRealSubdivided.CenterPos.normalized * (chunkRadius / 10.0f);
+			for (int i = 0; i < verticesOnEdge; i++)
+			{
+				v[i] += decreaseSkirtsBy; // top line
+				v[verticesOnEdge * (verticesOnEdge - 1) + i] += decreaseSkirtsBy; // bottom line
+			}
+			for (int i = 1; i < verticesOnEdge - 1; i++)
+			{
+				v[verticesOnEdge * i] += decreaseSkirtsBy; // left line
+				v[verticesOnEdge * i + verticesOnEdge - 1] += decreaseSkirtsBy; // right line
+			}
+			mesh.vertices = v;
 		}
 
 		isGenerationDone = true;
@@ -238,7 +276,7 @@ public class Chunk
 		c.SetTexture(0, "_chunkHeightMap", chunkHeightMap);
 		c.SetTexture(0, "_chunkDiffuseMap", diffuse);
 		rangeToGenerateInto.SetParams(c, "_range");
-		c.SetFloat("_slopeSamplingSize", 4 * planetConfig.radiusMin / this.rangeToGenerateInto.ToBoundingSphere().radius);
+		c.SetFloat("_slopeSamplingSize", planetConfig.radiusMin / chunkRadius / 10.0f);
 
 		c.Dispatch(0, diffuse.width / 16, diffuse.height / 16, 1);
 

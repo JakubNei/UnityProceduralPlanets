@@ -30,7 +30,7 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	float slope = abs(sx0 - sx1) + abs(sy0 - sy1);
 
-	
+
 	const float3 grass = float3(121, 136, 69) / float3(255, 255, 255); // grass
 	const float3 clay = float3(139, 133, 75) / float3(255, 255, 255); // clay
 	const float3 rock = float3(100, 100, 100) / float3(255, 255, 255); // rock
@@ -38,8 +38,8 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	float3 color;
 	
-	if (slope < 0.1) color = grass;
-	else if(slope < 0.3) color = clay;
+	if (slope < 0.005) color = grass;
+	else if(slope < 0.01) color = clay;
 	else color = rock;
 
 
