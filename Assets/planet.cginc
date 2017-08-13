@@ -13,7 +13,6 @@
 #define UNPACK_NORMAL(NORMAL) (NORMAL * float3(2, 2, 2) - float3(1, 1, 1))
 
 
-
 #define M_PI 3.1415926535897932384626433832795
 
 float3 calestialToSpherical(float3 c /*calestial*/)
@@ -108,6 +107,62 @@ float snoise(float3 pos, int octaves, float modifier)
 }
 
 
+
+
+
+float2 GetUV(RWTexture2D<float4> map, int2 id)
+{
+	float w, h;
+	map.GetDimensions(w, h);
+	return id / float2(w - 1, h - 1);
+}
+float2 GetUV(RWTexture2D<float3> map, int2 id)
+{
+	float w, h;
+	map.GetDimensions(w, h);
+	return id / float2(w - 1, h - 1);
+}
+float2 GetUV(RWTexture2D<float2> map, int2 id)
+{
+	float w, h;
+	map.GetDimensions(w, h);
+	return id / float2(w - 1, h - 1);
+}
+float2 GetUV(RWTexture2D<float> map, int2 id)
+{
+	float w, h;
+	map.GetDimensions(w, h);
+	return id / float2(w - 1, h - 1);
+}
+
+
+
+
+
+float2 GetUV(Texture2D<float4> map, int2 id)
+{
+	float w, h;
+	map.GetDimensions(w, h);
+	return id / float2(w - 1, h - 1);
+}
+float2 GetUV(Texture2D<float3> map, int2 id)
+{
+	float w, h;
+	map.GetDimensions(w, h);
+	return id / float2(w - 1, h - 1);
+}
+float2 GetUV(Texture2D<float2> map, int2 id)
+{
+	float w, h;
+	map.GetDimensions(w, h);
+	return id / float2(w - 1, h - 1);
+}
+float2 GetUV(Texture2D<float> map, int2 id)
+{
+	float w, h;
+	map.GetDimensions(w, h);
+	return id / float2(w - 1, h - 1);
+}
 
 
 

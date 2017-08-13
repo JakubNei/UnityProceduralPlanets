@@ -15,13 +15,11 @@ float3 _rangeD;
 [numthreads(16, 16, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
-	float w, h;
-	_chunkNormalMap.GetDimensions(w, h);
-	float2 uv = float2(id.x / (w - 1), id.y / (h - 1));
-
+	float2 uv = GetUV(_chunkNormalMap, id.xy);
 
 
 	/*
+	
 	float3 N;
 	float3 T;
 
@@ -46,7 +44,7 @@ void main(uint3 id : SV_DispatchThreadID)
 	}
 	float3 T2 = T - N * dot(N, T); // Gram-Schmidt orthogonalization of T
 	float3 B = normalize(cross(N, T2));
-	*/
+	
 
 
 
@@ -74,7 +72,7 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	normal = normalize(normal);
 
-	normal = (normal + float3(1, 1, 1)) / float3(2, 2, 2); // pack normal
+	normal = PACK_NORMAL(normal);
 
-	_chunkNormalMap[id.xy] = normal;
+	_chunkNormalMap[id.xy] = normal;*/
 }

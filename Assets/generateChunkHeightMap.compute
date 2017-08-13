@@ -14,9 +14,7 @@ float3 _rangeD;
 [numthreads(16, 16, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
-	float w, h;
-	_chunkHeightMap.GetDimensions(w, h);
-	float2 uv = float2(id.x / w, id.y / h);
+	float2 uv = GetUV(_chunkHeightMap, id.xy);
 
 	float3 posTop = _rangeA * (1 - uv.x) + _rangeB * uv.x;
 	float3 posBottom = _rangeD * (1 - uv.x) + _rangeC * uv.x;
@@ -28,7 +26,7 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	float height = SampleCubicFloat(_planetHeightMap, heightMapUv);
 	
-	height += 0.02 * snoise(dir*100, 5, 2);
+	//height += 0.02 * snoise(dir*100, 5, 2);
 
 	// DEBUG
 	//height = uv.x;

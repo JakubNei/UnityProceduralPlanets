@@ -126,7 +126,7 @@ public class Chunk
 	{
 		GenerateHeightMap();
 		GenerateMesh();
-		CreateNormalMapFromMesh();
+		//CreateNormalMapFromMesh();
 		//GenerateNormalMap();
 		GenerateDiffuseMap();
 	}
@@ -235,10 +235,10 @@ public class Chunk
 		diffuse.Create();
 
 		var c = chunkConfig.generateChunkDiffuseMap;
-		c.SetTexture(0, "_chunkNormalMap", chunkNormalMap);
+		c.SetTexture(0, "_chunkHeightMap", chunkHeightMap);
 		c.SetTexture(0, "_chunkDiffuseMap", diffuse);
 		rangeToGenerateInto.SetParams(c, "_range");
-		c.SetFloat("_chunkRelativeSize", this.rangeToGenerateInto.ToBoundingSphere().radius / planetConfig.radiusMin);
+		c.SetFloat("_slopeSamplingSize", 4 * planetConfig.radiusMin / this.rangeToGenerateInto.ToBoundingSphere().radius);
 
 		c.Dispatch(0, diffuse.width / 16, diffuse.height / 16, 1);
 

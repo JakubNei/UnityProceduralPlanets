@@ -98,9 +98,7 @@ float GetProceduralHeight01(float3 dir)
 [numthreads(16, 16, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
-	float w, h;
-	_planetHeightMap.GetDimensions(w, h);
-	float2 uv = id.xy / float2(w, h);
+	float2 uv = GetUV(_planetHeightMap, id.xy);
 
 	float3 dir = baseMapUvToDirFromCenter(uv);
 

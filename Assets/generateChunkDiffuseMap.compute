@@ -2,51 +2,50 @@
 
 #include "planet.cginc"
 
-
-Texture2D<float3> _chunkNormalMap;
+Texture2D<float> _chunkHeightMap;
 float3 _rangeA;
 float3 _rangeB;
 float3 _rangeC;
 float3 _rangeD;
-float _chunkRelativeSize;
+float _slopeSamplingSize;
 
 RWTexture2D<float4> _chunkDiffuseMap;
 
 [numthreads(16, 16, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
+	float2 uv = GetUV(_chunkDiffuseMap, id.xy);
+
+
+
 	float w, h;
+	_chunkHeightMap.GetDimensions(w, h);
 
-	_chunkDiffuseMap.GetDimensions(w, h);
-	float2 uv = id.xy / float2(w - 1, h - 1);
+	float eps = _slopeSamplingSize;
 
-	float3 posTop = _rangeA * (1 - uv.x) + _rangeB * uv.x;
-	float3 posBottom = _rangeD * (1 - uv.x) + _rangeC * uv.x;
-	float3 pos = posTop * (1 - uv.y) + posBottom * uv.y;
+	float sx0 = SampleLinearFloat(_chunkHeightMap, uv + float2(eps/w, 0));
+	float sx1 = SampleLinearFloat(_chunkHeightMap, uv + float2(-eps/w, 0));
+	float sy0 = SampleLinearFloat(_chunkHeightMap, uv + float2(0, eps/h));
+	float sy1 = SampleLinearFloat(_chunkHeightMap, uv + float2(0, -eps/h));
 
-	float3 dir = normalize(pos);
-
-
-	float3 normal = UNPACK_NORMAL(SampleLinearFloat3(_chunkNormalMap, uv));
-
-	float slope = dot(dir, normal);
+	float slope = abs(sx0 - sx1) + abs(sy0 - sy1);
 
 	
-	float3 grass = float3(121, 136, 69) / float3(255, 255, 255); // grass
-	float3 clay = float3(139, 133, 75) / float3(255, 255, 255); // clay
-	float3 rock = float3(100, 100, 100) / float3(255, 255, 255); // rock
+	const float3 grass = float3(121, 136, 69) / float3(255, 255, 255); // grass
+	const float3 clay = float3(139, 133, 75) / float3(255, 255, 255); // clay
+	const float3 rock = float3(100, 100, 100) / float3(255, 255, 255); // rock
 
 
 	float3 color;
 	
-	if (slope > 0.9) color = grass;
-	else if(slope > 0.7) color = clay;
+	if (slope < 0.1) color = grass;
+	else if(slope < 0.3) color = clay;
 	else color = rock;
 
 
 	// DEBUG
 	//color = float3(1, 1, 1) * slope;
-	//color = normal;
+	//color = PACK_NORMAL(normal);
 	//color = SampleLinearFloat(_chunkNormalMap, uv);
 
 	_chunkDiffuseMap[id.xy] = float4(color, 1);
