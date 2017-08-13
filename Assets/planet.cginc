@@ -18,14 +18,14 @@
 float3 calestialToSpherical(float3 c /*calestial*/)
 {
 	float r = length(c);
-	if (r == 0) return float3(0, 0, 0);
+	if (r == 0) return 0;
 
 	// calculate
 	float3 p = float3(
 		atan(c.z / c.x),  // longitude = x
 		asin(c.y / r), // latitude = y
 		r // altitude = z
-		);
+	);
 
 	// normalize to 0..1 range
 	p.x = p.x / (2 * M_PI) + 0.5;;
@@ -45,7 +45,7 @@ float3 sphericalToCalestial(float3 c /*spherical*/)
 		cos(c.y) * cos(c.x) * c.z,
 		sin(c.y) * c.z,
 		cos(c.y) * sin(c.x) * c.z
-		);
+	);
 
 	return p;
 }
@@ -61,7 +61,7 @@ float3 sphericalToCalestial(float2 c /*spherical*/)
 		cos(c.y) * cos(c.x),
 		sin(c.y),
 		cos(c.y) * sin(c.x)
-		);
+	);
 
 	return p;
 }
@@ -224,6 +224,15 @@ float SampleLinearFloat(Texture2D<float> map, float2 uv)
 }
 
 
+float4 cubic(float v) {
+	float4 n = float4(1.0, 2.0, 3.0, 4.0) - v;
+	float4 s = n * n * n;
+	float x = s.x;
+	float y = s.y - 4.0 * s.x;
+	float z = s.z - 4.0 * s.y + 6.0 * s.x;
+	float w = 6.0 - x - y - z;
+	return float4(x, y, z, w) * (1.0 / 6.0);
+}
 
 
 float SampleCubicFloat(Texture2D<float> map, float2 uv)
@@ -246,8 +255,8 @@ float SampleCubicFloat(Texture2D<float> map, float2 uv)
 
 	float2 xyFloored = floor(xy);
 	float2 t = xy - xyFloored; // 0,0 ... 1,1
-	float2 t2 = t * t;
-	float2 t3 = t2 * t;
+	float4 tx = cubic(t.x);
+	float4 ty = cubic(t.y);
 
 	int2 p12 = int2(xyFloored);
 	int2 p00 = p12 - int2(1, 2);
@@ -274,18 +283,18 @@ float SampleCubicFloat(Texture2D<float> map, float2 uv)
 	float v33 = map[p00 + int2(3, 3)].x;
 
 
-#define TAN 0.5
 	// https://en.wikipedia.org/wiki/Cubic_Hermite_spline
-#define CUBIC_HERMITE(T,T2,T3,P0,P1,P2,P3) ((2*T3-3*T2+1)*P1 + (T3-2*T2+T)*(P1-P0)*TAN + (-2*T3+3*T2)*P2 + (T3-T2)*(P3-P2)*TAN)
+//#define CUBIC_HERMITE(T,T2,T3,P0,P1,P2,P3) ((2*T3-3*T2+1)*P1 + (T3-2*T2+T)*(P1-P0)*TAN + (-2*T3+3*T2)*P2 + (T3-T2)*(P3-P2)*TAN)
+#define CUBIC_HERMITE(T,P0,P1,P2,P3) (T.x*P0 + T.y*P1 + T.z*P2 + T.w*P3)
 
 	// first interpolate on X
-	float c0 = CUBIC_HERMITE(t.x, t2.x, t3.x, v00, v10, v20, v30);
-	float c1 = CUBIC_HERMITE(t.x, t2.x, t3.x, v01, v11, v21, v31);
-	float c2 = CUBIC_HERMITE(t.x, t2.x, t3.x, v02, v12, v22, v32);
-	float c3 = CUBIC_HERMITE(t.x, t2.x, t3.x, v03, v13, v23, v33);
+	float c0 = CUBIC_HERMITE(tx, v00, v10, v20, v30);
+	float c1 = CUBIC_HERMITE(tx, v01, v11, v21, v31);
+	float c2 = CUBIC_HERMITE(tx, v02, v12, v22, v32);
+	float c3 = CUBIC_HERMITE(tx, v03, v13, v23, v33);
 
 	// then on Y
-	float f = CUBIC_HERMITE(t.y, t2.y, t3.y, c0, c1, c2, c3);
+	float f = CUBIC_HERMITE(ty, c0, c1, c2, c3);
 
 	return f;
 }
@@ -293,17 +302,8 @@ float SampleCubicFloat(Texture2D<float> map, float2 uv)
 
 
 // from http://www.java-gaming.org/index.php?topic=35123.0
-float4 cubic(float v) {
-	float4 n = float4(1.0, 2.0, 3.0, 4.0) - v;
-	float4 s = n * n * n;
-	float x = s.x;
-	float y = s.y - 4.0 * s.x;
-	float z = s.z - 4.0 * s.y + 6.0 * s.x;
-	float w = 6.0 - x - y - z;
-	return float4(x, y, z, w) * (1.0 / 6.0);
-}
 
-float SampleCubicFloat_newWrong(Texture2D<float> map, float2 texCoords)
+float SampleCubicFloat_newNotWorking(Texture2D<float> map, float2 texCoords)
 {
 
 	float w, h;

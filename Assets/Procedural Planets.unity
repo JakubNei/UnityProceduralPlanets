@@ -288,7 +288,7 @@ MonoBehaviour:
     radiusVariation: 30
     seaLevel01: 0.5
   chunkConfig:
-    useSkirts: 0
+    useSkirts: 1
     numberOfVerticesOnEdge: 30
     weightNeededToSubdivide: 0.7
     stopSegmentRecursionAtWorldSize: 10

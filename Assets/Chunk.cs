@@ -155,7 +155,8 @@ public class Chunk
 
 	void GenerateHeightMap()
 	{
-		var height = chunkHeightMap = new RenderTexture(64 * 16, 64 * 16, 1, RenderTextureFormat.RFloat, RenderTextureReadWrite.Linear);
+		const int resolution = 512;
+		var height = chunkHeightMap = new RenderTexture(resolution, resolution, 1, RenderTextureFormat.RFloat, RenderTextureReadWrite.Linear);
 		height.depth = 0;
 		height.enableRandomWrite = true;
 		height.Create();

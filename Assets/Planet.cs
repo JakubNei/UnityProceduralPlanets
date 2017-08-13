@@ -92,7 +92,8 @@ public partial class Planet : MonoBehaviour
 
 	void GeneratePlanetData()
 	{
-		var height = planetConfig.planetHeightMap = new RenderTexture(16 * 16, 16 * 16, 1, RenderTextureFormat.R8, RenderTextureReadWrite.Linear);
+		const int resolution = 1024;
+		var height = planetConfig.planetHeightMap = new RenderTexture(resolution, resolution, 1, RenderTextureFormat.R8, RenderTextureReadWrite.Linear);
 		height.depth = 0;
 		height.enableRandomWrite = true;
 		height.Create();
