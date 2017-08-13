@@ -9,19 +9,18 @@ public class PlanetAffectedCamera : MonoBehaviour
 	public float mouseSensitivty = 100f;
 
 	public bool speedBasedOnDistanceToPlanet = true;
-	public bool collideWithPlanetSurface = true;
-
 
 	public float distanceToClosestPlanet;
 	public float cameraSpeedModifier = 10.0f;
 
-	float scrollWheelValue;
-	Vector3 currentVelocity;
+	public Vector3 currentVelocity;
 
 	public bool walkOnPlanet;
-	Vector3 walkOnSphere_lastUp;
-	Vector3 walkOnSphere_lastForward;
-	bool walkOnSphere_isFirstRun;
+	public Vector3 walkOnPlanet_lastUp;
+	public Vector3 walkOnPlanet_lastForward;
+	public bool walkOnPlanet_isFirstRun;
+	public bool walkOnPlanet_clampUpDownRotation = true;
+	public bool walkOnPlanet_clampToPlanetSurface = true;
 
 	Camera cam { get { return GetComponent<Camera>(); } }
 
@@ -55,11 +54,11 @@ public class PlanetAffectedCamera : MonoBehaviour
 		Update(0.1f); // spool up
 	}
 
-	Vector3 savedPosition1;
-	Quaternion savedRotation1;
+	public Vector3 savedPosition1;
+	public Quaternion savedRotation1;
 
-	Vector3 savedPosition2;
-	Quaternion savedRotation2;
+	public Vector3 savedPosition2;
+	public Quaternion savedRotation2;
 
 
 	private void Update()
@@ -112,9 +111,7 @@ public class PlanetAffectedCamera : MonoBehaviour
 		if (!Cursor.visible)
 			mouseDelta = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
 
-		var scrollWheelDelta = Input.mouseScrollDelta.x - scrollWheelValue;
-		scrollWheelValue = Input.mouseScrollDelta.x;
-
+		var scrollWheelDelta = Input.mouseScrollDelta.y;
 
 		if (Input.GetKeyDown(KeyCode.Escape))
 		{
@@ -174,11 +171,11 @@ public class PlanetAffectedCamera : MonoBehaviour
 			if (Input.GetKey(KeyCode.LeftShift)) currentSpeed *= 5;
 
 
-			var targetVelocity = Vector3.zero;
-			targetVelocity += currentSpeed * Vector3.forward * Input.GetAxis("Vertical");
-			targetVelocity += currentSpeed * Vector3.right * Input.GetAxis("Horizontal");
-			if (Input.GetKey(KeyCode.Space)) targetVelocity += currentSpeed * Vector3.up;
-			if (Input.GetKey(KeyCode.LeftControl)) targetVelocity -= currentSpeed * Vector3.up;
+			var targetForce = Vector3.zero;
+			targetForce += currentSpeed * Vector3.forward * Input.GetAxis("Vertical");
+			targetForce += currentSpeed * Vector3.right * Input.GetAxis("Horizontal");
+			if (Input.GetKey(KeyCode.Space)) targetForce += currentSpeed * Vector3.up;
+			if (Input.GetKey(KeyCode.LeftControl)) targetForce -= currentSpeed * Vector3.up;
 
 			//var pos = Matrix4.CreateTranslation(targetVelocity);
 
@@ -188,11 +185,11 @@ public class PlanetAffectedCamera : MonoBehaviour
 			float rollDelta = 0;
 
 			float c = mouseSensitivty * (float)deltaTime;
-			yawDelta -= mouseDelta.x * c;
-			pitchDelta += mouseDelta.y * c;
+			yawDelta += mouseDelta.x * c;
+			pitchDelta -= mouseDelta.y * c;
 
-			if (Input.GetKey(KeyCode.Q)) rollDelta -= c;
-			if (Input.GetKey(KeyCode.E)) rollDelta += c;
+			if (Input.GetKey(KeyCode.Q)) rollDelta += c;
+			if (Input.GetKey(KeyCode.E)) rollDelta -= c;
 
 
 			if (planet != null && Input.GetKeyDown(KeyCode.C))
@@ -203,19 +200,19 @@ public class PlanetAffectedCamera : MonoBehaviour
 			if (planet != null && walkOnPlanet)
 			{
 				var up = (position - planet.Center).normalized;
-				var forward = walkOnSphere_lastForward;
+				var forward = walkOnPlanet_lastForward;
 
-				if (walkOnSphere_isFirstRun)
+				if (walkOnPlanet_isFirstRun)
 				{
-					walkOnSphere_lastUp = up;
+					walkOnPlanet_lastUp = up;
 
-					var pointOnPlanet = position - planet.Center; ;
+					var pointOnPlanet = position - planet.Center;
 					forward = rotation * Vector3.forward;
 				}
 				else
 				{
-					var upDeltaAngle = Vector3.Angle(up, walkOnSphere_lastUp);
-					var upDeltaRot = Quaternion.Inverse(Quaternion.AngleAxis(upDeltaAngle, Vector3.Cross(up, walkOnSphere_lastUp)));
+					var upDeltaAngle = Vector3.Angle(up, walkOnPlanet_lastUp);
+					var upDeltaRot = Quaternion.Inverse(Quaternion.AngleAxis(upDeltaAngle, Vector3.Cross(up, walkOnPlanet_lastUp)));
 
 					forward = upDeltaRot * forward;
 				}
@@ -224,17 +221,18 @@ public class PlanetAffectedCamera : MonoBehaviour
 				var left = Vector3.Cross(up, forward);
 
 				var rotDelta =
-					Quaternion.AngleAxis(-yawDelta, up) *
+					Quaternion.AngleAxis(yawDelta, up) *
 					Quaternion.AngleAxis(pitchDelta, left);
 
 
 				forward = rotDelta * forward;
 
+				if (walkOnPlanet_clampUpDownRotation)
 				{
 					// clamping up down rotation
 					var maxUpDownAngle = 80;
-					var minUp = Mathf.Deg2Rad * (90 - maxUpDownAngle);
-					var maxDown = Mathf.Deg2Rad * (90 + maxUpDownAngle);
+					var minUp = 90 - maxUpDownAngle;
+					var maxDown = 90 + maxUpDownAngle;
 					var angle = Vector3.Angle(forward, up);
 					if (angle < minUp)
 						forward = Quaternion.AngleAxis(minUp, left) * up;
@@ -247,61 +245,52 @@ public class PlanetAffectedCamera : MonoBehaviour
 
 				rotation = Quaternion.LookRotation(forward, up);
 
-				walkOnSphere_lastForward = forward;
-				walkOnSphere_lastUp = up;
-				walkOnSphere_isFirstRun = false;
+				walkOnPlanet_lastForward = forward;
+				walkOnPlanet_lastUp = up;
+				walkOnPlanet_isFirstRun = false;
+
 
 			}
 			else
 			{
 				var rotDelta =
-					Quaternion.AngleAxis(pitchDelta, -new Vector3(1, 0, 0)) *
-					Quaternion.AngleAxis(yawDelta, -new Vector3(0, 1, 0)) *
-					Quaternion.AngleAxis(rollDelta, -new Vector3(0, 0, 1));
+					Quaternion.AngleAxis(pitchDelta, new Vector3(1, 0, 0)) *
+					Quaternion.AngleAxis(yawDelta, new Vector3(0, 1, 0)) *
+					Quaternion.AngleAxis(rollDelta, new Vector3(0, 0, 1));
 
 				rotation = rotation * rotDelta;
 
-				walkOnSphere_isFirstRun = true;
+				walkOnPlanet_isFirstRun = true;
 			}
 
-
-
-
-			targetVelocity = rotation * targetVelocity;
-			currentVelocity = Vector3.Lerp(currentVelocity, targetVelocity, velocityChangeSpeed * (float)deltaTime);
-
-			position += currentVelocity * (float)deltaTime;
-
-			/*
-			// make cam on top of the planet
-			if (planet != null && collideWithPlanetSurface)
-			{
-				var planetLocalPosition = planet.transform.position.Towards(position).ToVector3d();
-				var sphericalPlanetLocalPosition = planet.CalestialToSpherical(planetLocalPosition);
-				var onPlanetSurfaceHeight = planet.GetSurfaceHeight(planetLocalPosition);
-				var onPlanetDistanceToSurface = sphericalPlanetLocalPosition.altitude - onPlanetSurfaceHeight;
-
-				var h = onPlanetSurfaceHeight + 2;
-				if (sphericalPlanetLocalPosition.altitude <= h || walkOnPlanet)
-				{
-					sphericalPlanetLocalPosition.altitude = h;
-					position = planet.transform.position + planet.SphericalToCalestial(sphericalPlanetLocalPosition);
-				}
-			}
-			*/
 
 			var rb = GetComponent<Rigidbody>();
+
+
+			targetForce = rotation * targetForce;
+
+
 			if (rb)
 			{
-				rb.AddForce(currentVelocity - rb.velocity, ForceMode.VelocityChange);
+				rb.AddForce(targetForce, ForceMode.Force);
 				rb.MoveRotation(rotation);
+
+				// make cam on top of the planet
+				if (planet != null && walkOnPlanet && walkOnPlanet_clampToPlanetSurface)
+				{
+					var gravityDir = (planet.Center - position).normalized;
+					rb.AddForce(gravityDir * 10, ForceMode.Force);
+				}
+
 			}
-			else
+			/*else // UNTESTED
 			{
+				currentVelocity += targetForce * velocityChangeSpeed * (float)deltaTime;
+				currentVelocity = Vector3.Lerp(currentVelocity, Vector3.zero, (float)deltaTime);
+				position += currentVelocity * (float)deltaTime;
 				transform.rotation = rotation;
 				transform.position = position; // += Entity.transform.position.Towards(position).ToVector3d() * deltaTime * 10;
-			}
-			//Log.Info(entity.transform.position);
+			}*/
 		}
 
 	}

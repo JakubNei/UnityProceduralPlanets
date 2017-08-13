@@ -211,10 +211,19 @@ MonoBehaviour:
   velocityChangeSpeed: 10
   mouseSensitivty: 100
   speedBasedOnDistanceToPlanet: 1
-  collideWithPlanetSurface: 1
   distanceToClosestPlanet: 0
-  cameraSpeedModifier: 10
+  cameraSpeedModifier: 50
+  currentVelocity: {x: 0, y: 0, z: 0}
   walkOnPlanet: 0
+  walkOnPlanet_lastUp: {x: 0, y: 0, z: 0}
+  walkOnPlanet_lastForward: {x: 0, y: 0, z: 0}
+  walkOnPlanet_isFirstRun: 0
+  walkOnPlanet_clampUpDownRotation: 1
+  walkOnPlanet_clampToPlanetSurface: 1
+  savedPosition1: {x: 0, y: 0, z: 0}
+  savedRotation1: {x: 0, y: 0, z: 0, w: 0}
+  savedPosition2: {x: 0, y: 0, z: 0}
+  savedRotation2: {x: 0, y: 0, z: 0, w: 0}
 --- !u!54 &48616967
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -223,13 +232,13 @@ Rigidbody:
   m_GameObject: {fileID: 48616960}
   serializedVersion: 2
   m_Mass: 1
-  m_Drag: 0
+  m_Drag: 5
   m_AngularDrag: 0.05
   m_UseGravity: 0
   m_IsKinematic: 0
-  m_Interpolate: 0
+  m_Interpolate: 1
   m_Constraints: 112
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
 --- !u!135 &48616968
 SphereCollider:
   m_ObjectHideFlags: 0
