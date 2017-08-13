@@ -1,12 +1,11 @@
 ﻿#pragma kernel main
 
-#pragma target 3.0
 #include "planet.cginc"
 
 Texture2D<float4> _biomesControlMap;
-SamplerState sampler_biomesControlMap;
+Texture2D<float3> _chunkNormalMap;
 
-RWTexture2D<float4> _texture;
+RWTexture2D<float4> _chunkDiffuseMap;
 float3 _rangeA;
 float3 _rangeB;
 float3 _rangeC;
@@ -16,9 +15,31 @@ float3 _rangeD;
 void main(uint3 id : SV_DispatchThreadID)
 {
 	float w, h;
-	_texture.GetDimensions(w, h);
-	float2 uv = id.xy / float2(w, h);
+	_chunkDiffuseMap.GetDimensions(w, h);
+	float2 uv = id.xy / float2(w - 1, h - 1);
 
+
+	float3 normal = GetLinearInterpolatedValue(_chunkNormalMap, uv);
+
+	normal = normal * float3(2, 2, 2) - float3(1, 1, 1); // unpack normal
+
+
+	float slope = dot(normal, float3(0, 0, 1));
+
+	slope = pow(slope, 10);
+	//slope = clamp(slope, 0, 1);
+
+	float3 color = lerp(
+		float3(121, 136, 69)/float3(255,255,255), // green
+		float3(139, 133, 75) / float3(255, 255, 255), // clay
+		slope
+	);
+
+	/*
+	float3(121, 136, 69) / float3(255, 255, 255), // green
+	float3(139, 133, 75) / float3(255, 255, 255), // clay
+	float3(100, 100, 100) / float3(255, 255, 255), // rock
+		*/
 	/*
 	float3 positionInterpolated =
 		_rangeA +
@@ -40,12 +61,15 @@ void main(uint3 id : SV_DispatchThreadID)
 		float2(temperature, humidity),
 		0 // 0 = biggest mip map
 	);
-	_texture[id.xy] = biome;
+	_chunkDiffuseMap[id.xy] = biome;
 	*/
 
 	// DEBUG
-	_texture[id.xy] = float4(uv.x, uv.y, 0, 0);
-	//_texture[id.xy] = float4(1,1,1,1) * 0.7;
-	//if(altFromBottomOfSea > _seaLevel01) _texture[id.xy] = float4(0,0,1,0); else _texture[id.xy] = float4(1, 1, 0, 0);
+	//_chunkDiffuseMap[id.xy] = float3(uv.x, uv.y, 0);
+	//_chunkDiffuseMap[id.xy] = float4(1,1,1,1) * 0.7;
 
+
+	//if(altFromBottomOfSea > _seaLevel01) _chunkDiffuseMap[id.xy] = float4(0,0,1,0); else _chunkDiffuseMap[id.xy] = float4(1, 1, 0, 0);
+
+	_chunkDiffuseMap[id.xy] = float4(color, 1);
 }

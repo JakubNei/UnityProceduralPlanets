@@ -1,14 +1,80 @@
-﻿// Each #kernel tells which function to compile; you can have many kernels
-#pragma kernel CSMain
+﻿#pragma kernel main
 
-// Create a RenderTexture with enableRandomWrite flag and set it
-// with cs.SetTexture
-RWTexture2D<float4> Result;
+#include "planet.cginc"
 
-[numthreads(4,4,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+
+Texture2D<float> _chunkHeightMap;
+RWTexture2D<float3> _chunkNormalMap;
+
+float3 _rangeA;
+float3 _rangeB;
+float3 _rangeC;
+float3 _rangeD;
+
+
+[numthreads(16, 16, 1)]
+void main(uint3 id : SV_DispatchThreadID)
 {
-	// TODO: insert actual code here!
+	float w, h;
+	_chunkNormalMap.GetDimensions(w, h);
+	float2 uv = float2(id.x / w, id.y / h);
 
-	Result[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0);
+
+
+	/*
+	float3 N;
+	float3 T;
+
+	{
+		float eps = 0.0001;
+		float2 uvA = spherical + float2(0, eps);
+		float2 uvB = spherical + float2(-eps, 0);
+		float2 uvC = spherical + float2(eps, 0);
+
+		float3 posA = sphericalToCalestial(uvA);
+		float3 posB = sphericalToCalestial(uvB);
+		float3 posC = sphericalToCalestial(uvC);
+
+		float3 posAToB = posB - posA;
+		float3 posAToC = posC - posA;
+		N = normalize(cross(normalize(posAToB), normalize(posAToC)));
+
+		float2 uvAToB = uvB - uvA;
+		float2 uvAToC = uvC - uvA;
+		float r = 1.0f / (uvAToB.x * uvAToC.y - uvAToB.y * uvAToC.x);
+		T = (posAToB * uvAToC.y - posAToC * uvAToB.y) * r;
+	}
+	float3 T2 = T - N * dot(N, T); // Gram-Schmidt orthogonalization of T
+	float3 B = normalize(cross(N, T2));
+	*/
+
+
+
+
+	float3 normal;
+
+	float eps = 0.05;
+
+	float2 T = float2(eps, 0);
+	float2 B = float2(0, eps);
+
+#define GET_HEIGHT(UV) GetLinearInterpolatedValue(_chunkHeightMap, UV)
+
+	float z = GET_HEIGHT(uv);
+	normal.x = float(
+		(GET_HEIGHT(uv - T*eps) - z)
+		- (GET_HEIGHT(uv + T*eps) - z)
+		) / 2;
+	normal.y = float(
+		(GET_HEIGHT(uv - B*eps) - z)
+		- (GET_HEIGHT(uv + B*eps) - z)
+		) / 2;
+	normal.z = eps * 4;
+
+
+	normal = normalize(normal);
+
+	normal = (normal + float3(1, 1, 1)) / float3(2, 2, 2); // pack normal
+
+	_chunkNormalMap[id.xy] = normal;
 }

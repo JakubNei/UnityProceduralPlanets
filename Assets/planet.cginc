@@ -196,4 +196,117 @@ float GetProceduralHeight01(float3 dir)
 
 
 
+
+
+float3 GetLinearInterpolatedValue(Texture2D<float3> map, float2 uv)
+{
+	int w, h;
+	map.GetDimensions(w, h);
+	float2 xy = uv * float2(w - 1, h - 1); // 0,0 ... w,h
+
+	float2 xyFloored = floor(xy);
+	float2 t = xy - xyFloored; // 0,0 ... 1,1
+
+	int2 p00 = int2(xyFloored);
+
+	float3 v00 = map[p00 + int2(0, 0)].x;
+	float3 v01 = map[p00 + int2(0, 1)].x;
+	float3 v10 = map[p00 + int2(1, 0)].x;
+	float3 v11 = map[p00 + int2(1, 1)].x;
+
+	return
+		(v00*(1 - t.x) + v10*t.x) * (1 - t.y) +
+		(v01*(1 - t.x) + v11*t.x) * t.y;
+}
+
+
+float GetLinearInterpolatedValue(Texture2D<float> map, float2 uv)
+{
+	int w, h;
+	map.GetDimensions(w, h);
+	float2 xy = uv * float2(w - 1, h - 1); // 0,0 ... w,h
+
+	float2 xyFloored = floor(xy);
+	float2 t = xy - xyFloored; // 0,0 ... 1,1
+
+	int2 p00 = int2(xyFloored);
+
+	float v00 = map[p00 + int2(0, 0)].x;
+	float v01 = map[p00 + int2(0, 1)].x;
+	float v10 = map[p00 + int2(1, 0)].x;
+	float v11 = map[p00 + int2(1, 1)].x;
+
+	return
+		(v00*(1 - t.x) + v10*t.x) * (1 - t.y) +
+		(v01*(1 - t.x) + v11*t.x) * t.y;
+}
+
+
+
+
+float GetCubicInterpolatedValue(Texture2D<float> map, float2 uv)
+{
+	int w, h;
+	map.GetDimensions(w, h);
+	float2 xy = uv * float2(w - 1, h - 1); // 0,0 ... w,h
+
+	/*
+	p03--p13-------p23--p33
+	|    |         |    |
+	p02--p12-------p22--p32     1
+	|    |         |    |     ...
+	|   t.y  xy    |    |     t.y
+	|    |         |    |     ...
+	p01--p11--t.x--p21--p31     0...tx...1
+	|    |         |    |
+	p00--p10-------p20--p30
+	*/
+
+	float2 xyFloored = floor(xy);
+	float2 t = xy - xyFloored; // 0,0 ... 1,1
+	float2 t2 = t * t;
+	float2 t3 = t2 * t;
+
+	int2 p12 = int2(xyFloored);
+	int2 p00 = p12 - int2(1, 2);
+
+
+	float v00 = map[p00 + int2(0, 0)].x;
+	float v01 = map[p00 + int2(0, 1)].x;
+	float v02 = map[p00 + int2(0, 2)].x;
+	float v03 = map[p00 + int2(0, 3)].x;
+
+	float v10 = map[p00 + int2(1, 0)].x;
+	float v11 = map[p00 + int2(1, 1)].x;
+	float v12 = map[p00 + int2(1, 2)].x;
+	float v13 = map[p00 + int2(1, 3)].x;
+
+	float v20 = map[p00 + int2(2, 0)].x;
+	float v21 = map[p00 + int2(2, 1)].x;
+	float v22 = map[p00 + int2(2, 2)].x;
+	float v23 = map[p00 + int2(2, 3)].x;
+
+	float v30 = map[p00 + int2(3, 0)].x;
+	float v31 = map[p00 + int2(3, 1)].x;
+	float v32 = map[p00 + int2(3, 2)].x;
+	float v33 = map[p00 + int2(3, 3)].x;
+
+
+	// https://en.wikipedia.org/wiki/Cubic_Hermite_spline
+#define CUBIC_HERMITE(T,T2,T3,P0,P1,P2,P3) ((2*T3-3*T2+1)*P1 + (T3-2*T2+T)*(P1-P0) + (-2*T3+3*T2)*P2 + (T3-T2)*(P3-P2))
+
+	// first interpolate on X
+	float c0 = CUBIC_HERMITE(t.x, t2.x, t3.x, v00, v10, v20, v30);
+	float c1 = CUBIC_HERMITE(t.x, t2.x, t3.x, v01, v11, v21, v31);
+	float c2 = CUBIC_HERMITE(t.x, t2.x, t3.x, v02, v12, v22, v32);
+	float c3 = CUBIC_HERMITE(t.x, t2.x, t3.x, v03, v13, v23, v33);
+
+	// then on Y
+	float f = CUBIC_HERMITE(t.y, t2.y, t3.y, c0, c1, c2, c3);
+
+	return f;
+}
+
+
+
 #endif

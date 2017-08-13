@@ -3,13 +3,18 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Chunk : MonoBehaviour
+[Serializable]
+public class Chunk
 {
 
 	public Planet planet;
 
 	public Planet.PlanetConfig planetConfig { get { return planet.planetConfig; } }
 	public Planet.ChunkConfig chunkConfig { get { return planet.chunkConfig; } }
+
+	public RenderTexture chunkHeightMap;
+	public RenderTexture chunkNormalMap;
+	public RenderTexture chunkDiffuseMap;
 
 	public ulong id;
 	public Chunk parent;
@@ -35,22 +40,27 @@ public class Chunk : MonoBehaviour
 	public List<Chunk> children = new List<Chunk>(4);
 
 
+	public class Behavior : MonoBehaviour
+	{
+		public Chunk chunk;
+		private void OnDrawGizmos()
+		{
+			if (chunk != null)
+				chunk.OnDrawGizmos();
+		}
+	}
+
 	public static Chunk Create(Planet planet, Range range, ulong id, Chunk parent = null, ulong generation = 0, ChildPosition childPosition = ChildPosition.NoneNoParent)
 	{
-		var name = typeof(Chunk) + " id:#" + id + " generation:" + generation;
+		var chunk = new Chunk();
+		chunk.planet = planet;
+		chunk.rangeToGenerateInto = range;
+		chunk.rangeToCalculateScreenSizeOn = range;
+		chunk.id = id;
+		chunk.generation = generation;
+		chunk.childPosition = childPosition;
 
-		var go = new GameObject(name);
-		go.transform.parent = planet.transform;
-
-		var segment = go.AddComponent<Chunk>();
-		segment.planet = planet;
-		segment.rangeToGenerateInto = range;
-		segment.rangeToCalculateScreenSizeOn = range;
-		segment.id = id;
-		segment.generation = generation;
-		segment.childPosition = childPosition;
-
-		return segment;
+		return chunk;
 	}
 
 	private void AddChild(Vector3 a, Vector3 b, Vector3 c, Vector3 d, ChildPosition cp, ushort index)
@@ -112,9 +122,34 @@ public class Chunk : MonoBehaviour
 
 
 
+	public void Generate()
+	{
+		GenerateHeightMap();
+		GenerateMesh();
+		GenerateNormalMap();
+		GenerateDiffuseMap();
+	}
+
+
+	void GenerateHeightMap()
+	{
+		var height = chunkHeightMap = new RenderTexture(64 * 16, 64 * 16, 1, RenderTextureFormat.R8, RenderTextureReadWrite.Linear);
+		height.depth = 0;
+		height.enableRandomWrite = true;
+		height.Create();
+
+		var c = chunkConfig.generateChunkHeightMap;
+		c.SetTexture(0, "_planetHeightMap", planetConfig.planetHeightMap);
+		c.SetTexture(0, "_chunkHeightMap", height);
+		rangeToGenerateInto.SetParams(c, "_range");
+
+		c.Dispatch(0, height.width / 16, height.height / 16, 1);
+	}
+
+
 
 	Mesh mesh;
-	public void GenerateMesh()
+	void GenerateMesh()
 	{
 		if (generationBegan) return;
 		generationBegan = true;
@@ -130,7 +165,7 @@ public class Chunk : MonoBehaviour
 		c.SetInt("_numberOfVerticesOnEdge", chunkConfig.numberOfVerticesOnEdge);
 		c.SetFloat("_radiusBase", planetConfig.radiusMin);
 		c.SetFloat("_radiusHeightMap", planetConfig.radiusVariation);
-		c.SetTexture(0, "_heightMap", planetConfig.planetHeightMap);
+		c.SetTexture(0, "_chunkHeightMap", chunkHeightMap);
 
 		c.Dispatch(0, chunkConfig.numberOfVerticesOnEdge, chunkConfig.numberOfVerticesOnEdge, 1);
 
@@ -142,17 +177,6 @@ public class Chunk : MonoBehaviour
 		mesh.triangles = planet.GetSegmentIndicies();
 		mesh.uv = planet.GetSefgmentUVs();
 		mesh.RecalculateNormals();
-
-		var go = gameObject;
-
-		var meshFilter = go.AddComponent<MeshFilter>();
-		meshFilter.mesh = mesh;
-
-		var meshRenderer = go.AddComponent<MeshRenderer>();
-		meshRenderer.material = chunkConfig.chunkMaterial;
-
-		var meshCollider = go.AddComponent<MeshCollider>();
-		meshCollider.sharedMesh = mesh;
 
 		{
 			int aIndex = 0;
@@ -168,28 +192,43 @@ public class Chunk : MonoBehaviour
 		isGenerationDone = true;
 	}
 
-	public void GenerateDiffuseMap()
+	void GenerateNormalMap()
 	{
-		var diffuse = new RenderTexture(256, 256, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+		var normal = chunkNormalMap = new RenderTexture(64 * 16, 64 * 16, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+		normal.depth = 0;
+		normal.enableRandomWrite = true;
+		normal.Create();
+
+		var c = chunkConfig.generateChunkNormapMap;
+		c.SetTexture(0, "_chunkHeightMap", chunkHeightMap);
+		c.SetTexture(0, "_chunkNormalMap", chunkNormalMap);
+		rangeToGenerateInto.SetParams(c, "_range");
+
+		c.Dispatch(0, normal.width / 16, normal.height / 16, 1);
+
+		if (material)
+			material.SetTexture("_BumpMap", chunkNormalMap);
+	}
+
+
+
+	void GenerateDiffuseMap()
+	{
+		var diffuse = chunkDiffuseMap = new RenderTexture(64 * 16, 64 * 16, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+		diffuse.depth = 0;
 		diffuse.enableRandomWrite = true;
 		diffuse.Create();
 
 		var c = chunkConfig.generateChunkDiffuseMap;
-		c.SetTexture(0, "_texture", diffuse);
+		c.SetTexture(0, "_chunkNormalMap", chunkNormalMap);
+		c.SetTexture(0, "_chunkDiffuseMap", diffuse);
 		rangeToGenerateInto.SetParams(c, "_range");
 
+		c.Dispatch(0, diffuse.width / 16, diffuse.height / 16, 1);
 
-		c.Dispatch(0, diffuse.width, diffuse.height, 1);
-
-		var meshRenderer = gameObject.GetComponent<MeshRenderer>();
-		meshRenderer.material.mainTexture = diffuse;
+		if (material)
+			material.mainTexture = chunkDiffuseMap;
 	}
-
-	public void GenerateNormalMap()
-	{
-
-	}
-
 
 	private void OnDrawGizmos()
 	{
@@ -211,7 +250,7 @@ public class Chunk : MonoBehaviour
 
 
 	bool lastVisible = false;
-	public void SetVisible(bool visible) // TODO: DestroyRenderer if visible == false for over CVar 60 seconds ?
+	public void SetVisible(bool visible)
 	{
 		if (this.generationBegan && this.isGenerationDone)
 		{
@@ -246,13 +285,73 @@ public class Chunk : MonoBehaviour
 		}
 	}
 
-	void DoRender(bool yes)
+	DateTime notRenderedTimeStamp;
+	GameObject gameObject;
+	Material material;
+	void DoRender(bool doRender)
 	{
-		if (gameObject)
-			gameObject.SetActive(yes);
+		if (doRender)
+		{
+			if (gameObject == null)
+			{
+				var name = typeof(Chunk) + " id:#" + id + " generation:" + generation;
+
+				var go = gameObject = new GameObject(name);
+				go.transform.parent = planet.transform;
+
+				var behavior = go.AddComponent<Behavior>();
+				behavior.chunk = this;
+
+				var meshFilter = go.AddComponent<MeshFilter>();
+				meshFilter.mesh = mesh;
+
+				var meshRenderer = go.AddComponent<MeshRenderer>();
+				meshRenderer.sharedMaterial = chunkConfig.chunkMaterial;
+				material = meshRenderer.material;
+
+				var meshCollider = go.AddComponent<MeshCollider>();
+				meshCollider.sharedMesh = mesh;
+
+				if (chunkDiffuseMap)
+					material.mainTexture = chunkDiffuseMap;
+
+				if (chunkNormalMap)
+					material.SetTexture("_BumpMap", chunkNormalMap);
+			}
+
+			if (!gameObject.activeSelf)
+				gameObject.SetActive(true);
+		}
+		else
+		{
+			if (gameObject)
+			{
+				if (gameObject.activeSelf)
+				{
+					notRenderedTimeStamp = DateTime.UtcNow;
+					gameObject.SetActive(false);
+
+					// TODO: schedule CleanUpChance(); for execution in chunkConfig.destroyGameObjectIfNotVisibleForSeconds
+				}
+				else
+				{
+					CleanUpChance();
+				}
+			}
+		}
 	}
 
-
+	void CleanUpChance()
+	{
+		if (!gameObject.activeSelf)
+		{
+			if ((DateTime.UtcNow - notRenderedTimeStamp).TotalSeconds > chunkConfig.destroyGameObjectIfNotVisibleForSeconds)
+			{
+				GameObject.Destroy(gameObject);
+				gameObject = null;
+			}
+		}
+	}
 
 
 	private float GetSizeOnScreen(Planet.SubdivisionData data)

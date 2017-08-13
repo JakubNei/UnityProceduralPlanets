@@ -1,21 +1,20 @@
 ﻿#pragma kernel main
 
-#pragma target 3.0
 #include "planet.cginc"
 
-RWTexture2D<float3> _heightMap;
+RWTexture2D<float> _planetHeightMap;
 
 
-[numthreads(32, 32, 1)]
+[numthreads(16, 16, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
 	float w, h;
-	_heightMap.GetDimensions(w, h);
+	_planetHeightMap.GetDimensions(w, h);
 	float2 uv = id.xy / float2(w, h);
 
 	float3 dir = baseMapUvToDirFromCenter(uv);
 
 	float height01 = GetProceduralHeight01(dir);	
 
-	_heightMap[id.xy] = float3(1, 1, 1) * height01;
+	_planetHeightMap[id.xy] = float3(1, 1, 1) * height01;
 }

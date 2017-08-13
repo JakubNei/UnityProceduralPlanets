@@ -1,0 +1,37 @@
+﻿#pragma kernel main
+
+#include "planet.cginc"
+
+Texture2D<float> _planetHeightMap;
+RWTexture2D<float> _chunkHeightMap;
+
+float3 _rangeA;
+float3 _rangeB;
+float3 _rangeC;
+float3 _rangeD;
+
+
+[numthreads(16, 16, 1)]
+void main(uint3 id : SV_DispatchThreadID)
+{
+	float w, h;
+	_chunkHeightMap.GetDimensions(w, h);
+	float2 uv = float2(id.x / w, id.y / h);
+
+	float3 posTop = _rangeA * (1 - uv.x) + _rangeB * uv.x;
+	float3 posBottom = _rangeD * (1 - uv.x) + _rangeC * uv.x;
+	float3 pos = posTop * (1 - uv.y) + posBottom * uv.y;
+
+	float3 dir = normalize(pos);
+
+	float2 heightMapUv = dirFromCenterToBaseMapUv(dir);
+
+	float height = GetCubicInterpolatedValue(_planetHeightMap, heightMapUv);
+	
+	height += 0.05 * snoise(dir*100, 5, 2);
+
+	// DEBUG
+	//height = uv.x;
+
+	_chunkHeightMap[id.xy] = height;
+}

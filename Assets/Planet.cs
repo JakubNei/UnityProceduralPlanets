@@ -26,18 +26,15 @@ public partial class Planet : MonoBehaviour
 		public int numberOfVerticesOnEdge = 20;
 		public float weightNeededToSubdivide = 0.70f;
 		public float stopSegmentRecursionAtWorldSize = 10;
+		public float destroyGameObjectIfNotVisibleForSeconds = 5;
 
 		public Material chunkMaterial;
 		public ComputeShader generateChunkVertices;
+		public ComputeShader generateChunkHeightMap;
 		public ComputeShader generateChunkDiffuseMap;
 		public ComputeShader generateChunkNormapMap;
 	}
 	public ChunkConfig chunkConfig;
-
-
-
-
-
 
 
 
@@ -46,35 +43,30 @@ public partial class Planet : MonoBehaviour
 	public List<Chunk> rootChildren;
 
 
-
 	public static HashSet<Planet> allPlanets = new HashSet<Planet>();
 
 	public Vector3 Center { get { return transform.position; } }
 
 
-
-	// Use this for initialization
 	void Start()
 	{
 		allPlanets.Add(this);
-		InitializeRootChildren();
 		GeneratePlanetData();
+		InitializeRootChildren();
 	}
 
 	void GeneratePlanetData()
 	{
-		var t = planetConfig.planetHeightMap = new RenderTexture(32 * 32, 32 * 32, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
-		t.dimension = UnityEngine.Rendering.TextureDimension.Tex2D;
-		t.enableRandomWrite = true;
-		t.wrapMode = TextureWrapMode.Mirror;
-		t.Create();
+		var height = planetConfig.planetHeightMap = new RenderTexture(16 * 16, 16 * 16, 1, RenderTextureFormat.R8, RenderTextureReadWrite.Linear);
+		height.depth = 0;
+		height.enableRandomWrite = true;
+		height.Create();
 
-		planetConfig.generatePlanetHeightMap.SetTexture(0, "_heightMap", t);
-		planetConfig.generatePlanetHeightMap.Dispatch(0, t.width / 32, t.height / 32, 6);
+		planetConfig.generatePlanetHeightMap.SetTexture(0, "_planetHeightMap", height);
+		planetConfig.generatePlanetHeightMap.Dispatch(0, height.width / 16, height.height / 16, 1);
 	}
 
 
-	// Update is called once per frame
 	void LateUpdate()
 	{
 		TrySubdivideOver(new SubdivisionData()
@@ -86,9 +78,7 @@ public partial class Planet : MonoBehaviour
 		var sw = Stopwatch.StartNew();
 		foreach (var s in toGenerate.GetWeighted())
 		{
-			s.GenerateMesh();
-			s.GenerateDiffuseMap();
-			s.GenerateNormalMap();
+			s.Generate();
 			//if (sw.Elapsed.TotalMilliseconds > 5f)
 			break;
 		}
