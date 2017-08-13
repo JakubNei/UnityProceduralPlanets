@@ -73,13 +73,15 @@ public partial class Planet
 		segmentUVs = new Vector2[NumberOfVerticesNeededTotal];
 		int i = 0;
 
+		float max = chunkConfig.numberOfVerticesOnEdge - 1;
+
 		for (int y = 0; y < chunkConfig.numberOfVerticesOnEdge; y++)
 		{
 			for (int x = 0; x < chunkConfig.numberOfVerticesOnEdge; x++)
 			{
 				segmentUVs[i++] = new Vector2(
-					((float)x) / chunkConfig.numberOfVerticesOnEdge,
-					((float)y) / chunkConfig.numberOfVerticesOnEdge
+					x / max,
+					y / max
 				);
 			}
 		}

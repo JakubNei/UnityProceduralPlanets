@@ -17,7 +17,7 @@ void main(uint3 id : SV_DispatchThreadID)
 {
 	float w, h;
 	_chunkNormalMap.GetDimensions(w, h);
-	float2 uv = float2(id.x / w, id.y / h);
+	float2 uv = float2(id.x / (w - 1), id.y / (h - 1));
 
 
 
@@ -53,21 +53,21 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	float3 normal;
 
-	float eps = 0.05;
+	float eps = 4 * 1 / w;
 
 	float2 T = float2(eps, 0);
 	float2 B = float2(0, eps);
 
-#define GET_HEIGHT(UV) GetLinearInterpolatedValue(_chunkHeightMap, UV)
+#define GET_HEIGHT(UV) SampleLinearFloat(_chunkHeightMap, UV)
 
 	float z = GET_HEIGHT(uv);
 	normal.x = float(
-		(GET_HEIGHT(uv - T*eps) - z)
-		- (GET_HEIGHT(uv + T*eps) - z)
+		(GET_HEIGHT(uv - T) - z)
+		- (GET_HEIGHT(uv + T) - z)
 		) / 2;
 	normal.y = float(
-		(GET_HEIGHT(uv - B*eps) - z)
-		- (GET_HEIGHT(uv + B*eps) - z)
+		(GET_HEIGHT(uv - B) - z)
+		- (GET_HEIGHT(uv + B) - z)
 		) / 2;
 	normal.z = eps * 4;
 

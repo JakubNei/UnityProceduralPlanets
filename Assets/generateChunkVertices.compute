@@ -25,7 +25,7 @@ void main(uint3 id : SV_DispatchThreadID)
 	float3 posBottom = _rangeD * (1 - uv.x) + _rangeC * uv.x;
 	float3 pos = posTop * (1 - uv.y) + posBottom * uv.y;
 
-	float height = GetLinearInterpolatedValue(_chunkHeightMap, uv);
+	float height = SampleLinearFloat(_chunkHeightMap, uv);
 
 	float3 dir = normalize(pos);
 	_vertices[id.x + id.y * _numberOfVerticesOnEdge] = dir * (_radiusBase + _radiusHeightMap * height);

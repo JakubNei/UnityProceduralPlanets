@@ -47,12 +47,47 @@ public partial class Planet : MonoBehaviour
 
 	public Vector3 Center { get { return transform.position; } }
 
-
 	void Start()
 	{
 		allPlanets.Add(this);
 		GeneratePlanetData();
 		InitializeRootChildren();
+
+
+	}
+
+
+	public Shader renderNormalsToTexture;
+	Camera renderToTextureCamera;
+	public void RenderNormalsToTexture(GameObject toRender, RenderTexture target)
+	{
+		int layer = 20;
+		int cullingMask = 1 << layer;
+		if (renderToTextureCamera == null)
+		{
+			var cameraHolder = new GameObject("render to texture camera holder");
+			cameraHolder.transform.parent = gameObject.transform;
+			renderToTextureCamera = cameraHolder.AddComponent<Camera>();
+			renderToTextureCamera.enabled = false;
+			renderToTextureCamera.renderingPath = RenderingPath.Forward;
+			renderToTextureCamera.cullingMask = cullingMask;
+			renderToTextureCamera.useOcclusionCulling = false;
+			renderToTextureCamera.clearFlags = CameraClearFlags.Color;
+			renderToTextureCamera.depthTextureMode = DepthTextureMode.None;
+			renderToTextureCamera.backgroundColor = new Color(0.5f, 0.5f, 1);
+
+			cameraHolder.transform.position = new Vector3(0, 0, -3001);
+			renderToTextureCamera.farClipPlane = 10000f;
+		}
+		var originalLayer = toRender.layer;
+		toRender.layer = layer;
+
+		renderToTextureCamera.pixelRect = new Rect(0, 0, target.width, target.height);
+		renderToTextureCamera.targetTexture = target;
+		renderToTextureCamera.transform.LookAt(toRender.transform);
+		renderToTextureCamera.RenderWithShader(renderNormalsToTexture, string.Empty);
+
+		toRender.layer = originalLayer;
 	}
 
 	void GeneratePlanetData()

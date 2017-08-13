@@ -126,14 +126,15 @@ public class Chunk
 	{
 		GenerateHeightMap();
 		GenerateMesh();
-		GenerateNormalMap();
+		CreateNormalMapFromMesh();
+		//GenerateNormalMap();
 		GenerateDiffuseMap();
 	}
 
 
 	void GenerateHeightMap()
 	{
-		var height = chunkHeightMap = new RenderTexture(64 * 16, 64 * 16, 1, RenderTextureFormat.R8, RenderTextureReadWrite.Linear);
+		var height = chunkHeightMap = new RenderTexture(64 * 16, 64 * 16, 1, RenderTextureFormat.RFloat, RenderTextureReadWrite.Linear);
 		height.depth = 0;
 		height.enableRandomWrite = true;
 		height.Create();
@@ -177,6 +178,7 @@ public class Chunk
 		mesh.triangles = planet.GetSegmentIndicies();
 		mesh.uv = planet.GetSefgmentUVs();
 		mesh.RecalculateNormals();
+		mesh.RecalculateTangents();
 
 		{
 			int aIndex = 0;
@@ -192,9 +194,22 @@ public class Chunk
 		isGenerationDone = true;
 	}
 
+	void CreateNormalMapFromMesh()
+	{
+		const int resolution = 512;
+		var normal = chunkNormalMap = new RenderTexture(resolution, resolution, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+		normal.depth = 0;
+		normal.enableRandomWrite = true;
+		normal.Create();
+
+		DoRender(true);
+		planet.RenderNormalsToTexture(this.gameObject, normal);
+	}
+
 	void GenerateNormalMap()
 	{
-		var normal = chunkNormalMap = new RenderTexture(64 * 16, 64 * 16, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+		const int resolution = 512;
+		var normal = chunkNormalMap = new RenderTexture(resolution, resolution, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
 		normal.depth = 0;
 		normal.enableRandomWrite = true;
 		normal.Create();
@@ -206,15 +221,15 @@ public class Chunk
 
 		c.Dispatch(0, normal.width / 16, normal.height / 16, 1);
 
-		if (material)
-			material.SetTexture("_BumpMap", chunkNormalMap);
+		//if (material) material.SetTexture("_BumpMap", chunkNormalMap);
 	}
 
 
 
 	void GenerateDiffuseMap()
 	{
-		var diffuse = chunkDiffuseMap = new RenderTexture(64 * 16, 64 * 16, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+		const int resolution = 512;
+		var diffuse = chunkDiffuseMap = new RenderTexture(resolution, resolution, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
 		diffuse.depth = 0;
 		diffuse.enableRandomWrite = true;
 		diffuse.Create();
@@ -223,11 +238,11 @@ public class Chunk
 		c.SetTexture(0, "_chunkNormalMap", chunkNormalMap);
 		c.SetTexture(0, "_chunkDiffuseMap", diffuse);
 		rangeToGenerateInto.SetParams(c, "_range");
+		c.SetFloat("_chunkRelativeSize", this.rangeToGenerateInto.ToBoundingSphere().radius / planetConfig.radiusMin);
 
 		c.Dispatch(0, diffuse.width / 16, diffuse.height / 16, 1);
 
-		if (material)
-			material.mainTexture = chunkDiffuseMap;
+		if (material) material.mainTexture = chunkDiffuseMap;
 	}
 
 	private void OnDrawGizmos()
@@ -312,11 +327,9 @@ public class Chunk
 				var meshCollider = go.AddComponent<MeshCollider>();
 				meshCollider.sharedMesh = mesh;
 
-				if (chunkDiffuseMap)
-					material.mainTexture = chunkDiffuseMap;
+				if (chunkDiffuseMap) material.mainTexture = chunkDiffuseMap;
 
-				if (chunkNormalMap)
-					material.SetTexture("_BumpMap", chunkNormalMap);
+				// if (chunkNormalMap) material.SetTexture("_BumpMap", chunkNormalMap);
 			}
 
 			if (!gameObject.activeSelf)
