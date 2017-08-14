@@ -372,8 +372,13 @@ public class Chunk
 	{
 		generationBegan = false;
 		isGenerationDone = false;
-		GameObject.Destroy(gameObject);
+		if (gameObject) GameObject.Destroy(gameObject);
 		lastVisible = false;
+
+		if (mesh) Mesh.Destroy(mesh);
+		if (chunkNormalMap) chunkNormalMap.Release();
+		if (chunkDiffuseMap) chunkDiffuseMap.Release();
+		if (chunkHeightMap) chunkHeightMap.Release();
 	}
 
 	void TryCreateGameObject()
