@@ -1,0 +1,54 @@
+﻿#pragma kernel main
+
+#include "planet.compute.cginc"
+
+Texture2D<float> _chunkHeightMapOld;
+float _chunkRelativeSize;
+float3 _rangeA;
+float3 _rangeB;
+float3 _rangeC;
+float3 _rangeD;
+
+RWTexture2D<float> _chunkHeightMapNew;
+
+[numthreads(16, 16, 1)]
+void main(uint3 id : SV_DispatchThreadID)
+{
+	float2 uv = GetUV(_chunkHeightMapNew, id.xy);
+
+
+	float w, h;
+	_chunkHeightMapOld.GetDimensions(w, h);
+
+	const float eps = 100;
+	float2 off = _chunkRelativeSize / eps / float2(w, h);
+
+	float sx0 = SampleLinearFloat(_chunkHeightMapOld, uv + float2(off.x, 0));
+	float sx1 = SampleLinearFloat(_chunkHeightMapOld, uv + float2(-off.x, 0));
+	float sy0 = SampleLinearFloat(_chunkHeightMapOld, uv + float2(0, off.y));
+	float sy1 = SampleLinearFloat(_chunkHeightMapOld, uv + float2(0, -off.y));
+
+	float slope = (abs(sx0 - sx1) + abs(sy0 - sy1)) * eps;
+
+
+
+	float height = _chunkHeightMapOld[id.xy];
+	
+	if (slope < 1) {
+
+		float3 pos = lerp(
+			lerp(_rangeA, _rangeB, uv.x),
+			lerp(_rangeD, _rangeC, uv.x),
+			uv.y
+		);
+		float3 dir = normalize(pos);
+
+		height += slope * snoise(dir * 100 * slope, 5, 2);
+
+	}
+
+	// DEBUG
+	//height = uv.x;
+
+	_chunkHeightMapNew[id.xy] = height;
+}

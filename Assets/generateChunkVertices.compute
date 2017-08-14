@@ -1,6 +1,6 @@
 ﻿#pragma kernel main
 
-#include "planet.cginc"
+#include "planet.compute.cginc"
 
 Texture2D<float> _chunkHeightMap;
 

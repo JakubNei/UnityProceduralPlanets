@@ -1,32 +1,31 @@
 ﻿#pragma kernel main
 
-#include "planet.cginc"
+#include "planet.compute.cginc"
 
 Texture2D<float> _planetHeightMap;
-RWTexture2D<float> _chunkHeightMap;
-
 float3 _rangeA;
 float3 _rangeB;
 float3 _rangeC;
 float3 _rangeD;
 
+RWTexture2D<float> _chunkHeightMap;
 
 [numthreads(16, 16, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
 	float2 uv = GetUV(_chunkHeightMap, id.xy);
 
-	float3 posTop = _rangeA * (1 - uv.x) + _rangeB * uv.x;
-	float3 posBottom = _rangeD * (1 - uv.x) + _rangeC * uv.x;
-	float3 pos = posTop * (1 - uv.y) + posBottom * uv.y;
-
+	float3 pos = lerp(
+		lerp(_rangeA, _rangeB, uv.x),
+		lerp(_rangeD, _rangeC, uv.x),
+		uv.y
+	);
 	float3 dir = normalize(pos);
+
 
 	float2 heightMapUv = dirFromCenterToBaseMapUv(dir);
 
 	float height = SampleCubicFloat(_planetHeightMap, heightMapUv);
-	
-	height += 0.02 * snoise(dir*100, 5, 2);
 
 	// DEBUG
 	//height = uv.x;

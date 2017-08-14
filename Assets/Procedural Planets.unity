@@ -296,7 +296,9 @@ MonoBehaviour:
     chunkMaterial: {fileID: 2100000, guid: c1ef8c7ce330c5347a701bc512336e1f, type: 2}
     generateChunkVertices: {fileID: 7200000, guid: 651301ac22831ad45b2814adffcc8488,
       type: 3}
-    generateChunkHeightMap: {fileID: 7200000, guid: 30f5d275d0922fe4b9a8a34aa9238d36,
+    generateChunkHeightMapPass1: {fileID: 7200000, guid: ea00499083c715b4eadb6de23ffc8ef8,
+      type: 3}
+    generateChunkHeightMapPass2: {fileID: 7200000, guid: 4ba1f403193cffc468b883359ea2b22d,
       type: 3}
     generateChunkDiffuseMap: {fileID: 7200000, guid: fb9af6c0006df1748af7cf9fca53d058,
       type: 3}

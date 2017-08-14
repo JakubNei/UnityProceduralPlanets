@@ -155,18 +155,42 @@ public class Chunk
 
 	void GenerateHeightMap()
 	{
-		const int resolution = 512;
-		var height = chunkHeightMap = new RenderTexture(resolution, resolution, 1, RenderTextureFormat.RFloat, RenderTextureReadWrite.Linear);
-		height.depth = 0;
-		height.enableRandomWrite = true;
-		height.Create();
+		// pass 1
+		{
+			const int resolution = 512;
+			var height = chunkHeightMap = new RenderTexture(resolution, resolution, 1, RenderTextureFormat.RFloat, RenderTextureReadWrite.Linear);
+			height.depth = 0;
+			height.enableRandomWrite = true;
+			height.Create();
 
-		var c = chunkConfig.generateChunkHeightMap;
-		c.SetTexture(0, "_planetHeightMap", planetConfig.planetHeightMap);
-		c.SetTexture(0, "_chunkHeightMap", height);
-		rangeToGenerateInto.SetParams(c, "_range");
+			var c = chunkConfig.generateChunkHeightMapPass1;
+			c.SetTexture(0, "_planetHeightMap", planetConfig.planetHeightMap);
+			rangeToGenerateInto.SetParams(c, "_range");
+			c.SetTexture(0, "_chunkHeightMap", height);
 
-		c.Dispatch(0, height.width / 16, height.height / 16, 1);
+			c.Dispatch(0, height.width / 16, height.height / 16, 1);
+		}
+
+		// pass 2
+		{
+			const int resolution = 512;
+			var height = new RenderTexture(resolution, resolution, 1, RenderTextureFormat.RFloat, RenderTextureReadWrite.Linear);
+			height.depth = 0;
+			height.enableRandomWrite = true;
+			height.Create();
+
+			var c = chunkConfig.generateChunkHeightMapPass2;
+			c.SetTexture(0, "_chunkHeightMapOld", chunkHeightMap);
+			c.SetFloat("_chunkRelativeSize", planetConfig.radiusMin / chunkRadius);
+			rangeToGenerateInto.SetParams(c, "_range");
+			c.SetTexture(0, "_chunkHeightMapNew", height);
+
+			c.Dispatch(0, height.width / 16, height.height / 16, 1);
+
+			chunkHeightMap.Release();
+			chunkHeightMap = height;
+		}
+
 	}
 
 
@@ -277,7 +301,7 @@ public class Chunk
 		c.SetTexture(0, "_chunkHeightMap", chunkHeightMap);
 		c.SetTexture(0, "_chunkDiffuseMap", diffuse);
 		rangeToGenerateInto.SetParams(c, "_range");
-		c.SetFloat("_slopeSamplingSize", planetConfig.radiusMin / chunkRadius / 10.0f);
+		c.SetFloat("_chunkRelativeSize", planetConfig.radiusMin / chunkRadius);
 
 		c.Dispatch(0, diffuse.width / 16, diffuse.height / 16, 1);
 

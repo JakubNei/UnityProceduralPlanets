@@ -9,7 +9,7 @@
 
 				#pragma vertex vert
 				#pragma fragment frag
-				#include "planet.cginc"
+				#include "planet.compute.cginc"
 
 				struct appdata {
 					//float4 vertex : POSITION;

@@ -1,6 +1,6 @@
 ﻿#pragma kernel main
 
-#include "planet.cginc"
+#include "planet.compute.cginc"
 
 RWTexture2D<float> _planetHeightMap;
 

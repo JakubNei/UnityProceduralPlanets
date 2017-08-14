@@ -30,7 +30,8 @@ public partial class Planet : MonoBehaviour
 
 		public Material chunkMaterial;
 		public ComputeShader generateChunkVertices;
-		public ComputeShader generateChunkHeightMap;
+		public ComputeShader generateChunkHeightMapPass1;
+		public ComputeShader generateChunkHeightMapPass2;
 		public ComputeShader generateChunkDiffuseMap;
 		public ComputeShader generateChunkNormapMap;
 	}

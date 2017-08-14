@@ -1,13 +1,13 @@
 ﻿#pragma kernel main
 
-#include "planet.cginc"
+#include "planet.compute.cginc"
 
 Texture2D<float> _chunkHeightMap;
 float3 _rangeA;
 float3 _rangeB;
 float3 _rangeC;
 float3 _rangeD;
-float _slopeSamplingSize;
+float _chunkRelativeSize;
 
 RWTexture2D<float4> _chunkDiffuseMap;
 
@@ -21,14 +21,15 @@ void main(uint3 id : SV_DispatchThreadID)
 	float w, h;
 	_chunkHeightMap.GetDimensions(w, h);
 
-	float eps = _slopeSamplingSize;
+	const float eps = 100;
+	float off = _chunkRelativeSize / eps;
 
-	float sx0 = SampleLinearFloat(_chunkHeightMap, uv + float2(eps/w, 0));
-	float sx1 = SampleLinearFloat(_chunkHeightMap, uv + float2(-eps/w, 0));
-	float sy0 = SampleLinearFloat(_chunkHeightMap, uv + float2(0, eps/h));
-	float sy1 = SampleLinearFloat(_chunkHeightMap, uv + float2(0, -eps/h));
+	float sx0 = SampleLinearFloat(_chunkHeightMap, uv + float2(off/w, 0));
+	float sx1 = SampleLinearFloat(_chunkHeightMap, uv + float2(-off/w, 0));
+	float sy0 = SampleLinearFloat(_chunkHeightMap, uv + float2(0, off/h));
+	float sy1 = SampleLinearFloat(_chunkHeightMap, uv + float2(0, -off/h));
 
-	float slope = abs(sx0 - sx1) + abs(sy0 - sy1);
+	float slope = (abs(sx0 - sx1) + abs(sy0 - sy1)) * eps;
 
 
 	const float3 grass = float3(121, 136, 69) / float3(255, 255, 255); // grass
@@ -38,8 +39,8 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	float3 color;
 	
-	if (slope < 0.005) color = grass;
-	else if(slope < 0.01) color = clay;
+	if (slope < 0.1) color = grass;
+	else if(slope < 0.25) color = clay;
 	else color = rock;
 
 
