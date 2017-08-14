@@ -34,18 +34,19 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	float height = _chunkHeightMapOld[id.xy];
 	
+	float3 pos = lerp(
+		lerp(_rangeA, _rangeB, uv.x),
+		lerp(_rangeD, _rangeC, uv.x),
+		uv.y
+	);
+	float3 dir = normalize(pos);
+
+
 	if (slope < 1) {
+		//height += 0.02 * snoise(dir * 10 * slope, 5, 2);
+	}	
+	//height += 0.05 * snoise(dir * 10 * slope, 5, 2);
 
-		float3 pos = lerp(
-			lerp(_rangeA, _rangeB, uv.x),
-			lerp(_rangeD, _rangeC, uv.x),
-			uv.y
-		);
-		float3 dir = normalize(pos);
-
-		height += slope * snoise(dir * 100 * slope, 5, 2);
-
-	}
 
 	// DEBUG
 	//height = uv.x;

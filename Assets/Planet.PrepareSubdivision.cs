@@ -4,47 +4,47 @@ using System.Collections.Generic;
 
 public partial class Planet
 {
-	void GatherWeights(WeightedSegmentsList toGenerate, Chunk segment, int recursionDepth)
+	void GatherWeights(WeightedSegmentsList toGenerate, Chunk chunk, int recursionDepth)
 	{
 		//if (toGenerate.Count > 500) return; // SAFE
 
 
-		var weight = segment.GetGenerationWeight(toGenerate.data);
+		var weight = chunk.GetGenerationWeight(toGenerate.data);
 
-		if (segment.generationBegan == false)
+		if (chunk.generationBegan == false)
 		{
-			toGenerate.Add(segment, weight);
+			toGenerate.Add(chunk, weight);
 		}
 
 		if (recursionDepth < SubdivisionMaxRecurisonDepth)
 		{
 			if (weight > chunkConfig.weightNeededToSubdivide)
 			{
-				segment.EnsureChildrenInstancesAreCreated();
+				chunk.EnsureChildrenInstancesAreCreated();
 
-				foreach (var child in segment.children)
+				foreach (var child in chunk.children)
 				{
 					GatherWeights(toGenerate, child, recursionDepth + 1);
 				}
 
-				if (segment.children.All(c => c.isGenerationDone))
+				if (chunk.children.All(c => c.isGenerationDone))
 				{
-					segment.SetVisible(false);
+					chunk.SetVisible(false);
 				}
 				else
 				{
-					segment.SetVisible(true);
-					segment.HideAllChildren();
+					chunk.SetVisible(true);
+					chunk.HideAllChildren();
 				}
 
 				return;
 			}
 		}
 
-		if (segment.isGenerationDone)
+		if (chunk.isGenerationDone)
 		{
-			segment.SetVisible(true);
-			segment.HideAllChildren();
+			chunk.SetVisible(true);
+			chunk.HideAllChildren();
 		}
 	}
 
@@ -53,26 +53,26 @@ public partial class Planet
 	{
 		public SubdivisionData data;
 
-		public new void Add(Chunk segment, float weight)
+		public new void Add(Chunk chunk, float weight)
 		{
-			PrivateAdd1(segment, weight);
+			PrivateAdd1(chunk, weight);
 
 			// we have to generate all our parents first
-			while (segment.parent != null && segment.parent.generationBegan == false)
+			while (chunk.parent != null && chunk.parent.generationBegan == false)
 			{
-				segment = segment.parent;
-				var w = segment.GetGenerationWeight(data);
-				PrivateAdd1(segment, Mathf.Max(w, weight));
+				chunk = chunk.parent;
+				var w = chunk.GetGenerationWeight(data);
+				PrivateAdd1(chunk, Mathf.Max(w, weight));
 			}
 		}
-		private void PrivateAdd1(Chunk segment, float weight)
+		private void PrivateAdd1(Chunk chunk, float weight)
 		{
-			PrivateAdd2(segment, weight);
+			PrivateAdd2(chunk, weight);
 
 			// if we want to show this chunk, our neighbours have the same weight, because we cant be shown without our neighbours
-			if (segment.parent != null)
+			if (chunk.parent != null)
 			{
-				foreach (var neighbour in segment.parent.children)
+				foreach (var neighbour in chunk.parent.children)
 				{
 					if (neighbour.generationBegan == false)
 					{
@@ -82,17 +82,17 @@ public partial class Planet
 				}
 			}
 		}
-		private void PrivateAdd2(Chunk segment, float weight)
+		private void PrivateAdd2(Chunk chunk, float weight)
 		{
-			if (segment.generationBegan) return;
+			if (chunk.generationBegan) return;
 
 			float w;
-			if (this.TryGetValue(segment, out w))
+			if (this.TryGetValue(chunk, out w))
 			{
 				if (w > weight) return; // the weight already present is bigger, dont change it
 			}
 
-			this[segment] = weight;
+			this[chunk] = weight;
 		}
 		public IEnumerable<Chunk> GetWeighted(int maxCount = 100)
 		{
@@ -119,17 +119,17 @@ public partial class Planet
 		toGenerate.data = data;
 
 
-		foreach (var rootSegment in rootChildren)
+		foreach (var chunk in rootChildren)
 		{
-			if (rootSegment.generationBegan == false)
+			if (chunk.generationBegan == false)
 			{
 				// first generate rootCunks
-				toGenerate.Add(rootSegment, float.MaxValue);
+				toGenerate.Add(chunk, float.MaxValue);
 			}
 			else
 			{
 				// then their children
-				GatherWeights(toGenerate, rootSegment, 0);
+				GatherWeights(toGenerate, chunk, 0);
 			}
 		}
 

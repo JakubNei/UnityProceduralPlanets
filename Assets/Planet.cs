@@ -103,6 +103,22 @@ public partial class Planet : MonoBehaviour
 		planetConfig.generatePlanetHeightMap.Dispatch(0, height.width / 16, height.height / 16, 1);
 	}
 
+	void Update()
+	{
+		if (Input.GetKeyDown(KeyCode.R))
+		{
+			MarkForRegeneration(rootChildren);
+		}
+	}
+
+	static void MarkForRegeneration(IEnumerable<Chunk> chunks)
+	{
+		foreach (var c in chunks)
+		{
+			c.MarkForRegeneration();
+			MarkForRegeneration(c.children);
+		}
+	}
 
 	void LateUpdate()
 	{

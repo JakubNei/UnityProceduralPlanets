@@ -26,6 +26,7 @@ void main(uint3 id : SV_DispatchThreadID)
 	float2 heightMapUv = dirFromCenterToBaseMapUv(dir);
 
 	float height = SampleCubicFloat(_planetHeightMap, heightMapUv);
+	height += 0.01 * snoise(dir * 100, 5, 2);
 
 	// DEBUG
 	//height = uv.x;

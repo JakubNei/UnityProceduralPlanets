@@ -145,16 +145,25 @@ public class Chunk
 
 	public void Generate()
 	{
+		if (generationBegan) return;
+		generationBegan = true;
+
+		if (gameObject) GameObject.Destroy(gameObject);
+
 		GenerateHeightMap();
 		GenerateMesh();
 		//CreateNormalMapFromMesh();
 		//GenerateNormalMap();
 		GenerateDiffuseMap();
+
+		isGenerationDone = true;
 	}
 
 
 	void GenerateHeightMap()
 	{
+		if (chunkHeightMap) chunkHeightMap.Release();
+
 		// pass 1
 		{
 			const int resolution = 512;
@@ -198,9 +207,6 @@ public class Chunk
 	Mesh mesh;
 	void GenerateMesh()
 	{
-		if (generationBegan) return;
-		generationBegan = true;
-
 		var v = planet.GetSegmentVertices();
 
 		var b = new ComputeBuffer(v.Length, 3 * sizeof(float));
@@ -231,6 +237,7 @@ public class Chunk
 			rangeToCalculateScreenSizeOn.d = v[dIndex];
 		}
 
+		if (mesh) Mesh.Destroy(mesh);
 		mesh = new Mesh();
 		mesh.vertices = v;
 		mesh.triangles = planet.GetSegmentIndicies();
@@ -253,12 +260,12 @@ public class Chunk
 			}
 			mesh.vertices = v;
 		}
-
-		isGenerationDone = true;
 	}
 
 	void CreateNormalMapFromMesh()
 	{
+		if (chunkNormalMap) chunkNormalMap.Release();
+
 		const int resolution = 512;
 		var normal = chunkNormalMap = new RenderTexture(resolution, resolution, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
 		normal.depth = 0;
@@ -271,6 +278,8 @@ public class Chunk
 
 	void GenerateNormalMap()
 	{
+		if (chunkNormalMap) chunkNormalMap.Release();
+
 		const int resolution = 512;
 		var normal = chunkNormalMap = new RenderTexture(resolution, resolution, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
 		normal.depth = 0;
@@ -291,6 +300,8 @@ public class Chunk
 
 	void GenerateDiffuseMap()
 	{
+		if (chunkDiffuseMap) chunkDiffuseMap.Release();
+
 		const int resolution = 512;
 		var diffuse = chunkDiffuseMap = new RenderTexture(resolution, resolution, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
 		diffuse.depth = 0;
@@ -313,16 +324,10 @@ public class Chunk
 		if (gameObject && gameObject.activeSelf)
 		{
 			Gizmos.color = Color.cyan;
-			Gizmos.DrawLine(rangeToGenerateInto.a, rangeToGenerateInto.b);
-			Gizmos.DrawLine(rangeToGenerateInto.b, rangeToGenerateInto.c);
-			Gizmos.DrawLine(rangeToGenerateInto.c, rangeToGenerateInto.d);
-			Gizmos.DrawLine(rangeToGenerateInto.d, rangeToGenerateInto.a);
-
-			Gizmos.color = Color.red;
-			Gizmos.DrawLine(rangeToCalculateScreenSizeOn.a, rangeToCalculateScreenSizeOn.b);
-			Gizmos.DrawLine(rangeToCalculateScreenSizeOn.b, rangeToCalculateScreenSizeOn.c);
-			Gizmos.DrawLine(rangeToCalculateScreenSizeOn.c, rangeToCalculateScreenSizeOn.d);
-			Gizmos.DrawLine(rangeToCalculateScreenSizeOn.d, rangeToCalculateScreenSizeOn.a);
+			Gizmos.DrawLine(rangeRealSubdivided.a, rangeRealSubdivided.b);
+			Gizmos.DrawLine(rangeRealSubdivided.b, rangeRealSubdivided.c);
+			Gizmos.DrawLine(rangeRealSubdivided.c, rangeRealSubdivided.d);
+			Gizmos.DrawLine(rangeRealSubdivided.d, rangeRealSubdivided.a);
 		}
 	}
 
@@ -363,6 +368,39 @@ public class Chunk
 		}
 	}
 
+	public void MarkForRegeneration()
+	{
+		generationBegan = false;
+		isGenerationDone = false;
+		GameObject.Destroy(gameObject);
+		lastVisible = false;
+	}
+
+	void TryCreateGameObject()
+	{
+		if (gameObject) return;
+
+		var name = typeof(Chunk) + " id:#" + id + " generation:" + generation;
+
+		var go = gameObject = new GameObject(name);
+		go.transform.parent = planet.transform;
+
+		var behavior = go.AddComponent<Behavior>();
+		behavior.chunk = this;
+
+		var meshFilter = go.AddComponent<MeshFilter>();
+		meshFilter.mesh = mesh;
+
+		var meshRenderer = go.AddComponent<MeshRenderer>();
+		meshRenderer.sharedMaterial = chunkConfig.chunkMaterial;
+		material = meshRenderer.material;
+
+		var meshCollider = go.AddComponent<MeshCollider>();
+		meshCollider.sharedMesh = mesh;
+
+		if (chunkDiffuseMap) material.mainTexture = chunkDiffuseMap;
+	}
+
 	DateTime notRenderedTimeStamp;
 	GameObject gameObject;
 	Material material;
@@ -370,37 +408,15 @@ public class Chunk
 	{
 		if (doRender)
 		{
-			if (gameObject == null)
-			{
-				var name = typeof(Chunk) + " id:#" + id + " generation:" + generation;
+			if (isGenerationDone)
+				TryCreateGameObject();
 
-				var go = gameObject = new GameObject(name);
-				go.transform.parent = planet.transform;
-
-				var behavior = go.AddComponent<Behavior>();
-				behavior.chunk = this;
-
-				var meshFilter = go.AddComponent<MeshFilter>();
-				meshFilter.mesh = mesh;
-
-				var meshRenderer = go.AddComponent<MeshRenderer>();
-				meshRenderer.sharedMaterial = chunkConfig.chunkMaterial;
-				material = meshRenderer.material;
-
-				var meshCollider = go.AddComponent<MeshCollider>();
-				meshCollider.sharedMesh = mesh;
-
-				if (chunkDiffuseMap) material.mainTexture = chunkDiffuseMap;
-
-				// if (chunkNormalMap) material.SetTexture("_BumpMap", chunkNormalMap);
-			}
-
-			if (!gameObject.activeSelf)
+			if (gameObject != null && !gameObject.activeSelf)
 				gameObject.SetActive(true);
 		}
 		else
 		{
-			if (gameObject)
+			if (gameObject != null)
 			{
 				if (gameObject.activeSelf)
 				{
