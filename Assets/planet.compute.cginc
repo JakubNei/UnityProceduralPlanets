@@ -67,7 +67,7 @@ float2 GetUV(Texture2D<float> map, int2 id)
 
 
 
-
+/*
 float3 SampleLinearFloat3(Texture2D<float3> map, float2 uv)
 {
 	int w, h;
@@ -76,7 +76,7 @@ float3 SampleLinearFloat3(Texture2D<float3> map, float2 uv)
 
 	int2 off = int2(0, 1);
 	float2 weight = frac(pos);
-	int2 index = int2(floor(pos));
+	int2 index = int2(pos);
 
 	float3 bottom =
 		lerp(
@@ -104,7 +104,7 @@ float SampleLinearFloat(Texture2D<float> map, float2 uv)
 
 	int2 off = int2(0, 1);
 	float2 weight = frac(pos);
-	int2 index = int2(floor(pos));
+	int2 index = int2(pos);
 
 	float bottom =
 		lerp(
@@ -122,7 +122,7 @@ float SampleLinearFloat(Texture2D<float> map, float2 uv)
 
 	return lerp(bottom, top, weight.y);
 }
-
+*/
 
 
 float SampleCubicFloat(Texture2D<float> map, float2 uv)
@@ -141,12 +141,11 @@ float SampleCubicFloat(Texture2D<float> map, float2 uv)
 	//  |    |         |    |
 	// p00--p10-------p20--p30
 
-	float2 xyFloored = floor(xy);
-	float2 t = xy - xyFloored; // 0,0 ... 1,1
+	float2 t = frac(xy); // 0,0 ... 1,1
 	float4 tx = cubic(t.x);
 	float4 ty = cubic(t.y);
 
-	int2 p12 = int2(xyFloored);
+	int2 p12 = int2(xy);
 	int2 p00 = p12 - int2(1, 2);
 
 	float4x4 v = float4x4(

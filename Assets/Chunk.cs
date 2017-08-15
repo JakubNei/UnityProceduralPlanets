@@ -20,9 +20,10 @@ public class Chunk
 	public Chunk parent;
 	public ulong generation;
 
-	public Range rangeRealSubdivided;
-	public Range rangeToGenerateInto;
-	public Range rangeToCalculateScreenSizeOn;
+	public Range positionRangeRealSubdivided;
+	public Range positionRangeToGenerateInto;
+	public Range directionRangeToGenerateInto;
+	public Range positionRangeToCalculateScreenSizeOn;
 
 	public ChildPosition childPosition;
 
@@ -44,10 +45,10 @@ public class Chunk
 	public class Behavior : MonoBehaviour
 	{
 		public Chunk chunk;
-		private void OnDrawGizmos()
+		private void OnDrawGizmosSelected()
 		{
 			if (chunk != null)
-				chunk.OnDrawGizmos();
+				chunk.OnDrawGizmosSelected();
 		}
 	}
 
@@ -55,8 +56,8 @@ public class Chunk
 	{
 		var chunk = new Chunk();
 		chunk.planet = planet;
-		chunk.rangeRealSubdivided = range;
-		chunk.rangeToCalculateScreenSizeOn = range;
+		chunk.positionRangeRealSubdivided = range;
+		chunk.positionRangeToCalculateScreenSizeOn = range;
 		chunk.id = id;
 		chunk.generation = generation;
 		chunk.childPosition = childPosition;
@@ -74,12 +75,20 @@ public class Chunk
 			range.b = b * ratio + center;
 			range.c = c * ratio + center;
 			range.d = d * ratio + center;
-			chunk.rangeToGenerateInto = range;
+			chunk.positionRangeToGenerateInto = range;
 		}
 		else
 		{
-			chunk.rangeToGenerateInto = range;
+			chunk.positionRangeToGenerateInto = range;
 		}
+
+		chunk.directionRangeToGenerateInto = new Range
+		{
+			a = (chunk.positionRangeToGenerateInto.a - planet.Center).normalized,
+			b = (chunk.positionRangeToGenerateInto.b - planet.Center).normalized,
+			c = (chunk.positionRangeToGenerateInto.c - planet.Center).normalized,
+			d = (chunk.positionRangeToGenerateInto.d - planet.Center).normalized,
+		};
 
 		return chunk;
 	}
@@ -118,10 +127,10 @@ public class Chunk
 			d----dc---c
 			*/
 
-			var a = rangeRealSubdivided.a;
-			var b = rangeRealSubdivided.b;
-			var c = rangeRealSubdivided.c;
-			var d = rangeRealSubdivided.d;
+			var a = positionRangeRealSubdivided.a;
+			var b = positionRangeRealSubdivided.b;
+			var c = positionRangeRealSubdivided.c;
+			var d = positionRangeRealSubdivided.d;
 			var ab = Vector3.Normalize((a + b) / 2.0f);
 			var ad = Vector3.Normalize((a + d) / 2.0f);
 			var bc = Vector3.Normalize((b + c) / 2.0f);
@@ -152,6 +161,9 @@ public class Chunk
 
 		GenerateHeightMap();
 		GenerateMesh();
+		PrepareMesh();
+		MoveSkirtVertices();
+		UploadMesh();
 		//CreateNormalMapFromMesh();
 		//GenerateNormalMap();
 		GenerateDiffuseMap();
@@ -166,15 +178,17 @@ public class Chunk
 
 		// pass 1
 		{
-			const int resolution = 512;
+			const int resolution = 256;
 			var height = chunkHeightMap = new RenderTexture(resolution, resolution, 1, RenderTextureFormat.RFloat, RenderTextureReadWrite.Linear);
 			height.depth = 0;
+			height.wrapMode = TextureWrapMode.Mirror;
+			height.filterMode = FilterMode.Trilinear;
 			height.enableRandomWrite = true;
 			height.Create();
 
 			var c = chunkConfig.generateChunkHeightMapPass1;
 			c.SetTexture(0, "_planetHeightMap", planetConfig.planetHeightMap);
-			rangeToGenerateInto.SetParams(c, "_range");
+			directionRangeToGenerateInto.SetParams(c, "_range");
 			c.SetTexture(0, "_chunkHeightMap", height);
 
 			c.Dispatch(0, height.width / 16, height.height / 16, 1);
@@ -182,16 +196,18 @@ public class Chunk
 
 		// pass 2
 		{
-			const int resolution = 512;
+			const int resolution = 256;
 			var height = new RenderTexture(resolution, resolution, 1, RenderTextureFormat.RFloat, RenderTextureReadWrite.Linear);
 			height.depth = 0;
+			height.wrapMode = TextureWrapMode.Mirror;
+			height.filterMode = FilterMode.Trilinear;
 			height.enableRandomWrite = true;
 			height.Create();
 
 			var c = chunkConfig.generateChunkHeightMapPass2;
 			c.SetTexture(0, "_chunkHeightMapOld", chunkHeightMap);
 			c.SetFloat("_chunkRelativeSize", planetConfig.radiusMin / chunkRadius);
-			rangeToGenerateInto.SetParams(c, "_range");
+			directionRangeToGenerateInto.SetParams(c, "_range");
 			c.SetTexture(0, "_chunkHeightMapNew", height);
 
 			c.Dispatch(0, height.width / 16, height.height / 16, 1);
@@ -202,21 +218,18 @@ public class Chunk
 
 	}
 
-
+	ComputeBuffer vertexGPUBuffer { get { return planet.chunkVertexGPUBuffer; } }
+	Vector3[] vertexCPUBuffer { get { return planet.chunkVertexCPUBuffer; } }
 
 	Mesh mesh;
 	void GenerateMesh()
 	{
-		var v = planet.GetSegmentVertices();
-
-		var b = new ComputeBuffer(v.Length, 3 * sizeof(float));
-		b.SetData(v);
-
+		var v = vertexCPUBuffer;
 		var verticesOnEdge = chunkConfig.numberOfVerticesOnEdge;
 
 		var c = chunkConfig.generateChunkVertices;
-		c.SetBuffer(0, "_vertices", b);
-		rangeToGenerateInto.SetParams(c, "_range");
+		c.SetBuffer(0, "_vertices", vertexGPUBuffer);
+		directionRangeToGenerateInto.SetParams(c, "_range");
 		c.SetInt("_numberOfVerticesOnEdge", verticesOnEdge);
 		c.SetFloat("_radiusBase", planetConfig.radiusMin);
 		c.SetFloat("_radiusHeightMap", planetConfig.radiusVariation);
@@ -224,30 +237,42 @@ public class Chunk
 
 		c.Dispatch(0, verticesOnEdge, verticesOnEdge, 1);
 
-		b.GetData(v);
+		vertexGPUBuffer.GetData(v);
 
 		{
 			int aIndex = 0;
 			int bIndex = verticesOnEdge - 1;
 			int cIndex = verticesOnEdge * verticesOnEdge - 1;
 			int dIndex = cIndex - (verticesOnEdge - 1);
-			rangeToCalculateScreenSizeOn.a = v[aIndex];
-			rangeToCalculateScreenSizeOn.b = v[bIndex];
-			rangeToCalculateScreenSizeOn.c = v[cIndex];
-			rangeToCalculateScreenSizeOn.d = v[dIndex];
+			positionRangeToCalculateScreenSizeOn.a = v[aIndex];
+			positionRangeToCalculateScreenSizeOn.b = v[bIndex];
+			positionRangeToCalculateScreenSizeOn.c = v[cIndex];
+			positionRangeToCalculateScreenSizeOn.d = v[dIndex];
 		}
 
+
+	}
+
+	void PrepareMesh()
+	{
 		if (mesh) Mesh.Destroy(mesh);
+		// TODO: optimize: fill mesh vertices on GPU instead of CPU, calculate UVs, normals and tangents on GPU instead of CPU, remember we still need vertices on CPU for mesh collider
 		mesh = new Mesh();
-		mesh.vertices = v;
+		mesh.vertices = vertexCPUBuffer;
 		mesh.triangles = planet.GetSegmentIndicies();
 		mesh.uv = planet.GetSefgmentUVs();
 		mesh.RecalculateNormals();
 		mesh.RecalculateTangents();
+	}
 
+	void MoveSkirtVertices()
+	{
 		if (chunkConfig.useSkirts)
 		{
-			var decreaseSkirtsBy = -rangeRealSubdivided.CenterPos.normalized * (chunkRadius / 10.0f);
+			var v = vertexCPUBuffer;
+			var verticesOnEdge = chunkConfig.numberOfVerticesOnEdge;
+
+			var decreaseSkirtsBy = -positionRangeRealSubdivided.CenterPos.normalized * (chunkRadius / 10.0f);
 			for (int i = 0; i < verticesOnEdge; i++)
 			{
 				v[i] += decreaseSkirtsBy; // top line
@@ -258,40 +283,61 @@ public class Chunk
 				v[verticesOnEdge * i] += decreaseSkirtsBy; // left line
 				v[verticesOnEdge * i + verticesOnEdge - 1] += decreaseSkirtsBy; // right line
 			}
-			mesh.vertices = v;
+			mesh.vertices = vertexCPUBuffer;
 		}
+	}
+
+	void UploadMesh()
+	{
+		mesh.UploadMeshData(true);
 	}
 
 	void CreateNormalMapFromMesh()
 	{
-		if (chunkNormalMap) chunkNormalMap.Release();
+		const int resolution = 256;
 
-		const int resolution = 512;
-		var normal = chunkNormalMap = new RenderTexture(resolution, resolution, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
-		normal.depth = 0;
-		normal.enableRandomWrite = true;
-		normal.Create();
+		if (chunkNormalMap != null && chunkNormalMap.width != resolution)
+		{
+			chunkNormalMap.Release();
+			chunkNormalMap = null;
+		}
+
+		if (chunkNormalMap == null)
+		{
+			chunkNormalMap = new RenderTexture(resolution, resolution, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+			chunkNormalMap.depth = 0;
+			chunkNormalMap.enableRandomWrite = true;
+			chunkNormalMap.Create();
+		}
 
 		DoRender(true);
-		planet.RenderNormalsToTexture(this.gameObject, normal);
+		planet.RenderNormalsToTexture(this.gameObject, chunkNormalMap);
 	}
 
 	void GenerateNormalMap()
 	{
-		if (chunkNormalMap) chunkNormalMap.Release();
+		const int resolution = 256;
 
-		const int resolution = 512;
-		var normal = chunkNormalMap = new RenderTexture(resolution, resolution, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
-		normal.depth = 0;
-		normal.enableRandomWrite = true;
-		normal.Create();
+		if (chunkNormalMap != null && chunkNormalMap.width != resolution)
+		{
+			chunkNormalMap.Release();
+			chunkNormalMap = null;
+		}
+
+		if (chunkNormalMap == null)
+		{
+			chunkNormalMap = new RenderTexture(resolution, resolution, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+			chunkNormalMap.depth = 0;
+			chunkNormalMap.enableRandomWrite = true;
+			chunkNormalMap.Create();
+		}
 
 		var c = chunkConfig.generateChunkNormapMap;
 		c.SetTexture(0, "_chunkHeightMap", chunkHeightMap);
 		c.SetTexture(0, "_chunkNormalMap", chunkNormalMap);
-		rangeToGenerateInto.SetParams(c, "_range");
+		directionRangeToGenerateInto.SetParams(c, "_range");
 
-		c.Dispatch(0, normal.width / 16, normal.height / 16, 1);
+		c.Dispatch(0, chunkNormalMap.width / 16, chunkNormalMap.height / 16, 1);
 
 		//if (material) material.SetTexture("_BumpMap", chunkNormalMap);
 	}
@@ -300,34 +346,53 @@ public class Chunk
 
 	void GenerateDiffuseMap()
 	{
-		if (chunkDiffuseMap) chunkDiffuseMap.Release();
+		const int resolution = 256;
 
-		const int resolution = 512;
-		var diffuse = chunkDiffuseMap = new RenderTexture(resolution, resolution, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
-		diffuse.depth = 0;
-		diffuse.enableRandomWrite = true;
-		diffuse.Create();
+		if (chunkDiffuseMap != null && chunkDiffuseMap.width != resolution)
+		{
+			chunkDiffuseMap.Release();
+			chunkDiffuseMap = null;
+		}
+
+		if (chunkDiffuseMap == null)
+		{
+			chunkDiffuseMap = new RenderTexture(resolution, resolution, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+			chunkDiffuseMap.depth = 0;
+			chunkDiffuseMap.wrapMode = TextureWrapMode.Mirror;
+			chunkDiffuseMap.filterMode = FilterMode.Trilinear;
+			chunkDiffuseMap.enableRandomWrite = true;
+			chunkDiffuseMap.useMipMap = true;
+			chunkDiffuseMap.autoGenerateMips = false;
+			chunkDiffuseMap.antiAliasing = 8;
+			chunkDiffuseMap.Create();
+		}
 
 		var c = chunkConfig.generateChunkDiffuseMap;
 		c.SetTexture(0, "_chunkHeightMap", chunkHeightMap);
-		c.SetTexture(0, "_chunkDiffuseMap", diffuse);
-		rangeToGenerateInto.SetParams(c, "_range");
-		c.SetFloat("_chunkRelativeSize", planetConfig.radiusMin / chunkRadius);
+		c.SetTexture(0, "_chunkDiffuseMap", chunkDiffuseMap);
+		directionRangeToGenerateInto.SetParams(c, "_range");
+		c.SetFloat("_chunkRelativeSize", chunkRadius / planetConfig.radiusMin);
+		c.SetFloat("_textureSamplingLOD", Mathf.Max(0, 10 - generation));
 
-		c.Dispatch(0, diffuse.width / 16, diffuse.height / 16, 1);
+		c.SetTexture(0, "_grass", chunkConfig.grass);
+		c.SetTexture(0, "_clay", chunkConfig.clay);
+		c.SetTexture(0, "_rock", chunkConfig.rock);
 
+		c.Dispatch(0, chunkDiffuseMap.width / 16, chunkDiffuseMap.height / 16, 1);
+
+		chunkDiffuseMap.GenerateMips();
 		if (material) material.mainTexture = chunkDiffuseMap;
 	}
 
-	private void OnDrawGizmos()
+	private void OnDrawGizmosSelected()
 	{
 		if (gameObject && gameObject.activeSelf)
 		{
 			Gizmos.color = Color.cyan;
-			Gizmos.DrawLine(rangeRealSubdivided.a, rangeRealSubdivided.b);
-			Gizmos.DrawLine(rangeRealSubdivided.b, rangeRealSubdivided.c);
-			Gizmos.DrawLine(rangeRealSubdivided.c, rangeRealSubdivided.d);
-			Gizmos.DrawLine(rangeRealSubdivided.d, rangeRealSubdivided.a);
+			Gizmos.DrawLine(positionRangeRealSubdivided.a, positionRangeRealSubdivided.b);
+			Gizmos.DrawLine(positionRangeRealSubdivided.b, positionRangeRealSubdivided.c);
+			Gizmos.DrawLine(positionRangeRealSubdivided.c, positionRangeRealSubdivided.d);
+			Gizmos.DrawLine(positionRangeRealSubdivided.d, positionRangeRealSubdivided.a);
 		}
 	}
 
@@ -374,7 +439,11 @@ public class Chunk
 		isGenerationDone = false;
 		if (gameObject) GameObject.Destroy(gameObject);
 		lastVisible = false;
+	}
 
+	void DestroyData()
+	{
+		if (gameObject) GameObject.Destroy(gameObject);
 		if (mesh) Mesh.Destroy(mesh);
 		if (chunkNormalMap) chunkNormalMap.Release();
 		if (chunkDiffuseMap) chunkDiffuseMap.Release();
@@ -453,11 +522,11 @@ public class Chunk
 
 	private float GetSizeOnScreen(Planet.SubdivisionData data)
 	{
-		var myPos = rangeToCalculateScreenSizeOn.CenterPos + planet.transform.position;
+		var myPos = positionRangeToCalculateScreenSizeOn.CenterPos + planet.transform.position;
 		var distanceToCamera = Vector3.Distance(myPos, data.pos);
 
 		// TODO: this is world space, doesnt take into consideration rotation, not good, but we dont care about rotation ?, we want to have correct detail even if looking from side
-		var sphere = rangeToCalculateScreenSizeOn.ToBoundingSphere();
+		var sphere = positionRangeToCalculateScreenSizeOn.ToBoundingSphere();
 		var radiusWorldSpace = sphere.radius;
 		var fov = data.fieldOfView;
 		var cot = 1.0f / Mathf.Tan(fov / 2f * Mathf.Deg2Rad);

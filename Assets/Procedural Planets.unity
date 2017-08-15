@@ -289,9 +289,9 @@ MonoBehaviour:
     seaLevel01: 0.5
   chunkConfig:
     useSkirts: 1
-    numberOfVerticesOnEdge: 50
-    weightNeededToSubdivide: 0.7
-    stopSegmentRecursionAtWorldSize: 10
+    numberOfVerticesOnEdge: 40
+    weightNeededToSubdivide: 0.6
+    stopSegmentRecursionAtWorldSize: 2
     destroyGameObjectIfNotVisibleForSeconds: 5
     chunkMaterial: {fileID: 2100000, guid: c1ef8c7ce330c5347a701bc512336e1f, type: 2}
     generateChunkVertices: {fileID: 7200000, guid: 651301ac22831ad45b2814adffcc8488,
@@ -304,8 +304,12 @@ MonoBehaviour:
       type: 3}
     generateChunkNormapMap: {fileID: 7200000, guid: 2d5e7e75df2190a41889b445d4a8d23b,
       type: 3}
+    grass: {fileID: 2800000, guid: 0d1e02d044018cf4fbe9227c6defdcd6, type: 3}
+    clay: {fileID: 2800000, guid: 0c955ca61f0ba394e93ddf126f707683, type: 3}
+    rock: {fileID: 2800000, guid: a154fc0e63e470e499c9e038fa209573, type: 3}
   id: 0
   rootChildren: []
+  chunkVertexCPUBuffer: []
   renderNormalsToTexture: {fileID: 4800000, guid: 48cebbc6cab3fad4c8285d5725a2fda5,
     type: 3}
 --- !u!4 &1141529114

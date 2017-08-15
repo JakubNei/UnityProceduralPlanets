@@ -15,18 +15,25 @@ void main(uint3 id : SV_DispatchThreadID)
 {
 	float2 uv = GetUV(_chunkHeightMap, id.xy);
 
-	float3 pos = lerp(
+	float3 dir = lerp(
 		lerp(_rangeA, _rangeB, uv.x),
 		lerp(_rangeD, _rangeC, uv.x),
 		uv.y
 	);
-	float3 dir = normalize(pos);
-
+	dir = normalize(dir);
 
 	float2 heightMapUv = dirFromCenterToBaseMapUv(dir);
 
 	float height = SampleCubicFloat(_planetHeightMap, heightMapUv);
-	height += 0.01 * snoise(dir * 100, 5, 2);
+
+	dir *= 100;
+	float amp = 0.02;
+	for (int i = 0; i < 30; i++)
+	{
+		height += snoise(dir) * amp;
+		dir *= 1.2;
+		amp /= 1.2;
+	}
 
 	// DEBUG
 	//height = uv.x;

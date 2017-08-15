@@ -2,7 +2,8 @@
 
 #include "planet.compute.cginc"
 
-Texture2D<float> _chunkHeightMap;
+Texture2D _chunkHeightMap;
+SamplerState sampler_chunkHeightMap;
 
 int _numberOfVerticesOnEdge;
 float _radiusBase;
@@ -21,15 +22,17 @@ void main(uint3 id : SV_DispatchThreadID)
 	float max = float(_numberOfVerticesOnEdge - 1);
 	float2 uv = float2(id.x / max, id.y / max);
 
-	float3 posTop = _rangeA * (1 - uv.x) + _rangeB * uv.x;
-	float3 posBottom = _rangeD * (1 - uv.x) + _rangeC * uv.x;
-	float3 pos = posTop * (1 - uv.y) + posBottom * uv.y;
+	float3 dir = lerp(
+		lerp(_rangeA, _rangeB, uv.x),
+		lerp(_rangeD, _rangeC, uv.x),
+		uv.y
+	);
+	dir = normalize(dir);
 
-	float height = SampleLinearFloat(_chunkHeightMap, uv);
+	float height = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r;
 	
 	//DEBUG
 	//height = 0;
 
-	float3 dir = normalize(pos);
 	_vertices[id.x + id.y * _numberOfVerticesOnEdge] = dir * (_radiusBase + _radiusHeightMap * height);
 }

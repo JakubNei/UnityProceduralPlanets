@@ -6,7 +6,7 @@ public partial class Planet
 {
 	void GatherWeights(WeightedSegmentsList toGenerate, Chunk chunk, int recursionDepth)
 	{
-		//if (toGenerate.Count > 500) return; // SAFE
+		if (toGenerate.Count > 10000) return; // SAFE
 
 
 		var weight = chunk.GetGenerationWeight(toGenerate.data);
@@ -121,16 +121,7 @@ public partial class Planet
 
 		foreach (var chunk in rootChildren)
 		{
-			if (chunk.generationBegan == false)
-			{
-				// first generate rootCunks
-				toGenerate.Add(chunk, float.MaxValue);
-			}
-			else
-			{
-				// then their children
-				GatherWeights(toGenerate, chunk, 0);
-			}
+			GatherWeights(toGenerate, chunk, 0);
 		}
 
 		//toGenerateOrdered = new Queue<Segment>(toGenerate.GetWeighted());

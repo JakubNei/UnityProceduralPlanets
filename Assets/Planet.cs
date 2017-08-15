@@ -34,6 +34,10 @@ public partial class Planet : MonoBehaviour
 		public ComputeShader generateChunkHeightMapPass2;
 		public ComputeShader generateChunkDiffuseMap;
 		public ComputeShader generateChunkNormapMap;
+
+		public Texture2D grass;
+		public Texture2D clay;
+		public Texture2D rock;
 	}
 	public ChunkConfig chunkConfig;
 
@@ -45,6 +49,11 @@ public partial class Planet : MonoBehaviour
 
 
 	public static HashSet<Planet> allPlanets = new HashSet<Planet>();
+
+
+	public ComputeBuffer chunkVertexGPUBuffer;
+	public Vector3[] chunkVertexCPUBuffer;
+
 
 	public Vector3 Center { get { return transform.position; } }
 
@@ -101,6 +110,9 @@ public partial class Planet : MonoBehaviour
 
 		planetConfig.generatePlanetHeightMap.SetTexture(0, "_planetHeightMap", height);
 		planetConfig.generatePlanetHeightMap.Dispatch(0, height.width / 16, height.height / 16, 1);
+
+		chunkVertexGPUBuffer = new ComputeBuffer(NumberOfVerticesNeededTotal, 3 * sizeof(float));
+		chunkVertexCPUBuffer = new Vector3[NumberOfVerticesNeededTotal];
 	}
 
 	void Update()
@@ -139,7 +151,7 @@ public partial class Planet : MonoBehaviour
 
 	private void OnGUI()
 	{
-		GUILayout.Button("segments to generate: " + toGenerate.Count);
+		GUILayout.Button("chunks to generate: " + toGenerate.Count);
 	}
 
 
