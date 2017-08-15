@@ -14,7 +14,7 @@ public partial class Planet
 		{
 			if (subdivisionMaxRecurisonDepthCached == -1)
 			{
-				var planetCircumference = 2 * Mathf.PI * planetConfig.radiusMin;
+				var planetCircumference = 2 * Mathf.PI * planetConfig.radiusStart;
 				var oneRootChunkCircumference = planetCircumference / 6.0f;
 
 				subdivisionMaxRecurisonDepthCached = 0;

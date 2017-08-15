@@ -4,13 +4,17 @@
 
 Texture2D _chunkHeightMapOld;
 SamplerState sampler_chunkHeightMapOld;
+
 float _chunkRelativeSize;
-float3 _rangeA;
-float3 _rangeB;
-float3 _rangeC;
-float3 _rangeD;
+float3 _rangeDirA;
+float3 _rangeDirB;
+float3 _rangeDirC;
+float3 _rangeDirD;
+
+
 
 RWTexture2D<float> _chunkHeightMapNew;
+
 
 [numthreads(16, 16, 1)]
 void main(uint3 id : SV_DispatchThreadID)
@@ -20,31 +24,28 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	float w, h;
 	_chunkHeightMapOld.GetDimensions(w, h);
-
-	const float eps = 100;
-	float2 off = _chunkRelativeSize * eps / float2(w, h);
-
-	float sx0 = _chunkHeightMapOld.SampleLevel(sampler_chunkHeightMapOld, uv + float2(off.x, 0), 0).r;
-	float sx1 = _chunkHeightMapOld.SampleLevel(sampler_chunkHeightMapOld, uv + float2(-off.x, 0), 0).r;
-	float sy0 = _chunkHeightMapOld.SampleLevel(sampler_chunkHeightMapOld, uv + float2(0, off.y), 0).r;
-	float sy1 = _chunkHeightMapOld.SampleLevel(sampler_chunkHeightMapOld, uv + float2(0, -off.y), 0).r;
-
-	float slope = (abs(sx0 - sx1) + abs(sy0 - sy1)) * eps;
+	float off = 0.00001 / _chunkRelativeSize;
+	float sx0 = _chunkHeightMapOld.SampleLevel(sampler_chunkHeightMapOld, uv + float2(off, 0), 0).r;
+	float sx1 = _chunkHeightMapOld.SampleLevel(sampler_chunkHeightMapOld, uv + float2(-off, 0), 0).r;
+	float sy0 = _chunkHeightMapOld.SampleLevel(sampler_chunkHeightMapOld, uv + float2(0, off), 0).r;
+	float sy1 = _chunkHeightMapOld.SampleLevel(sampler_chunkHeightMapOld, uv + float2(0, -off), 0).r;
+	float slope = (abs(sx0 - sx1) + abs(sy0 - sy1)) * 300;
 
 
 
 	float height = _chunkHeightMapOld[id.xy].r;
-	
+
 	float3 dir = lerp(
-		lerp(_rangeA, _rangeB, uv.x),
-		lerp(_rangeD, _rangeC, uv.x),
+		lerp(_rangeDirA, _rangeDirB, uv.x),
+		lerp(_rangeDirD, _rangeDirC, uv.x),
 		uv.y
 	);
 	dir = normalize(dir);
 
-	if (slope < 1) {
-		//height += 0.02 * snoise(dir * 10 * slope, 5, 2);
-	}	
+
+	slope = clamp(slope, 0, 1) / 10;
+	//height += (abs(snoise(dir * 100, 15, 1.1))) * 0.05;
+
 	//height += 0.05 * snoise(dir * 10 * slope, 5, 2);
 
 

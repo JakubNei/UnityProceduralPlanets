@@ -284,14 +284,14 @@ MonoBehaviour:
       type: 3}
     biomesControlMap: {fileID: 2800000, guid: f06b90865df33b64aa0f066aedce33cf, type: 3}
     generatePlanetBiomesData: {fileID: 0}
-    radiusMin: 1000
-    radiusVariation: 30
+    radiusStart: 1000
+    radiusHeightMapMultiplier: 30
     seaLevel01: 0.5
   chunkConfig:
     useSkirts: 1
-    numberOfVerticesOnEdge: 40
+    numberOfVerticesOnEdge: 30
     weightNeededToSubdivide: 0.6
-    stopSegmentRecursionAtWorldSize: 2
+    stopSegmentRecursionAtWorldSize: 10
     destroyGameObjectIfNotVisibleForSeconds: 5
     chunkMaterial: {fileID: 2100000, guid: c1ef8c7ce330c5347a701bc512336e1f, type: 2}
     generateChunkVertices: {fileID: 7200000, guid: 651301ac22831ad45b2814adffcc8488,

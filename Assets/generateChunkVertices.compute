@@ -6,15 +6,21 @@ Texture2D _chunkHeightMap;
 SamplerState sampler_chunkHeightMap;
 
 int _numberOfVerticesOnEdge;
-float _radiusBase;
-float _radiusHeightMap;
+float _planetRadiusStart;
+float _planetRadiusHeightMapMultiplier;
+
+float3 _rangeDirA;
+float3 _rangeDirB;
+float3 _rangeDirC;
+float3 _rangeDirD;
+
+float3 _rangeLocalPosA;
+float3 _rangeLocalPosB;
+float3 _rangeLocalPosC;
+float3 _rangeLocalPosD;
+
 
 RWStructuredBuffer<float3> _vertices;
-float3 _rangeA;
-float3 _rangeB;
-float3 _rangeC;
-float3 _rangeD;
-
 
 [numthreads(1, 1, 1)]
 void main(uint3 id : SV_DispatchThreadID)
@@ -23,16 +29,26 @@ void main(uint3 id : SV_DispatchThreadID)
 	float2 uv = float2(id.x / max, id.y / max);
 
 	float3 dir = lerp(
-		lerp(_rangeA, _rangeB, uv.x),
-		lerp(_rangeD, _rangeC, uv.x),
+		lerp(_rangeDirA, _rangeDirB, uv.x),
+		lerp(_rangeDirD, _rangeDirC, uv.x),
 		uv.y
 	);
-	dir = normalize(dir);
+	float3 dirNorm = normalize(dir);
 
-	float height = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r;
-	
+	float3 localPos = lerp(
+		lerp(_rangeLocalPosA, _rangeLocalPosB, uv.x),
+		lerp(_rangeLocalPosD, _rangeLocalPosC, uv.x),
+		uv.y
+	);
+
+	localPos += (dirNorm - dir) * _planetRadiusStart; // only here we use potentially huge numbers
+
+	float height = 
+		_chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r *
+		_planetRadiusHeightMapMultiplier;
+
 	//DEBUG
 	//height = 0;
 
-	_vertices[id.x + id.y * _numberOfVerticesOnEdge] = dir * (_radiusBase + _radiusHeightMap * height);
+	_vertices[id.x + id.y * _numberOfVerticesOnEdge] = localPos + dirNorm * height;
 }

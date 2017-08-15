@@ -31,7 +31,7 @@ public class PlanetAffectedCamera : MonoBehaviour
 		float closestDist = float.MaxValue;
 		foreach (var p in Planet.allPlanets)
 		{
-			var d = Vector3.Distance(p.Center, pos) - p.planetConfig.radiusMin;
+			var d = Vector3.Distance(p.Center, pos) - p.planetConfig.radiusStart;
 			if (d < closestDist)
 			{
 				closestDist = d;
@@ -48,7 +48,7 @@ public class PlanetAffectedCamera : MonoBehaviour
 		if (planet != null)
 		{
 			transform.LookAt(planet.transform.position);
-			transform.position = new Vector3(-planet.planetConfig.radiusMin * 2, 0, 0) + planet.Center;
+			transform.position = new Vector3(-planet.planetConfig.radiusStart * 2, 0, 0) + planet.Center;
 		}
 
 		Update(0.1f); // spool up

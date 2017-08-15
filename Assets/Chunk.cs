@@ -20,10 +20,15 @@ public class Chunk
 	public Chunk parent;
 	public ulong generation;
 
-	public Range positionRangeRealSubdivided;
-	public Range positionRangeToGenerateInto;
-	public Range directionRangeToGenerateInto;
-	public Range positionRangeToCalculateScreenSizeOn;
+	public Range rangePosRealSubdivided;
+
+	public Range rangePosToCalculateScreenSizeOn;
+
+	public Range rangePosToGenerateInto;
+	public Range rangeDirToGenerateInto;
+	public Range rangeLocalPosToGenerateInto;
+
+	public Vector3 offsetFromPlanetCenter;
 
 	public ChildPosition childPosition;
 
@@ -55,9 +60,10 @@ public class Chunk
 	public static Chunk Create(Planet planet, Range range, ulong id, Chunk parent = null, ulong generation = 0, ChildPosition childPosition = ChildPosition.NoneNoParent)
 	{
 		var chunk = new Chunk();
+
 		chunk.planet = planet;
-		chunk.positionRangeRealSubdivided = range;
-		chunk.positionRangeToCalculateScreenSizeOn = range;
+		chunk.rangePosRealSubdivided = range;
+		chunk.rangePosToCalculateScreenSizeOn = range;
 		chunk.id = id;
 		chunk.generation = generation;
 		chunk.childPosition = childPosition;
@@ -75,19 +81,29 @@ public class Chunk
 			range.b = b * ratio + center;
 			range.c = c * ratio + center;
 			range.d = d * ratio + center;
-			chunk.positionRangeToGenerateInto = range;
+			chunk.rangePosToGenerateInto = range;
 		}
 		else
 		{
-			chunk.positionRangeToGenerateInto = range;
+			chunk.rangePosToGenerateInto = range;
 		}
 
-		chunk.directionRangeToGenerateInto = new Range
+		chunk.rangeDirToGenerateInto = new Range
 		{
-			a = (chunk.positionRangeToGenerateInto.a - planet.Center).normalized,
-			b = (chunk.positionRangeToGenerateInto.b - planet.Center).normalized,
-			c = (chunk.positionRangeToGenerateInto.c - planet.Center).normalized,
-			d = (chunk.positionRangeToGenerateInto.d - planet.Center).normalized,
+			a = (chunk.rangePosToGenerateInto.a - planet.Center).normalized,
+			b = (chunk.rangePosToGenerateInto.b - planet.Center).normalized,
+			c = (chunk.rangePosToGenerateInto.c - planet.Center).normalized,
+			d = (chunk.rangePosToGenerateInto.d - planet.Center).normalized,
+		};
+
+		chunk.offsetFromPlanetCenter = chunk.rangePosRealSubdivided.CenterPos;
+
+		chunk.rangeLocalPosToGenerateInto = new Range
+		{
+			a = chunk.rangePosToGenerateInto.a - chunk.offsetFromPlanetCenter,
+			b = chunk.rangePosToGenerateInto.b - chunk.offsetFromPlanetCenter,
+			c = chunk.rangePosToGenerateInto.c - chunk.offsetFromPlanetCenter,
+			d = chunk.rangePosToGenerateInto.d - chunk.offsetFromPlanetCenter,
 		};
 
 		return chunk;
@@ -127,21 +143,21 @@ public class Chunk
 			d----dc---c
 			*/
 
-			var a = positionRangeRealSubdivided.a;
-			var b = positionRangeRealSubdivided.b;
-			var c = positionRangeRealSubdivided.c;
-			var d = positionRangeRealSubdivided.d;
+			var a = rangePosRealSubdivided.a;
+			var b = rangePosRealSubdivided.b;
+			var c = rangePosRealSubdivided.c;
+			var d = rangePosRealSubdivided.d;
 			var ab = Vector3.Normalize((a + b) / 2.0f);
 			var ad = Vector3.Normalize((a + d) / 2.0f);
 			var bc = Vector3.Normalize((b + c) / 2.0f);
 			var dc = Vector3.Normalize((d + c) / 2.0f);
 			var mid = Vector3.Normalize((ab + ad + dc + bc) / 4.0f);
 
-			ab *= planetConfig.radiusMin;
-			ad *= planetConfig.radiusMin;
-			bc *= planetConfig.radiusMin;
-			dc *= planetConfig.radiusMin;
-			mid *= planetConfig.radiusMin;
+			ab *= planetConfig.radiusStart;
+			ad *= planetConfig.radiusStart;
+			bc *= planetConfig.radiusStart;
+			dc *= planetConfig.radiusStart;
+			mid *= planetConfig.radiusStart;
 
 			AddChild(a, ab, mid, ad, ChildPosition.TopLeft, 0);
 			AddChild(ab, b, bc, mid, ChildPosition.TopRight, 1);
@@ -188,7 +204,7 @@ public class Chunk
 
 			var c = chunkConfig.generateChunkHeightMapPass1;
 			c.SetTexture(0, "_planetHeightMap", planetConfig.planetHeightMap);
-			directionRangeToGenerateInto.SetParams(c, "_range");
+			rangeDirToGenerateInto.SetParams(c, "_range");
 			c.SetTexture(0, "_chunkHeightMap", height);
 
 			c.Dispatch(0, height.width / 16, height.height / 16, 1);
@@ -206,8 +222,8 @@ public class Chunk
 
 			var c = chunkConfig.generateChunkHeightMapPass2;
 			c.SetTexture(0, "_chunkHeightMapOld", chunkHeightMap);
-			c.SetFloat("_chunkRelativeSize", planetConfig.radiusMin / chunkRadius);
-			directionRangeToGenerateInto.SetParams(c, "_range");
+			c.SetFloat("_chunkRelativeSize", chunkRadius / planetConfig.radiusStart);
+			rangeDirToGenerateInto.SetParams(c, "_rangeDir");
 			c.SetTexture(0, "_chunkHeightMapNew", height);
 
 			c.Dispatch(0, height.width / 16, height.height / 16, 1);
@@ -229,10 +245,11 @@ public class Chunk
 
 		var c = chunkConfig.generateChunkVertices;
 		c.SetBuffer(0, "_vertices", vertexGPUBuffer);
-		directionRangeToGenerateInto.SetParams(c, "_range");
+		rangeDirToGenerateInto.SetParams(c, "_rangeDir");
+		rangeLocalPosToGenerateInto.SetParams(c, "_rangeLocalPos");
 		c.SetInt("_numberOfVerticesOnEdge", verticesOnEdge);
-		c.SetFloat("_radiusBase", planetConfig.radiusMin);
-		c.SetFloat("_radiusHeightMap", planetConfig.radiusVariation);
+		c.SetFloat("_planetRadiusStart", planetConfig.radiusStart);
+		c.SetFloat("_planetRadiusHeightMapMultiplier", planetConfig.radiusHeightMapMultiplier);
 		c.SetTexture(0, "_chunkHeightMap", chunkHeightMap);
 
 		c.Dispatch(0, verticesOnEdge, verticesOnEdge, 1);
@@ -244,10 +261,10 @@ public class Chunk
 			int bIndex = verticesOnEdge - 1;
 			int cIndex = verticesOnEdge * verticesOnEdge - 1;
 			int dIndex = cIndex - (verticesOnEdge - 1);
-			positionRangeToCalculateScreenSizeOn.a = v[aIndex];
-			positionRangeToCalculateScreenSizeOn.b = v[bIndex];
-			positionRangeToCalculateScreenSizeOn.c = v[cIndex];
-			positionRangeToCalculateScreenSizeOn.d = v[dIndex];
+			rangePosToCalculateScreenSizeOn.a = v[aIndex] + offsetFromPlanetCenter;
+			rangePosToCalculateScreenSizeOn.b = v[bIndex] + offsetFromPlanetCenter;
+			rangePosToCalculateScreenSizeOn.c = v[cIndex] + offsetFromPlanetCenter;
+			rangePosToCalculateScreenSizeOn.d = v[dIndex] + offsetFromPlanetCenter;
 		}
 
 
@@ -272,7 +289,7 @@ public class Chunk
 			var v = vertexCPUBuffer;
 			var verticesOnEdge = chunkConfig.numberOfVerticesOnEdge;
 
-			var decreaseSkirtsBy = -positionRangeRealSubdivided.CenterPos.normalized * (chunkRadius / 10.0f);
+			var decreaseSkirtsBy = -offsetFromPlanetCenter.normalized * (chunkRadius / 10.0f);
 			for (int i = 0; i < verticesOnEdge; i++)
 			{
 				v[i] += decreaseSkirtsBy; // top line
@@ -335,7 +352,7 @@ public class Chunk
 		var c = chunkConfig.generateChunkNormapMap;
 		c.SetTexture(0, "_chunkHeightMap", chunkHeightMap);
 		c.SetTexture(0, "_chunkNormalMap", chunkNormalMap);
-		directionRangeToGenerateInto.SetParams(c, "_range");
+		rangeDirToGenerateInto.SetParams(c, "_range");
 
 		c.Dispatch(0, chunkNormalMap.width / 16, chunkNormalMap.height / 16, 1);
 
@@ -370,8 +387,8 @@ public class Chunk
 		var c = chunkConfig.generateChunkDiffuseMap;
 		c.SetTexture(0, "_chunkHeightMap", chunkHeightMap);
 		c.SetTexture(0, "_chunkDiffuseMap", chunkDiffuseMap);
-		directionRangeToGenerateInto.SetParams(c, "_range");
-		c.SetFloat("_chunkRelativeSize", chunkRadius / planetConfig.radiusMin);
+		rangeDirToGenerateInto.SetParams(c, "_rangeDir");
+		c.SetFloat("_chunkRelativeSize", chunkRadius / planetConfig.radiusStart);
 		c.SetFloat("_textureSamplingLOD", Mathf.Max(0, 10 - generation));
 
 		c.SetTexture(0, "_grass", chunkConfig.grass);
@@ -389,10 +406,10 @@ public class Chunk
 		if (gameObject && gameObject.activeSelf)
 		{
 			Gizmos.color = Color.cyan;
-			Gizmos.DrawLine(positionRangeRealSubdivided.a, positionRangeRealSubdivided.b);
-			Gizmos.DrawLine(positionRangeRealSubdivided.b, positionRangeRealSubdivided.c);
-			Gizmos.DrawLine(positionRangeRealSubdivided.c, positionRangeRealSubdivided.d);
-			Gizmos.DrawLine(positionRangeRealSubdivided.d, positionRangeRealSubdivided.a);
+			Gizmos.DrawLine(rangePosRealSubdivided.a, rangePosRealSubdivided.b);
+			Gizmos.DrawLine(rangePosRealSubdivided.b, rangePosRealSubdivided.c);
+			Gizmos.DrawLine(rangePosRealSubdivided.c, rangePosRealSubdivided.d);
+			Gizmos.DrawLine(rangePosRealSubdivided.d, rangePosRealSubdivided.a);
 		}
 	}
 
@@ -458,6 +475,7 @@ public class Chunk
 
 		var go = gameObject = new GameObject(name);
 		go.transform.parent = planet.transform;
+		go.transform.localPosition = offsetFromPlanetCenter;
 
 		var behavior = go.AddComponent<Behavior>();
 		behavior.chunk = this;
@@ -522,11 +540,11 @@ public class Chunk
 
 	private float GetSizeOnScreen(Planet.SubdivisionData data)
 	{
-		var myPos = positionRangeToCalculateScreenSizeOn.CenterPos + planet.transform.position;
+		var myPos = rangePosToCalculateScreenSizeOn.CenterPos + planet.transform.position;
 		var distanceToCamera = Vector3.Distance(myPos, data.pos);
 
 		// TODO: this is world space, doesnt take into consideration rotation, not good, but we dont care about rotation ?, we want to have correct detail even if looking from side
-		var sphere = positionRangeToCalculateScreenSizeOn.ToBoundingSphere();
+		var sphere = rangePosToCalculateScreenSizeOn.ToBoundingSphere();
 		var radiusWorldSpace = sphere.radius;
 		var fov = data.fieldOfView;
 		var cot = 1.0f / Mathf.Tan(fov / 2f * Mathf.Deg2Rad);

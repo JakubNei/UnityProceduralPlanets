@@ -13,8 +13,8 @@ public partial class Planet : MonoBehaviour
 
 		public Texture2D biomesControlMap;
 		public ComputeShader generatePlanetBiomesData;
-		public float radiusMin = 1000;
-		public float radiusVariation = 30;
+		public float radiusStart = 1000;
+		public float radiusHeightMapMultiplier = 30;
 		public float seaLevel01 = 0.5f;
 	}
 	public PlanetConfig planetConfig;
@@ -186,7 +186,7 @@ public partial class Planet : MonoBehaviour
 
 		var indicies = new List<uint>();
 
-		var halfSIze = Mathf.Sqrt((planetConfig.radiusMin * planetConfig.radiusMin) / 3.0f);
+		var halfSIze = Mathf.Sqrt((planetConfig.radiusStart * planetConfig.radiusStart) / 3.0f);
 
 		/* 3----------0
 		  /|         /|
@@ -225,7 +225,7 @@ public partial class Planet : MonoBehaviour
 		if (rootChildren == null || rootChildren.Count == 0)
 		{
 			Gizmos.color = Color.blue;
-			Gizmos.DrawSphere(this.transform.position, planetConfig.radiusMin);
+			Gizmos.DrawSphere(this.transform.position, planetConfig.radiusStart);
 		}
 	}
 }
