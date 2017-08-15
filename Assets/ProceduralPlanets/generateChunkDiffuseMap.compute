@@ -51,14 +51,12 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	float w, h;
 	_chunkHeightMap.GetDimensions(w, h);
-	float off = 0.00001 / _chunkRelativeSize;
-
-	float sx0 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(off, 0), 0).r;
-	float sx1 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(-off, 0), 0).r;
-	float sy0 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(0, off), 0).r;
-	float sy1 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(0, -off), 0).r;
-
-	float slope = (abs(sx0 - sx1) + abs(sy0 - sy1)) * 300;
+	float2 off = float2(1 / (w - 1), 1 / (h - 1));
+	float sx0 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(off.x, 0), 0).r;
+	float sx1 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(-off.x, 0), 0).r;
+	float sy0 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(0, off.y), 0).r;
+	float sy1 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(0, -off.y), 0).r;
+	float slope = (abs(sx0 - sx1) + abs(sy0 - sy1)) / _chunkRelativeSize;
 
 
 	float3 dir = lerp(

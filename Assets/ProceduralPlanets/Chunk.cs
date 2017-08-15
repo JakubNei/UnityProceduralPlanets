@@ -195,8 +195,7 @@ public class Chunk
 		// pass 1
 		{
 			const int resolution = 256;
-			var height = chunkHeightMap = new RenderTexture(resolution, resolution, 1, RenderTextureFormat.RFloat, RenderTextureReadWrite.Linear);
-			height.depth = 0;
+			var height = chunkHeightMap = new RenderTexture(resolution, resolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
 			height.wrapMode = TextureWrapMode.Mirror;
 			height.filterMode = FilterMode.Trilinear;
 			height.enableRandomWrite = true;
@@ -213,8 +212,7 @@ public class Chunk
 		// pass 2
 		{
 			const int resolution = 256;
-			var height = new RenderTexture(resolution, resolution, 1, RenderTextureFormat.RFloat, RenderTextureReadWrite.Linear);
-			height.depth = 0;
+			var height = new RenderTexture(resolution, resolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
 			height.wrapMode = TextureWrapMode.Mirror;
 			height.filterMode = FilterMode.Trilinear;
 			height.enableRandomWrite = true;
@@ -321,8 +319,7 @@ public class Chunk
 
 		if (chunkNormalMap == null)
 		{
-			chunkNormalMap = new RenderTexture(resolution, resolution, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
-			chunkNormalMap.depth = 0;
+			chunkNormalMap = new RenderTexture(resolution, resolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
 			chunkNormalMap.enableRandomWrite = true;
 			chunkNormalMap.Create();
 		}
@@ -343,8 +340,7 @@ public class Chunk
 
 		if (chunkNormalMap == null)
 		{
-			chunkNormalMap = new RenderTexture(resolution, resolution, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
-			chunkNormalMap.depth = 0;
+			chunkNormalMap = new RenderTexture(resolution, resolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
 			chunkNormalMap.enableRandomWrite = true;
 			chunkNormalMap.Create();
 		}
@@ -373,8 +369,7 @@ public class Chunk
 
 		if (chunkDiffuseMap == null)
 		{
-			chunkDiffuseMap = new RenderTexture(resolution, resolution, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
-			chunkDiffuseMap.depth = 0;
+			chunkDiffuseMap = new RenderTexture(resolution, resolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
 			chunkDiffuseMap.wrapMode = TextureWrapMode.Mirror;
 			chunkDiffuseMap.filterMode = FilterMode.Trilinear;
 			chunkDiffuseMap.enableRandomWrite = true;

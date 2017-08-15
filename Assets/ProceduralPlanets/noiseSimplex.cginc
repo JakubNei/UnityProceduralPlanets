@@ -1,5 +1,9 @@
 #ifndef NOISE_SIMPLEX_FUNC
 #define NOISE_SIMPLEX_FUNC
+
+
+// could use instead: https://www.shadertoy.com/view/4dS3Wd
+
 // from: https://forum.unity3d.com/threads/2d-3d-4d-optimised-perlin-noise-cg-hlsl-library-cginc.218372/
 /*
 

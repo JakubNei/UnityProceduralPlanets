@@ -126,6 +126,8 @@ GameObject:
   - component: {fileID: 48616966}
   - component: {fileID: 48616967}
   - component: {fileID: 48616968}
+  - component: {fileID: 48616969}
+  - component: {fileID: 48616963}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -148,6 +150,14 @@ Behaviour:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 48616960}
   m_Enabled: 1
+--- !u!45 &48616963
+Skybox:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 48616960}
+  m_Enabled: 1
+  m_CustomSkybox: {fileID: 2100000, guid: 8404d974f0217f14a93cd04abd1c70d5, type: 2}
 --- !u!20 &48616964
 Camera:
   m_ObjectHideFlags: 0
@@ -251,6 +261,21 @@ SphereCollider:
   serializedVersion: 2
   m_Radius: 2
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &48616969
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 48616960}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1fb81e6b0840644abd06325990290de, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  shader: {fileID: 7200000, guid: 46cc0e9f8e0b2db4ea0ab167f25599cd, type: 3}
+  skybox:
+  - {fileID: 0}
+  generateAgainInSeconds: 0
 --- !u!1 &1141529112
 GameObject:
   m_ObjectHideFlags: 0

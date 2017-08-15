@@ -22,18 +22,36 @@ float3 _rangeLocalPosD;
 
 RWStructuredBuffer<float3> _vertices;
 
+float3 slerp(float3 start, float3 end, float percent)
+{
+	// Dot product - the cosine of the angle between 2 vectors.
+	float d = dot(start, end);
+	// Clamp it to be in the range of Acos()
+	// This may be unnecessary, but floating point
+	// precision can be a fickle mistress.
+	d = clamp(d, -1.0, 1.0);
+	// Acos(dot) returns the angle between start and end,
+	// And multiplying that by percent returns the angle between
+	// start and the final result.
+	float theta = acos(d)*percent;
+	float3 relativeVec = normalize(end - start*d); // Orthonormal basis
+												   // The final result.
+	return ((start*cos(theta)) + (relativeVec*sin(theta)));
+}
+
+
 [numthreads(1, 1, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
 	float max = float(_numberOfVerticesOnEdge - 1);
 	float2 uv = float2(id.x / max, id.y / max);
 
-	float3 dir = lerp(
+	double3 dir = lerp(
 		lerp(_rangeDirA, _rangeDirB, uv.x),
 		lerp(_rangeDirD, _rangeDirC, uv.x),
 		uv.y
 	);
-	float3 dirNorm = normalize(dir);
+	double3 dirNorm = normalize(dir);
 
 	float3 localPos = lerp(
 		lerp(_rangeLocalPosA, _rangeLocalPosB, uv.x),
@@ -41,14 +59,14 @@ void main(uint3 id : SV_DispatchThreadID)
 		uv.y
 	);
 
-	localPos += (dirNorm - dir) * _planetRadiusStart; // only here we use potentially huge numbers
+	localPos += (dirNorm - dir) * _planetRadiusStart * 0.97; // only here we use potentially huge numbers
 
-	float height = 
+	float height =
 		_chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r *
 		_planetRadiusHeightMapMultiplier;
 
 	//DEBUG
-	//height = 0;
+	height = 0;
 
 	_vertices[id.x + id.y * _numberOfVerticesOnEdge] = localPos + dirNorm * height;
 }
