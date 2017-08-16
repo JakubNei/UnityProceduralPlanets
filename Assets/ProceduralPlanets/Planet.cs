@@ -156,7 +156,7 @@ public partial class Planet : MonoBehaviour
 
 
 
-	void AddRootChunk(ulong id, Vector3[] vertices, int a, int b, int c, int d)
+	void AddRootChunk(ulong id, WorldPos[] vertices, int a, int b, int c, int d)
 	{
 		var range = new Range()
 		{
@@ -199,15 +199,15 @@ public partial class Planet : MonoBehaviour
 
 		var vertices = new[] {
 			// top 4
-			new Vector3(halfSIze, halfSIze, halfSIze),
-			new Vector3(halfSIze, halfSIze, -halfSIze),
-			new Vector3(-halfSIze, halfSIze, -halfSIze),
-			new Vector3(-halfSIze, halfSIze, halfSIze),
+			new WorldPos(halfSIze, halfSIze, halfSIze),
+			new WorldPos(halfSIze, halfSIze, -halfSIze),
+			new WorldPos(-halfSIze, halfSIze, -halfSIze),
+			new WorldPos(-halfSIze, halfSIze, halfSIze),
 			// bottom 4
-			new Vector3(halfSIze, -halfSIze, halfSIze),
-			new Vector3(halfSIze, -halfSIze, -halfSIze),
-			new Vector3(-halfSIze, -halfSIze, -halfSIze),
-			new Vector3(-halfSIze, -halfSIze, halfSIze)
+			new WorldPos(halfSIze, -halfSIze, halfSIze),
+			new WorldPos(halfSIze, -halfSIze, -halfSIze),
+			new WorldPos(-halfSIze, -halfSIze, -halfSIze),
+			new WorldPos(-halfSIze, -halfSIze, halfSIze)
 		};
 
 		AddRootChunk(0, vertices, 0, 1, 2, 3); // top

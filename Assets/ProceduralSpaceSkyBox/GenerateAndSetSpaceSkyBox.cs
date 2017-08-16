@@ -26,7 +26,7 @@ public class GenerateAndSetSpaceSkyBox : MonoBehaviour
 	{
 		Prepare();
 		Generate();
-		generateAgainInSeconds = 0.1f;
+		generateAgainInSeconds = 10f;
 	}
 
 	public float generateAgainInSeconds;
@@ -37,7 +37,7 @@ public class GenerateAndSetSpaceSkyBox : MonoBehaviour
 		if (generateAgainInSeconds < 0)
 		{
 			Generate();
-			generateAgainInSeconds = 0.1f;
+			generateAgainInSeconds = 10f;
 		}
 	}
 

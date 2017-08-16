@@ -28,7 +28,7 @@ public class Chunk
 	public Range rangeDirToGenerateInto;
 	public Range rangeLocalPosToGenerateInto;
 
-	public Vector3 offsetFromPlanetCenter;
+	public WorldPos offsetFromPlanetCenter;
 
 	public ChildPosition childPosition;
 
@@ -90,10 +90,10 @@ public class Chunk
 
 		chunk.rangeDirToGenerateInto = new Range
 		{
-			a = (chunk.rangePosToGenerateInto.a - planet.Center).normalized,
-			b = (chunk.rangePosToGenerateInto.b - planet.Center).normalized,
-			c = (chunk.rangePosToGenerateInto.c - planet.Center).normalized,
-			d = (chunk.rangePosToGenerateInto.d - planet.Center).normalized,
+			a = chunk.rangePosToGenerateInto.a.normalized,
+			b = chunk.rangePosToGenerateInto.b.normalized,
+			c = chunk.rangePosToGenerateInto.c.normalized,
+			d = chunk.rangePosToGenerateInto.d.normalized,
 		};
 
 		chunk.offsetFromPlanetCenter = chunk.rangePosRealSubdivided.CenterPos;
@@ -109,7 +109,7 @@ public class Chunk
 		return chunk;
 	}
 
-	private void AddChild(Vector3 a, Vector3 b, Vector3 c, Vector3 d, ChildPosition cp, ushort index)
+	private void AddChild(WorldPos a, WorldPos b, WorldPos c, WorldPos d, ChildPosition cp, ushort index)
 	{
 		var range = new Range()
 		{
@@ -147,11 +147,11 @@ public class Chunk
 			var b = rangePosRealSubdivided.b;
 			var c = rangePosRealSubdivided.c;
 			var d = rangePosRealSubdivided.d;
-			var ab = Vector3.Normalize((a + b) / 2.0f);
-			var ad = Vector3.Normalize((a + d) / 2.0f);
-			var bc = Vector3.Normalize((b + c) / 2.0f);
-			var dc = Vector3.Normalize((d + c) / 2.0f);
-			var mid = Vector3.Normalize((ab + ad + dc + bc) / 4.0f);
+			var ab = WorldPos.Normalize((a + b) / 2.0f);
+			var ad = WorldPos.Normalize((a + d) / 2.0f);
+			var bc = WorldPos.Normalize((b + c) / 2.0f);
+			var dc = WorldPos.Normalize((d + c) / 2.0f);
+			var mid = WorldPos.Normalize((ab + ad + dc + bc) / 4.0f);
 
 			ab *= planetConfig.radiusStart;
 			ad *= planetConfig.radiusStart;
@@ -287,7 +287,7 @@ public class Chunk
 			var v = vertexCPUBuffer;
 			var verticesOnEdge = chunkConfig.numberOfVerticesOnEdge;
 
-			var decreaseSkirtsBy = -offsetFromPlanetCenter.normalized * (chunkRadius / 10.0f);
+			var decreaseSkirtsBy = -offsetFromPlanetCenter.normalized.ToVector3() * (chunkRadius / 10.0f);
 			for (int i = 0; i < verticesOnEdge; i++)
 			{
 				v[i] += decreaseSkirtsBy; // top line
