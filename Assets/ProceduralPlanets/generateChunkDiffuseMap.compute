@@ -2,6 +2,8 @@
 
 #include "planet.compute.cginc"
 
+
+
 Texture2D _chunkHeightMap;
 SamplerState sampler_chunkHeightMap;
 
@@ -49,14 +51,14 @@ void main(uint3 id : SV_DispatchThreadID)
 
 
 
-	float w, h;
+	int w, h;
 	_chunkHeightMap.GetDimensions(w, h);
-	float2 off = float2(1 / (w - 1), 1 / (h - 1));
-	float sx0 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(off.x, 0), 0).r;
-	float sx1 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(-off.x, 0), 0).r;
-	float sy0 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(0, off.y), 0).r;
-	float sy1 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(0, -off.y), 0).r;
-	float slope = (abs(sx0 - sx1) + abs(sy0 - sy1)) / _chunkRelativeSize;
+	float off = 1.5 / (w - 1);
+	float sx0 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(off, 0), 0).r;
+	float sx1 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(-off, 0), 0).r;
+	float sy0 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(0, off), 0).r;
+	float sy1 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(0, -off), 0).r;
+	float slope = (abs(sx0 - sx1) + abs(sy0 - sy1)) / _chunkRelativeSize * (w / 256.0);
 
 
 	float3 dir = lerp(

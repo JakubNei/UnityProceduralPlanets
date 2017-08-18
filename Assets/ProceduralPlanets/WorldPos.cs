@@ -162,9 +162,12 @@ public struct WorldPos : IEquatable<WorldPos>
 
 	public WorldPos MultiplyBy(double v)
 	{
-		//var ret = new WorldPos(this.ToVector3() * (float)v);
-
 		var ret = new WorldPos();
+		
+		ret.insideSectorPosition = this.ToVector3() * (float)v;
+		ret.MoveSectorIfNeeded();
+		return ret;
+
 
 		// (s + i) * v = s*v + i*v;
 

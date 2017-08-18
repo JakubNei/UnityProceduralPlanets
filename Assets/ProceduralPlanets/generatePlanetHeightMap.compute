@@ -2,6 +2,8 @@
 
 #include "planet.compute.cginc"
 
+
+
 RWTexture2D<float> _planetHeightMap;
 
 
@@ -12,6 +14,9 @@ float GetProceduralHeight01(float3 dir)
 
 	float2 w;
 	float x;
+
+
+	result += 1-abs(snoise(dir * 5, 10, 2));
 
 	/*
 	{ // terraces
@@ -30,7 +35,7 @@ float GetProceduralHeight01(float3 dir)
 	}
 	*/
 	// small noise
-
+	/*
 
 
 	{ //big detail
@@ -73,21 +78,7 @@ float GetProceduralHeight01(float3 dir)
 	}
 
 
-
-	/*
-	{ // hill tops
-	float p = snoise(dir * 10);
-	if(p > 0) result -= p * 2;
-	}
-	*/
-
-	/*
-	{ // craters
-
-	float2 w = worleyNoise(dir*10, 1, false);
-	result += smoothstep(0.0, 0.4, w.x) * 100;
-	}
-	*/
+*/
 
 	return result;
 

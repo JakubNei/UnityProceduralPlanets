@@ -275,7 +275,6 @@ MonoBehaviour:
   shader: {fileID: 7200000, guid: 46cc0e9f8e0b2db4ea0ab167f25599cd, type: 3}
   skybox:
   - {fileID: 0}
-  generateAgainInSeconds: 0
 --- !u!1 &1141529112
 GameObject:
   m_ObjectHideFlags: 0
@@ -316,7 +315,7 @@ MonoBehaviour:
     useSkirts: 1
     numberOfVerticesOnEdge: 30
     weightNeededToSubdivide: 0.6
-    stopSegmentRecursionAtWorldSize: 10
+    stopSegmentRecursionAtWorldSize: 2
     destroyGameObjectIfNotVisibleForSeconds: 5
     chunkMaterial: {fileID: 2100000, guid: c1ef8c7ce330c5347a701bc512336e1f, type: 2}
     generateChunkVertices: {fileID: 7200000, guid: 651301ac22831ad45b2814adffcc8488,
@@ -335,6 +334,7 @@ MonoBehaviour:
   id: 0
   rootChildren: []
   chunkVertexCPUBuffer: []
+  chunkHeightFirstPassTemp: {fileID: 0}
   renderNormalsToTexture: {fileID: 4800000, guid: 48cebbc6cab3fad4c8285d5725a2fda5,
     type: 3}
 --- !u!4 &1141529114

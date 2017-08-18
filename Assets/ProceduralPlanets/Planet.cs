@@ -27,6 +27,7 @@ public partial class Planet : MonoBehaviour
 		public float weightNeededToSubdivide = 0.70f;
 		public float stopSegmentRecursionAtWorldSize = 10;
 		public float destroyGameObjectIfNotVisibleForSeconds = 5;
+		
 
 		public Material chunkMaterial;
 		public ComputeShader generateChunkVertices;
@@ -54,6 +55,7 @@ public partial class Planet : MonoBehaviour
 	public ComputeBuffer chunkVertexGPUBuffer;
 	public Vector3[] chunkVertexCPUBuffer;
 
+	public RenderTexture chunkHeightFirstPassTemp;
 
 	public Vector3 Center { get { return transform.position; } }
 

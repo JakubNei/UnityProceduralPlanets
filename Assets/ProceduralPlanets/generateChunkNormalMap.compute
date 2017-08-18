@@ -3,13 +3,20 @@
 #include "planet.compute.cginc"
 
 
-Texture2D<float> _chunkHeightMap;
-RWTexture2D<float3> _chunkNormalMap;
 
+Texture2D _chunkHeightMap;
+SamplerState sampler_chunkHeightMap;
+
+float _chunkRelativeSize;
 float3 _rangeA;
 float3 _rangeB;
 float3 _rangeC;
 float3 _rangeD;
+
+
+
+RWTexture2D<float3> _chunkNormalMap;
+
 
 
 [numthreads(16, 16, 1)]
@@ -18,61 +25,26 @@ void main(uint3 id : SV_DispatchThreadID)
 	float2 uv = GetUV(_chunkNormalMap, id.xy);
 
 
-	/*
-	
-	float3 N;
-	float3 T;
-
-	{
-		float eps = 0.0001;
-		float2 uvA = spherical + float2(0, eps);
-		float2 uvB = spherical + float2(-eps, 0);
-		float2 uvC = spherical + float2(eps, 0);
-
-		float3 posA = sphericalToCalestial(uvA);
-		float3 posB = sphericalToCalestial(uvB);
-		float3 posC = sphericalToCalestial(uvC);
-
-		float3 posAToB = posB - posA;
-		float3 posAToC = posC - posA;
-		N = normalize(cross(normalize(posAToB), normalize(posAToC)));
-
-		float2 uvAToB = uvB - uvA;
-		float2 uvAToC = uvC - uvA;
-		float r = 1.0f / (uvAToB.x * uvAToC.y - uvAToB.y * uvAToC.x);
-		T = (posAToB * uvAToC.y - posAToC * uvAToB.y) * r;
-	}
-	float3 T2 = T - N * dot(N, T); // Gram-Schmidt orthogonalization of T
-	float3 B = normalize(cross(N, T2));
-	
-
-
+	int w, h;
+	_chunkHeightMap.GetDimensions(w, h);
+	float off = 1.5 / (w - 1);
+	float s0 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r;
+	float sx0 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(off, 0), 0).r;
+	float sy0 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(0, off), 0).r;
 
 
 	float3 normal;
-
-	float eps = 4 * 1 / w;
-
-	float2 T = float2(eps, 0);
-	float2 B = float2(0, eps);
-
-#define GET_HEIGHT(UV) SampleLinearFloat(_chunkHeightMap, UV)
-
-	float z = GET_HEIGHT(uv);
-	normal.x = float(
-		(GET_HEIGHT(uv - T) - z)
-		- (GET_HEIGHT(uv + T) - z)
-		) / 2;
-	normal.y = float(
-		(GET_HEIGHT(uv - B) - z)
-		- (GET_HEIGHT(uv + B) - z)
-		) / 2;
-	normal.z = eps * 4;
-
+	normal = cross(
+		normalize(float3(_chunkRelativeSize, 0, sx0 - s0)),
+		normalize(float3(0, _chunkRelativeSize, sy0 - s0))
+	);
 
 	normal = normalize(normal);
-
 	normal = PACK_NORMAL(normal);
 
-	_chunkNormalMap[id.xy] = normal;*/
+	// DEBUG
+	//normal = float3(0.5, 0.5, 1);
+
+	_chunkNormalMap[id.xy] = normal;
+
 }

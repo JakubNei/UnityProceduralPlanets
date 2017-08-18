@@ -26,20 +26,9 @@ public class GenerateAndSetSpaceSkyBox : MonoBehaviour
 	{
 		Prepare();
 		Generate();
-		generateAgainInSeconds = 10f;
 	}
+	
 
-	public float generateAgainInSeconds;
-
-	void LateUpdate()
-	{
-		generateAgainInSeconds -= Time.deltaTime;
-		if (generateAgainInSeconds < 0)
-		{
-			Generate();
-			generateAgainInSeconds = 10f;
-		}
-	}
 
 	void Prepare()
 	{
