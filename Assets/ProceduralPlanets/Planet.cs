@@ -27,7 +27,7 @@ public partial class Planet : MonoBehaviour
 		public float weightNeededToSubdivide = 0.70f;
 		public float stopSegmentRecursionAtWorldSize = 10;
 		public float destroyGameObjectIfNotVisibleForSeconds = 5;
-		
+
 
 		public Material chunkMaterial;
 		public ComputeShader generateChunkVertices;
@@ -104,6 +104,8 @@ public partial class Planet : MonoBehaviour
 
 	void GeneratePlanetData()
 	{
+		MyProfiler.BeginSample("Procedural Planet / Initialize planet & generate base height map");
+
 		const int resolution = 1024;
 		var height = planetConfig.planetHeightMap = new RenderTexture(resolution, resolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
 		height.enableRandomWrite = true;
@@ -114,6 +116,8 @@ public partial class Planet : MonoBehaviour
 
 		chunkVertexGPUBuffer = new ComputeBuffer(NumberOfVerticesNeededTotal, 3 * sizeof(float));
 		chunkVertexCPUBuffer = new Vector3[NumberOfVerticesNeededTotal];
+
+		MyProfiler.EndSample();
 	}
 
 	void Update()
@@ -135,11 +139,13 @@ public partial class Planet : MonoBehaviour
 
 	void LateUpdate()
 	{
+		MyProfiler.BeginSample("Procedural Planet / Calculate desired subdivision");
 		TrySubdivideOver(new SubdivisionData()
 		{
 			pos = Camera.main.transform.position,
 			fieldOfView = Camera.main.fieldOfView,
 		});
+		MyProfiler.EndSample();
 
 		var sw = Stopwatch.StartNew();
 		foreach (var s in toGenerate.GetWeighted())

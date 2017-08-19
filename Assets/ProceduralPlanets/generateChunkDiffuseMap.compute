@@ -89,7 +89,7 @@ void main(uint3 id : SV_DispatchThreadID)
 	//color = float3(1, 1, 1) * slope;
 	//color = PACK_NORMAL(normal);
 	//color = SampleLinearFloat(_chunkNormalMap, uv);
-	if (slope < 0.2) color = grass; else if (slope < 0.3) color = clay;	else color = rock;
+	if (slope < 0.25) color = grass; else if (slope < 0.5) color = clay;	else color = rock;
 
 	// SAFE
 	//if (slope > 1) color = float3(1, 0, 0);

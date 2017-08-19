@@ -8,14 +8,13 @@ Texture2D _chunkHeightMap;
 SamplerState sampler_chunkHeightMap;
 
 float _chunkRelativeSize;
-float3 _rangeA;
-float3 _rangeB;
-float3 _rangeC;
-float3 _rangeD;
+float3 _rangeDirA;
+float3 _rangeDirB;
+float3 _rangeDirC;
+float3 _rangeDirD;
 
 
-
-RWTexture2D<float3> _chunkNormalMap;
+RWTexture2D<float4> _chunkNormalMap;
 
 
 
@@ -27,7 +26,7 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	int w, h;
 	_chunkHeightMap.GetDimensions(w, h);
-	float off = 1.5 / (w - 1);
+	float off = 1.0 / (w - 1);
 	float s0 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r;
 	float sx0 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(off, 0), 0).r;
 	float sy0 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(0, off), 0).r;
@@ -35,16 +34,17 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	float3 normal;
 	normal = cross(
-		normalize(float3(_chunkRelativeSize, 0, sx0 - s0)),
-		normalize(float3(0, _chunkRelativeSize, sy0 - s0))
+		normalize(float3(_chunkRelativeSize * (256.0 / w), 0, sx0 - s0)),
+		normalize(float3(0, _chunkRelativeSize * (256.0 / w), sy0 - s0))
 	);
 
 	normal = normalize(normal);
+
 	normal = PACK_NORMAL(normal);
 
 	// DEBUG
 	//normal = float3(0.5, 0.5, 1);
 
-	_chunkNormalMap[id.xy] = normal;
+	_chunkNormalMap[id.xy] = float4(normal, 1);
 
 }

@@ -51,7 +51,7 @@ public class Chunk
 	public List<Chunk> children = new List<Chunk>(4);
 	public float chunkRadius;
 
-	const int resolution = 512;
+	const int resolution = 256;
 	const int diffuseMapResolution = resolution;
 	const int heightMapResolution = resolution;
 	const int normalMapResolution = heightMapResolution; // must be the same
@@ -68,6 +68,8 @@ public class Chunk
 
 	public static Chunk Create(Planet planet, Range range, ulong id, Chunk parent = null, ulong generation = 0, ChildPosition childPosition = ChildPosition.NoneNoParent)
 	{
+		MyProfiler.BeginSample("Procedural Planet / Create chunk");
+
 		var chunk = new Chunk();
 
 		chunk.planet = planet;
@@ -121,6 +123,8 @@ public class Chunk
 			Vector3.Angle(chunk.rangeDirToGenerateInto.c, chunk.rangeDirToGenerateInto.d),
 			Vector3.Angle(chunk.rangeDirToGenerateInto.d, chunk.rangeDirToGenerateInto.a)
 		);
+
+		MyProfiler.EndSample();
 
 		return chunk;
 	}
@@ -188,17 +192,39 @@ public class Chunk
 	{
 		if (generationBegan) return;
 		generationBegan = true;
+		
+		MyProfiler.BeginSample("Procedural Planet / Generate chunk");
 
 		if (gameObject) GameObject.Destroy(gameObject);
 
+		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Height map");
 		GenerateHeightMap();
+		MyProfiler.EndSample();
+		
+		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh");
+		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Generate");
 		GenerateMesh();
+		MyProfiler.EndSample();
+		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Prepare");
 		PrepareMesh();
+		MyProfiler.EndSample();
+		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Skirts");
 		MoveSkirtVertices();
+		MyProfiler.EndSample();
+		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Upload");
 		UploadMesh();
-		//CreateNormalMapFromMesh();
+		MyProfiler.EndSample();
+		MyProfiler.EndSample();
+		
+		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Normal map");
 		GenerateNormalMap();
+		MyProfiler.EndSample();
+		
+		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Diffuse map");
 		GenerateDiffuseMap();
+		MyProfiler.EndSample();
+
+		MyProfiler.EndSample();
 
 		isGenerationDone = true;
 	}
@@ -216,7 +242,7 @@ public class Chunk
 
 			if (height1 == null)
 			{
-				height1 = planet.chunkHeightFirstPassTemp = new RenderTexture(heightMapResolution, heightMapResolution, 0, RenderTextureFormat.RFloat, RenderTextureReadWrite.Linear);
+				height1 = planet.chunkHeightFirstPassTemp = new RenderTexture(heightMapResolution, heightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
 				height1.wrapMode = TextureWrapMode.Clamp;
 				height1.filterMode = FilterMode.Trilinear;
 				height1.enableRandomWrite = true;
@@ -233,7 +259,7 @@ public class Chunk
 
 		// pass 2
 		{
-			var height2 = chunkHeightMap = new RenderTexture(heightMapResolution, heightMapResolution, 0, RenderTextureFormat.RFloat, RenderTextureReadWrite.Linear);
+			var height2 = chunkHeightMap = new RenderTexture(heightMapResolution, heightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
 			height2.wrapMode = TextureWrapMode.Clamp;
 			height2.filterMode = FilterMode.Trilinear;
 			height2.enableRandomWrite = true;
@@ -277,7 +303,9 @@ public class Chunk
 
 		c.Dispatch(kernelIndex, verticesOnEdge, verticesOnEdge, 1);
 
+		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Generate / Download data");
 		vertexGPUBuffer.GetData(v);
+		MyProfiler.EndSample();
 
 		{
 			int aIndex = 0;
@@ -306,6 +334,7 @@ public class Chunk
 		if (mesh) Mesh.Destroy(mesh);
 		// TODO: optimize: fill mesh vertices on GPU instead of CPU, calculate UVs, normals and tangents on GPU instead of CPU, remember we still need vertices on CPU for mesh collider
 		mesh = new Mesh();
+		mesh.name = this.ToString();
 		mesh.vertices = vertexCPUBuffer;
 		mesh.triangles = planet.GetSegmentIndicies();
 		mesh.uv = planet.GetSefgmentUVs();
@@ -337,7 +366,7 @@ public class Chunk
 
 	void UploadMesh()
 	{
-		mesh.UploadMeshData(true);
+		mesh.UploadMeshData(false);
 	}
 
 	void CreateNormalMapFromMesh()
@@ -381,7 +410,7 @@ public class Chunk
 		var c = chunkConfig.generateChunkNormapMap;
 		c.SetTexture(0, "_chunkHeightMap", chunkHeightMap);
 		c.SetFloat("_chunkRelativeSize", ChunkRelativeSize);
-		rangeDirToGenerateInto.SetParams(c, "_range");
+		rangeDirToGenerateInto.SetParams(c, "_rangeDir");
 		c.SetTexture(0, "_chunkNormalMap", chunkNormalMap);
 
 		c.Dispatch(0, chunkNormalMap.width / 16, chunkNormalMap.height / 16, 1);
@@ -496,7 +525,9 @@ public class Chunk
 	{
 		if (gameObject) return;
 
-		var name = typeof(Chunk) + " id:#" + id + " generation:" + generation;
+		MyProfiler.BeginSample("Procedural Planet / Create GameObject");
+
+		var name = ToString();
 
 		var go = gameObject = new GameObject(name);
 		go.transform.parent = planet.transform;
@@ -513,11 +544,15 @@ public class Chunk
 		meshRenderer.sharedMaterial = chunkConfig.chunkMaterial;
 		material = meshRenderer.material;
 
+		MyProfiler.BeginSample("Procedural Planet / Create GameObject / Collider");
 		var meshCollider = go.AddComponent<MeshCollider>();
 		meshCollider.sharedMesh = mesh;
+		MyProfiler.EndSample();
 
 		if (chunkDiffuseMap) material.mainTexture = chunkDiffuseMap;
 		if (chunkNormalMap) material.SetTexture("_BumpMap", chunkNormalMap);
+
+		MyProfiler.EndSample();
 	}
 
 	DateTime notRenderedTimeStamp;
@@ -586,6 +621,11 @@ public class Chunk
 		var weight = GetSizeOnScreen(data);
 		lastGenerationWeight = weight;
 		return weight;
+	}
+
+	public override string ToString()
+	{
+		return typeof(Chunk) + " id:#" + id + " generation:" + generation;
 	}
 
 

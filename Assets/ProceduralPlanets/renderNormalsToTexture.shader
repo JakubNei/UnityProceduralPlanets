@@ -40,8 +40,8 @@
 					return o;
 				}
 
-				float3 frag(v2f i) : SV_Target {
-					return PACK_NORMAL(i.normal);
+				float4 frag(v2f i) : SV_Target {
+					return float4(PACK_NORMAL(i.normal), 1);
 				}
 
 			ENDCG

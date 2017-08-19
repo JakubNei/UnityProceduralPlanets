@@ -119,15 +119,14 @@ public class PlanetAffectedCamera : MonoBehaviour
 			{
 				Scene.Engine.WindowState = WindowState.Normal;
 			}
-			else*/
-			if (!Cursor.visible)
+			else*/ if (!Cursor.visible)
 			{
 				Cursor.lockState = CursorLockMode.None;
 				Cursor.visible = true;
 			}
 			else
 			{
-				//Application.Quit();
+				Application.Quit();
 			}
 		}
 

@@ -27,7 +27,7 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	int w, h;
 	_chunkHeightMap.GetDimensions(w, h);
-	float off = 1.5 / (w - 1);
+	float off = 1.0 / (w - 1);
 	float sx0 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(off, 0), 0).r;
 	float sx1 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(-off, 0), 0).r;
 	float sy0 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(0, off), 0).r;
@@ -47,13 +47,15 @@ void main(uint3 id : SV_DispatchThreadID)
 
 
 	slope = clamp(slope, 0, 1);
-	height += slope * (abs(snoise(dir * 100, 10, 1.5))) * 0.1;
+	height += slope * (abs(snoise(dir * 100, 20, 1.4))) * 0.1;
 
-	//height += 0.05 * snoise(dir * 10 * slope, 5, 2);
+	//height += (abs(snoise(dir * 100, 20, 1.4))) * 0.05;
 
 
 	// DEBUG
 	//height = uv.x;
+	
+	height = clamp(height, 0, 1);
 
 	_chunkHeightMapNew[id.xy] = height;
 }

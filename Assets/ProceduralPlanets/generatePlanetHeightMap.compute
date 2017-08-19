@@ -95,5 +95,7 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	float height01 = GetProceduralHeight01(dir);	
 
+	height01 = clamp(height01, 0, 1);
+
 	_planetHeightMap[id.xy] = height01;
 }
