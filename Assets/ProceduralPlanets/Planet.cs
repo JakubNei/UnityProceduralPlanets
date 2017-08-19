@@ -27,6 +27,7 @@ public partial class Planet : MonoBehaviour
 		public float weightNeededToSubdivide = 0.70f;
 		public float stopSegmentRecursionAtWorldSize = 10;
 		public float destroyGameObjectIfNotVisibleForSeconds = 5;
+		public bool addColliders = true;
 
 
 		public Material chunkMaterial;
@@ -108,6 +109,8 @@ public partial class Planet : MonoBehaviour
 
 		const int resolution = 1024;
 		var height = planetConfig.planetHeightMap = new RenderTexture(resolution, resolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
+		height.filterMode = FilterMode.Trilinear;
+		height.wrapMode = TextureWrapMode.Repeat;
 		height.enableRandomWrite = true;
 		height.Create();
 

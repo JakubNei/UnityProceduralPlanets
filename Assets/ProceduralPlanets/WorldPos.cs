@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-// TODO: use BigInteger or BigRational once .Net 4.0 is available
+// TODO: try to use BigInteger or BigRational once .Net 4.0 is available
 public struct WorldPos : IEquatable<WorldPos>
 {
 	Vector3 insideSectorPosition;

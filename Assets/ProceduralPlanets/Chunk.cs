@@ -28,7 +28,7 @@ public class Chunk
 	public Range rangeDirToGenerateInto;
 	public Range rangeLocalPosToGenerateInto;
 
-	public Vector3 offsetFromPlanetCenter;
+	public WorldPos offsetFromPlanetCenter;
 
 	public float chunkRangeMaxAngleDeg;
 	public bool GenerateUsingPlanetGlobalPos { get { return chunkRangeMaxAngleDeg > 1; } }
@@ -129,7 +129,7 @@ public class Chunk
 		return chunk;
 	}
 
-	private void AddChild(Vector3 a, Vector3 b, Vector3 c, Vector3 d, ChildPosition cp, ushort index)
+	private void AddChild(WorldPos a, WorldPos b, WorldPos c, WorldPos d, ChildPosition cp, ushort index)
 	{
 		var range = new Range()
 		{
@@ -167,11 +167,11 @@ public class Chunk
 			var b = rangePosRealSubdivided.b;
 			var c = rangePosRealSubdivided.c;
 			var d = rangePosRealSubdivided.d;
-			var ab = Vector3.Normalize((a + b) / 2.0f);
-			var ad = Vector3.Normalize((a + d) / 2.0f);
-			var bc = Vector3.Normalize((b + c) / 2.0f);
-			var dc = Vector3.Normalize((d + c) / 2.0f);
-			var mid = Vector3.Normalize((ab + ad + dc + bc) / 4.0f);
+			var ab = WorldPos.Normalize((a + b) / 2.0f);
+			var ad = WorldPos.Normalize((a + d) / 2.0f);
+			var bc = WorldPos.Normalize((b + c) / 2.0f);
+			var dc = WorldPos.Normalize((d + c) / 2.0f);
+			var mid = WorldPos.Normalize((ab + ad + dc + bc) / 4.0f);
 
 			ab *= planetConfig.radiusStart;
 			ad *= planetConfig.radiusStart;
@@ -192,7 +192,7 @@ public class Chunk
 	{
 		if (generationBegan) return;
 		generationBegan = true;
-		
+
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk");
 
 		if (gameObject) GameObject.Destroy(gameObject);
@@ -200,7 +200,7 @@ public class Chunk
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Height map");
 		GenerateHeightMap();
 		MyProfiler.EndSample();
-		
+
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh");
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Generate");
 		GenerateMesh();
@@ -215,11 +215,11 @@ public class Chunk
 		UploadMesh();
 		MyProfiler.EndSample();
 		MyProfiler.EndSample();
-		
+
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Normal map");
 		GenerateNormalMap();
 		MyProfiler.EndSample();
-		
+
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Diffuse map");
 		GenerateDiffuseMap();
 		MyProfiler.EndSample();
@@ -244,7 +244,7 @@ public class Chunk
 			{
 				height1 = planet.chunkHeightFirstPassTemp = new RenderTexture(heightMapResolution, heightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
 				height1.wrapMode = TextureWrapMode.Clamp;
-				height1.filterMode = FilterMode.Trilinear;
+				height1.filterMode = FilterMode.Bilinear;
 				height1.enableRandomWrite = true;
 				height1.Create();
 			}
@@ -261,7 +261,7 @@ public class Chunk
 		{
 			var height2 = chunkHeightMap = new RenderTexture(heightMapResolution, heightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
 			height2.wrapMode = TextureWrapMode.Clamp;
-			height2.filterMode = FilterMode.Trilinear;
+			height1.filterMode = FilterMode.Bilinear;
 			height2.enableRandomWrite = true;
 			height2.Create();
 
@@ -312,10 +312,10 @@ public class Chunk
 			int bIndex = verticesOnEdge - 1;
 			int cIndex = verticesOnEdge * verticesOnEdge - 1;
 			int dIndex = cIndex - (verticesOnEdge - 1);
-			rangePosToCalculateScreenSizeOn.a = v[aIndex];
-			rangePosToCalculateScreenSizeOn.b = v[bIndex];
-			rangePosToCalculateScreenSizeOn.c = v[cIndex];
-			rangePosToCalculateScreenSizeOn.d = v[dIndex];
+			rangePosToCalculateScreenSizeOn.a = new WorldPos(v[aIndex]);
+			rangePosToCalculateScreenSizeOn.b = new WorldPos(v[bIndex]);
+			rangePosToCalculateScreenSizeOn.c = new WorldPos(v[cIndex]);
+			rangePosToCalculateScreenSizeOn.d = new WorldPos(v[dIndex]);
 
 			if (!GenerateUsingPlanetGlobalPos)
 			{
@@ -349,7 +349,7 @@ public class Chunk
 			var v = vertexCPUBuffer;
 			var verticesOnEdge = chunkConfig.numberOfVerticesOnEdge;
 
-			var decreaseSkirtsBy = -offsetFromPlanetCenter.normalized * (chunkRadius / 10.0f);
+			var decreaseSkirtsBy = -offsetFromPlanetCenter.normalized.ToVector3() * (chunkRadius / 10.0f);
 			for (int i = 0; i < verticesOnEdge; i++)
 			{
 				v[i] += decreaseSkirtsBy; // top line
@@ -431,7 +431,7 @@ public class Chunk
 		if (chunkDiffuseMap == null)
 		{
 			chunkDiffuseMap = new RenderTexture(diffuseMapResolution, diffuseMapResolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
-			chunkDiffuseMap.wrapMode = TextureWrapMode.Mirror;
+			chunkDiffuseMap.wrapMode = TextureWrapMode.Clamp;
 			chunkDiffuseMap.filterMode = FilterMode.Trilinear;
 			chunkDiffuseMap.enableRandomWrite = true;
 			chunkDiffuseMap.useMipMap = true;
@@ -544,10 +544,13 @@ public class Chunk
 		meshRenderer.sharedMaterial = chunkConfig.chunkMaterial;
 		material = meshRenderer.material;
 
-		MyProfiler.BeginSample("Procedural Planet / Create GameObject / Collider");
-		var meshCollider = go.AddComponent<MeshCollider>();
-		meshCollider.sharedMesh = mesh;
-		MyProfiler.EndSample();
+		if (chunkConfig.addColliders)
+		{
+			MyProfiler.BeginSample("Procedural Planet / Create GameObject / Collider");
+			var meshCollider = go.AddComponent<MeshCollider>();
+			meshCollider.sharedMesh = mesh;
+			MyProfiler.EndSample();
+		}
 
 		if (chunkDiffuseMap) material.mainTexture = chunkDiffuseMap;
 		if (chunkNormalMap) material.SetTexture("_BumpMap", chunkNormalMap);
@@ -605,7 +608,8 @@ public class Chunk
 		var myPos = rangePosToCalculateScreenSizeOn.CenterPos + planet.transform.position;
 		var distanceToCamera = Vector3.Distance(myPos, data.pos);
 
-		// TODO: this is world space, doesnt take into consideration rotation, not good, but we dont care about rotation ?, we want to have correct detail even if looking from side
+		// TODO: this is world space, doesnt take into consideration rotation, not good,
+		// but we dont care about rotation, we want to have correct detail even if we are looking at chunk from side?
 		var sphere = rangePosToCalculateScreenSizeOn.ToBoundingSphere();
 		var radiusWorldSpace = sphere.radius;
 		var fov = data.fieldOfView;

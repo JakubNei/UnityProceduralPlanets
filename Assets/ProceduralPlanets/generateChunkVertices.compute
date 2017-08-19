@@ -49,6 +49,8 @@ void generateUsingPlanetGlobalPos(uint3 id : SV_DispatchThreadID)
 
 	float3 dirNorm = normalize(dir);
 
+	DEADJUST_UV(uv)
+
 	float height =
 		_chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r *
 		_planetRadiusHeightMapMultiplier;
@@ -73,13 +75,14 @@ void generateUsingChunkLocalPos(uint3 id : SV_DispatchThreadID)
 		uv.y
 	);
 
-	float3 dirNorm = normalize(dir);
-
 	float3 localPos = lerp(
 		lerp(_rangeLocalPosA, _rangeLocalPosB, uv.x),
 		lerp(_rangeLocalPosD, _rangeLocalPosC, uv.x),
 		uv.y
 	);
+	float3 dirNorm = normalize(dir);
+	
+	DEADJUST_UV(uv)
 
 	float height =
 		_chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r *

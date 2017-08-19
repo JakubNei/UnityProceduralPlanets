@@ -79,10 +79,15 @@ public partial class Planet
 		{
 			for (int x = 0; x < chunkConfig.numberOfVerticesOnEdge; x++)
 			{
-				segmentUVs[i++] = new Vector2(
+				var uv = new Vector2(
 					x / max,
 					y / max
 				);
+
+				// ADJUST_UV;
+				uv = (uv + new Vector2(0.25f, 0.25f)) / 1.5f;
+
+				segmentUVs[i++] = uv;
 			}
 		}
 		return segmentUVs;
