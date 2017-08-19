@@ -21,8 +21,6 @@ void main(uint3 id : SV_DispatchThreadID)
 {
 	float2 uv = GetUV(_chunkHeightMap, id.xy);
 
-	ADJUST_UV(uv)
-
 	float3 dir = lerp(
 		lerp(_rangeA, _rangeB, uv.x),
 		lerp(_rangeD, _rangeC, uv.x),

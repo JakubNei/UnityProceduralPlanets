@@ -13,11 +13,6 @@
 #define UNPACK_NORMAL(NORMAL) (NORMAL * float3(2, 2, 2) - float3(1, 1, 1))
 
 
-#define UV_A 0.25
-#define ADJUST_UV(UV) UV = UV * (1 + UV_A * 2) - UV_A;
-#define DEADJUST_UV(UV) UV = (UV + UV_A) / (1 + UV_A * 2);
-
-
 #define M_PI 3.1415926535897932384626433832795
 
 float3 calestialToSpherical(float3 c /*calestial*/)

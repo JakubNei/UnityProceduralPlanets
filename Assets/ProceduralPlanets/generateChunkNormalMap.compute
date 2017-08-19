@@ -26,10 +26,13 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	int w, h;
 	_chunkHeightMap.GetDimensions(w, h);
-	float off = 1.0 / (w - 1);
-	float s0 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r;
-	float sx0 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(off, 0), 0).r;
-	float sy0 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(0, off), 0).r;
+	int2 off = int2(-1, 0);
+	int2 pos = id.xy;
+	if (pos.x == 0) pos.x = 1;
+	if (pos.y == 0) pos.y = 1;
+	float s0 = _chunkHeightMap[pos].r;
+	float sx0 = _chunkHeightMap[pos + off.xy].r;
+	float sy0 = _chunkHeightMap[pos + off.yx].r;
 
 
 	float3 normal;

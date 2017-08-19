@@ -83,10 +83,6 @@ public partial class Planet
 					x / max,
 					y / max
 				);
-
-				// ADJUST_UV;
-				uv = (uv + new Vector2(0.25f, 0.25f)) / 1.5f;
-
 				segmentUVs[i++] = uv;
 			}
 		}

@@ -50,15 +50,16 @@ void main(uint3 id : SV_DispatchThreadID)
 	float2 uv = GetUV(_chunkDiffuseMap, id.xy);
 
 
-
 	int w, h;
 	_chunkHeightMap.GetDimensions(w, h);
-	float off = 1.5 / (w - 1);
-	float sx0 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(off, 0), 0).r;
-	float sx1 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(-off, 0), 0).r;
-	float sy0 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(0, off), 0).r;
-	float sy1 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + float2(0, -off), 0).r;
-	float slope = (abs(sx0 - sx1) + abs(sy0 - sy1)) / _chunkRelativeSize * (w / 256.0);
+	int2 off = int2(-1, 0);
+	int2 pos = id.xy;
+	if (pos.x == 0) pos.x = 1;
+	if (pos.y == 0) pos.y = 1;
+	float s0 = _chunkHeightMap[pos].r;
+	float sx0 = _chunkHeightMap[pos + off.xy].r;
+	float sy0 = _chunkHeightMap[pos + off.yx].r;
+	float slope = (abs(sx0 - s0) + abs(sy0 - s0)) / _chunkRelativeSize * (w / 256.0);
 
 
 	float3 dir = lerp(
@@ -68,7 +69,7 @@ void main(uint3 id : SV_DispatchThreadID)
 	);
 	dir = normalize(dir);
 
-	float3 normal = normalize(float3(sx0 - sx1, sy0 - sy1, 1000));
+	float3 normal = normalize(float3(sx0 - s0, sy0 - s0, 1000));
 
 
 	const float3 grass = float3(121, 136, 69) / float3(255, 255, 255); // grass
