@@ -1,4 +1,6 @@
 ﻿#ifndef PLANET_ALL_CGINC
+// Upgrade NOTE: excluded shader from OpenGL ES 2.0 because it uses non-square matrices
+#pragma exclude_renderers gles
 #define PLANET_ALL_CGINC
 
 
@@ -133,11 +135,14 @@ float sampleLinearFloat(Texture2D<float> map, float2 uv)
 */
 
 
+
+
+
 float sampleCubicFloat(Texture2D<float> map, float2 uv)
 {
 	int w, h;
 	map.GetDimensions(w, h);
-	float2 xy = uv * float2(w - 1, h - 1); // 0,0 ... w,h
+	float2 xy = uv * float2(w - 1, h - 1);
 
 	// p03--p13-------p23--p33
 	//  |    |         |    |
@@ -149,7 +154,7 @@ float sampleCubicFloat(Texture2D<float> map, float2 uv)
 	//  |    |         |    |
 	// p00--p10-------p20--p30
 
-	float2 t = frac(xy); // 0,0 ... 1,1
+	float2 t = frac(xy);
 	float4 tx = cubic(t.x);
 	float4 ty = cubic(t.y);
 
@@ -195,19 +200,19 @@ int sampleCubicInt(Texture2D<int> map, float2 uv)
 {
 	int w, h;
 	map.GetDimensions(w, h);
-	float2 xy = uv * float2(w - 1, h - 1); // 0,0 ... w,h
+	float2 xy = uv * float2(w - 1, h - 1);
 
-										   // p03--p13-------p23--p33
-										   //  |    |         |    |
-										   // p02--p12-------p22--p32     1
-										   //  |    |         |    |     ...
-										   //  |   t.y  xy    |    |     t.y
-										   //  |    |         |    |     ...
-										   // p01--p11--t.x--p21--p31     0...tx...1
-										   //  |    |         |    |
-										   // p00--p10-------p20--p30
+	// p03--p13-------p23--p33
+	//  |    |         |    |
+	// p02--p12-------p22--p32     1
+	//  |    |         |    |     ...
+	//  |   t.y  xy    |    |     t.y
+	//  |    |         |    |     ...
+	// p01--p11--t.x--p21--p31     0...tx...1
+	//  |    |         |    |
+	// p00--p10-------p20--p30
 
-	double2 t = frac(xy); // 0,0 ... 1,1
+	double2 t = frac(xy);
 	double4 tx = cubic(t.x);
 	double4 ty = cubic(t.y);
 

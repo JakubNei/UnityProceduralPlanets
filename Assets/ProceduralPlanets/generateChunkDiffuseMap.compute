@@ -41,16 +41,9 @@ void main(uint3 id : SV_DispatchThreadID)
 
 
 	float2 slopeXY = _chunkSlopeAndCurvatureMap[id.xy].xy;
-	float slope = sqrt(dot(slopeXY.xy, slopeXY.xy));
+	float slope = length(slopeXY);
 
-	slope *= 3.0;
-
-	float3 dir = lerp(
-		lerp(_rangeDirA, _rangeDirB, uv.x),
-		lerp(_rangeDirD, _rangeDirC, uv.x),
-		uv.y
-	);
-	dir = normalize(dir);
+	//slope *= 3.0;
 
 
 	const float3 grass = float3(121, 136, 69) / float3(255, 255, 255); // grass
@@ -75,6 +68,7 @@ void main(uint3 id : SV_DispatchThreadID)
 	//color = float3(1, 1, 1) * slope;
 	//color = _chunkSlopeAndCurvatureMap[id.xy].xyz;
 	color = ramp(smoothstep(0, 1, slope));
+	//color = float3(slopeXY, 0);
 
 	// SAFE
 	//if (slope > 1) color = float3(1, 0, 0);

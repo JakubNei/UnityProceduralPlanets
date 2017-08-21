@@ -28,13 +28,14 @@ void main(uint3 id : SV_DispatchThreadID)
 		normalize(float3(1, 0, slope.x)),
 		normalize(float3(0, 1, slope.y))
 	);
+	//normal = float3(slope.x, slope.y, 1);
 
 	normal = normalize(normal);
 
 	normal = PACK_NORMAL(normal);
 
 	// DEBUG
-	normal = float3(0.5, 0.5, 1);
+	//normal = float3(0.5, 0.5, 1);
 
 	_chunkNormalMap[id.xy] = float4(normal, 1);
 

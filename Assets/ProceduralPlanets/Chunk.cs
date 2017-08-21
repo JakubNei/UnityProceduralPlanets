@@ -252,7 +252,7 @@ public class Chunk
 
 			if (height1 == null)
 			{
-				height1 = planet.chunkHeightFirstPassTemp = new RenderTexture(heightMapResolution, heightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
+				height1 = planet.chunkHeightFirstPassTemp = new RenderTexture(heightMapResolution, heightMapResolution, 0, RenderTextureFormat.RFloat, RenderTextureReadWrite.Linear);
 				height1.wrapMode = TextureWrapMode.Clamp;
 				height1.filterMode = FilterMode.Bilinear;
 				height1.enableRandomWrite = true;
@@ -271,7 +271,7 @@ public class Chunk
 
 		// pass 2
 		{
-			var height2 = chunkHeightMap = new RenderTexture(heightMapResolution, heightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
+			var height2 = chunkHeightMap = new RenderTexture(heightMapResolution, heightMapResolution, 0, RenderTextureFormat.RFloat, RenderTextureReadWrite.Linear);
 			height2.wrapMode = TextureWrapMode.Clamp;
 			height2.filterMode = FilterMode.Bilinear;
 			height2.enableRandomWrite = true;
@@ -279,6 +279,7 @@ public class Chunk
 
 			var c = chunkConfig.generateChunkHeightMapPass2;
 			c.SetTexture(0, "_chunkHeightMap", height1);
+			rangeUnitCubePos.SetParams(c, "_rangeUnitCubePos");
 			c.SetFloat("_slopeModifier", SlopeModifier);
 			c.SetTexture(0, "_chunkSlopeAndCurvatureMap", chunkSlopeAndCurvatureMap);
 			c.SetTexture(0, "_chunkHeightMapNew", height2);
@@ -295,7 +296,7 @@ public class Chunk
 	{
 		if (chunkSlopeAndCurvatureMap == null)
 		{
-			chunkSlopeAndCurvatureMap = chunkSlopeAndCurvatureMap = new RenderTexture(chunkSlopeAndCurvatureMapMapResolution, chunkSlopeAndCurvatureMapMapResolution, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+			chunkSlopeAndCurvatureMap = new RenderTexture(chunkSlopeAndCurvatureMapMapResolution, chunkSlopeAndCurvatureMapMapResolution, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
 			chunkSlopeAndCurvatureMap.wrapMode = TextureWrapMode.Clamp;
 			chunkSlopeAndCurvatureMap.filterMode = FilterMode.Bilinear;
 			chunkSlopeAndCurvatureMap.enableRandomWrite = true;

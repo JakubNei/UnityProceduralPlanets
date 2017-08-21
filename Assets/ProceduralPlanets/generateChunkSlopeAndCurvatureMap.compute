@@ -8,7 +8,7 @@
 Texture2D _chunkHeightMap;
 SamplerState sampler_chunkHeightMap;
 
-Texture2D _parentChunkSlopeAndCurvatureMap;
+Texture2D<float2> _parentChunkSlopeAndCurvatureMap;
 SamplerState sampler_parentChunkSlopeAndCurvatureMap;
 
 float2 _uvOffsetInParent;
@@ -16,8 +16,74 @@ float2 _uvOffsetInParent;
 float _slopeMultiplier;
 
 
-RWTexture2D<float4> _chunkSlopeAndCurvatureMap;
+RWTexture2D<float2> _chunkSlopeAndCurvatureMap;
 
+
+float2 sampleCubicFloat2(Texture2D<float2> map, float2 uv)
+{
+	int w, h;
+	map.GetDimensions(w, h);
+	float2 xy = uv * float2(w - 1, h - 1);
+
+	// p03--p13-------p23--p33
+	//  |    |         |    |
+	// p02--p12-------p22--p32     1
+	//  |    |         |    |     ...
+	//  |   t.y  xy    |    |     t.y
+	//  |    |         |    |     ...
+	// p01--p11--t.x--p21--p31     0...tx...1
+	//  |    |         |    |
+	// p00--p10-------p20--p30
+
+	float2 xyFloored = floor(xy);
+	float2 t = xy - xyFloored;
+	float4 tx = cubic(t.x);
+	float4 ty = cubic(t.y);
+
+	int2 p12 = int2(xyFloored);
+	int2 p00 = p12 - int2(1, 2);
+
+	float4x2 v0 = float4x2(
+		map[p00 + int2(0, 0)],
+		map[p00 + int2(1, 0)],
+		map[p00 + int2(2, 0)],
+		map[p00 + int2(3, 0)]
+		);
+
+	float4x2 v1 = float4x2(
+		map[p00 + int2(0, 1)],
+		map[p00 + int2(1, 1)],
+		map[p00 + int2(2, 1)],
+		map[p00 + int2(3, 1)]
+		);
+
+	float4x2 v2 = float4x2(
+		map[p00 + int2(0, 2)],
+		map[p00 + int2(1, 2)],
+		map[p00 + int2(2, 2)],
+		map[p00 + int2(3, 2)]
+		);
+
+	float4x2 v3 = float4x2(
+		map[p00 + int2(0, 3)],
+		map[p00 + int2(1, 3)],
+		map[p00 + int2(2, 3)],
+		map[p00 + int2(3, 3)]
+		);
+
+	// first interpolate on X
+	float4x2 c = float4x2(
+		mul(tx, v0),
+		mul(tx, v1),
+		mul(tx, v2),
+		mul(tx, v3)
+		);
+
+	// then on Y
+	float2 f = mul(ty, c);
+
+	return f;
+}
 
 
 float2 getSlope(int2 idXy)
@@ -67,25 +133,35 @@ void parentExists(uint3 id : SV_DispatchThreadID)
 {
 	float2 uv = getUv(_chunkHeightMap, id.xy);
 
-	float4 childSlope = float4(
-		getSlope(id.xy),
-		0,
-		0
-		) * 1;
+	float2 childSlope = getSlope(id.xy);
 
-	float4 parentSlope = _parentChunkSlopeAndCurvatureMap.SampleLevel(sampler_parentChunkSlopeAndCurvatureMap, uv / 2.0 + _uvOffsetInParent, 0);
+	float2 parentSlope = _parentChunkSlopeAndCurvatureMap.SampleLevel(sampler_parentChunkSlopeAndCurvatureMap, uv / 2.0 + _uvOffsetInParent, 0).xy;
+	//float2 parentSlope = sampleCubicFloat2(_parentChunkSlopeAndCurvatureMap, uv / 2.0 + _uvOffsetInParent);
+	
 
 	//float4 m = step(parentSlope, childSlope) - 0.5;
 
-	float m = length(parentSlope);
+	float2 slope = float2(0, 0);
 
 
-	float4 slope = childSlope *dot(parentSlope.xy, parentSlope.xy) * 4;
+
+	float sm = length(parentSlope);
+
+	float2 a = normalize(childSlope);
+	float2 b = normalize(parentSlope);
+
+	//sm *= dot(a,b);
+
+
+	slope = normalize(childSlope) * sm;
+
+
+	if (length(childSlope) < 0.0001) slope = 0;
 
 	//DEBUG
 	//slope = float4(0, 1, 0, 0);
 	//slope = parentSlope;
-	//slope = childSlope;
+	//slope = childSlope * 10;
 	//slope = float4(uv / 2.0 + _uvOffsetInParent, 0, 0);
 
 	_chunkSlopeAndCurvatureMap[id.xy] = slope;
@@ -94,11 +170,7 @@ void parentExists(uint3 id : SV_DispatchThreadID)
 [numthreads(16, 16, 1)]
 void parentDoesNotExist(uint3 id : SV_DispatchThreadID)
 {
-	float4 slope = float4(
-		getSlope(id.xy),
-		0,
-		0
-		);
+	float2 slope = getSlope(id.xy);
 
 	//DEBUG
 	//slope = float4(1, 0, 0, 0);
