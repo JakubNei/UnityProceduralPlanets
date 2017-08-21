@@ -27,7 +27,7 @@ public partial class Planet : MonoBehaviour
 		public float weightNeededToSubdivide = 0.70f;
 		public float stopSegmentRecursionAtWorldSize = 10;
 		public float destroyGameObjectIfNotVisibleForSeconds = 5;
-		public bool addColliders = true;
+		public bool createColliders = true;
 
 
 		public Material chunkMaterial;

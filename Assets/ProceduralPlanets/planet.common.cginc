@@ -8,6 +8,7 @@
 
 #include "noiseSimplex.cginc"
 
+#define MAX_INT 2147483647
 
 #define PACK_NORMAL(NORMAL) ((NORMAL + float3(1, 1, 1)) / float3(2, 2, 2))
 #define UNPACK_NORMAL(NORMAL) (NORMAL * float3(2, 2, 2) - float3(1, 1, 1))

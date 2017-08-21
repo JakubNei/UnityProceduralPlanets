@@ -16,7 +16,7 @@ float GetProceduralHeight01(float3 dir)
 	float x;
 
 
-	result += 1-abs(snoise(dir * 5, 10, 2));
+	result += 1-abs(snoise(dir * 5, 20, 2));
 
 	/*
 	{ // terraces

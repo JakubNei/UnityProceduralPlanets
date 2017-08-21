@@ -5,11 +5,6 @@
 Texture2D _chunkSlopeAndCurvatureMap;
 SamplerState sampler_chunkSlopeAndCurvatureMap;
 
-float _slopeModifier;
-float3 _rangeDirA;
-float3 _rangeDirB;
-float3 _rangeDirC;
-float3 _rangeDirD;
 
 
 RWTexture2D<float4> _chunkNormalMap;
