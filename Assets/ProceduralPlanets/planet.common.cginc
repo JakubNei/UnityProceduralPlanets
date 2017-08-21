@@ -130,4 +130,46 @@ double4 cubic(double v)
 	double w = 6.0 - x - y - z;
 	return double4(x, y, z, w) * (1.0 / 6.0);
 }
+
+
+
+
+
+
+
+
+float3 rgbToHsv(float3 c)
+{
+	float4 K = float4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+	float4 p = lerp(float4(c.bg, K.wz), float4(c.gb, K.xy), step(c.b, c.g));
+	float4 q = lerp(float4(p.xyw, c.r), float4(c.r, p.yzx), step(p.x, c.r));
+
+	float d = q.x - min(q.w, q.y);
+	float e = 1.0e-10;
+	return float3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+
+float3 hsvToRgb(float3 c)
+{
+	float4 K = float4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+	float3 p = abs(frac(c.xxx + K.xyz) * 6.0 - K.www);
+	return c.z * lerp(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+
+// -1 <= unitCube.x && unitCube.x <= 1
+// -1 <= unitCube.y && unitCube.y <= 1
+// -1 <= unitCube.z && unitCube.z <= 1
+// uses math from http://mathproofs.blogspot.cz/2005/07/mapping-cube-to-sphere.html
+// implementation license: public domain
+float3 unitCubeToUnitSphere(float3 unitCube)
+{
+	float3 unitCubePow2 = unitCube * unitCube;
+	float3 unitCubePow2Div2 = unitCubePow2 / 2;
+	float3 unitCubePow2Div3 = unitCubePow2 / 3;
+	return unitCube * sqrt(1 - unitCubePow2Div2.yzx - unitCubePow2Div2.zxy + unitCubePow2.yzx * unitCubePow2Div3.zxy);
+}
+
+
+
 #endif

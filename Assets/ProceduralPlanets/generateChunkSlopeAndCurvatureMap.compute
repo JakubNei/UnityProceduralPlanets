@@ -13,42 +13,79 @@ SamplerState sampler_parentChunkSlopeAndCurvatureMap;
 
 float2 _uvOffsetInParent;
 
-
+float _slopeMultiplier;
 
 
 RWTexture2D<float4> _chunkSlopeAndCurvatureMap;
 
 
+
+float2 getSlope(int2 idXy)
+{
+	int w, h;
+	_chunkHeightMap.GetDimensions(w, h);
+	int3 off = int3(-1, 0, 1);
+	int2 s11pos = idXy;
+	s11pos = max(s11pos, int2(1, 1));
+	s11pos = min(s11pos, int2(w - 1, h - 1));
+	// s00 __ s10 __ s20
+	//  |      |      |
+	// s01 __ s11 __ s21
+	//  |      |      |
+	// s02 __ s12 __ s22
+	float s00 = _chunkHeightMap[s11pos + off.xx].r;
+	float s10 = _chunkHeightMap[s11pos + off.yx].r;
+	float s20 = _chunkHeightMap[s11pos + off.zx].r;
+
+	float s01 = _chunkHeightMap[s11pos + off.xy].r;
+	float s11 = _chunkHeightMap[s11pos].r;
+	float s21 = _chunkHeightMap[s11pos + off.zy].r;
+
+	float s02 = _chunkHeightMap[s11pos + off.xz].r;
+	float s12 = _chunkHeightMap[s11pos + off.yz].r;
+	float s22 = _chunkHeightMap[s11pos + off.zz].r;
+
+	// https://en.wikipedia.org/wiki/Sobel_operator
+	// 1 __ 0 __-1
+	// |    |    |
+	// 2 __ 0 __-2
+	// |    |    |
+	// 1 __ 0 __-1
+	float sx = s00 + 2 * s01 + s02 - s20 - 2 * s21 - s22;
+	// 1 __ 2 __ 1
+	// |    |    |
+	// 0 __ 0 __ 0
+	// |    |    |
+	//-1 __-2 __-1
+	float sy = s00 + 2 * s10 + s20 - s02 - 2 * s12 - s22;
+
+	return float2(sx, sy);
+}
+
 [numthreads(16, 16, 1)]
 void parentExists(uint3 id : SV_DispatchThreadID)
 {
-	float2 uv = GetUV(_chunkHeightMap, id.xy);
+	float2 uv = getUv(_chunkHeightMap, id.xy);
 
-
-	int w, h;
-	_chunkHeightMap.GetDimensions(w, h);
-	int2 off = int2(-1, 0);
-	int2 pos = id.xy;
-	if (pos.x == 0) pos.x = 1;
-	if (pos.y == 0) pos.y = 1;
-	float s0 = _chunkHeightMap[pos].r;
-	float sx0 = _chunkHeightMap[pos + off.xy].r;
-	float sy0 = _chunkHeightMap[pos + off.yx].r;
-
-	float4 slope = float4(
-		abs(sx0 - s0),
-		abs(sy0 - s0),
+	float4 childSlope = float4(
+		getSlope(id.xy),
 		0,
 		0
-	);
+		) * 1;
 
 	float4 parentSlope = _parentChunkSlopeAndCurvatureMap.SampleLevel(sampler_parentChunkSlopeAndCurvatureMap, uv / 2.0 + _uvOffsetInParent, 0);
 
-	slope += parentSlope;
+	//float4 m = step(parentSlope, childSlope) - 0.5;
+
+	float m = length(parentSlope);
+
+
+	float4 slope = childSlope *dot(parentSlope.xy, parentSlope.xy) * 4;
 
 	//DEBUG
 	//slope = float4(0, 1, 0, 0);
-	slope = parentSlope;
+	//slope = parentSlope;
+	//slope = childSlope;
 	//slope = float4(uv / 2.0 + _uvOffsetInParent, 0, 0);
 
 	_chunkSlopeAndCurvatureMap[id.xy] = slope;
@@ -57,29 +94,15 @@ void parentExists(uint3 id : SV_DispatchThreadID)
 [numthreads(16, 16, 1)]
 void parentDoesNotExist(uint3 id : SV_DispatchThreadID)
 {
-	float2 uv = GetUV(_chunkHeightMap, id.xy);
-
-
-	int w, h;
-	_chunkHeightMap.GetDimensions(w, h);
-	int2 off = int2(-1, 0);
-	int2 pos = id.xy;
-	if (pos.x == 0) pos.x = 1;
-	if (pos.y == 0) pos.y = 1;
-	float s0 = _chunkHeightMap[pos].r;
-	float sx0 = _chunkHeightMap[pos + off.xy].r;
-	float sy0 = _chunkHeightMap[pos + off.yx].r;
-
 	float4 slope = float4(
-		abs(sx0 - s0) * 10,
-		abs(sy0 - s0) * 10,
-		1,
+		getSlope(id.xy),
+		0,
 		0
-	);
+		);
 
 	//DEBUG
 	//slope = float4(1, 0, 0, 0);
-	slope = float4(uv.x % 0.2, uv.y % 0.2, 0, 0);
+	//slope = float4(uv.x % 0.2, uv.y % 0.2, 0, 0);
 
 	_chunkSlopeAndCurvatureMap[id.xy] = slope;
 }

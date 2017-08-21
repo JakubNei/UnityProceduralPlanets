@@ -10,31 +10,31 @@
 
 
 
-float2 GetUV(RWTexture2D<float4> map, int2 id)
+float2 getUv(RWTexture2D<float4> map, int2 id)
 {
 	float w, h;
 	map.GetDimensions(w, h);
 	return id / float2(w - 1, h - 1);
 }
-float2 GetUV(RWTexture2D<float3> map, int2 id)
+float2 getUv(RWTexture2D<float3> map, int2 id)
 {
 	float w, h;
 	map.GetDimensions(w, h);
 	return id / float2(w - 1, h - 1);
 }
-float2 GetUV(RWTexture2D<float2> map, int2 id)
+float2 getUv(RWTexture2D<float2> map, int2 id)
 {
 	float w, h;
 	map.GetDimensions(w, h);
 	return id / float2(w - 1, h - 1);
 }
-float2 GetUV(RWTexture2D<float> map, int2 id)
+float2 getUv(RWTexture2D<float> map, int2 id)
 {
 	float w, h;
 	map.GetDimensions(w, h);
 	return id / float2(w - 1, h - 1);
 }
-float2 GetUV(RWTexture2D<int> map, int2 id)
+float2 getUv(RWTexture2D<int> map, int2 id)
 {
 	float w, h;
 	map.GetDimensions(w, h);
@@ -47,25 +47,25 @@ float2 GetUV(RWTexture2D<int> map, int2 id)
 
 
 
-float2 GetUV(Texture2D<float4> map, int2 id)
+float2 getUv(Texture2D<float4> map, int2 id)
 {
 	float w, h;
 	map.GetDimensions(w, h);
 	return id / float2(w - 1, h - 1);
 }
-float2 GetUV(Texture2D<float3> map, int2 id)
+float2 getUv(Texture2D<float3> map, int2 id)
 {
 	float w, h;
 	map.GetDimensions(w, h);
 	return id / float2(w - 1, h - 1);
 }
-float2 GetUV(Texture2D<float2> map, int2 id)
+float2 getUv(Texture2D<float2> map, int2 id)
 {
 	float w, h;
 	map.GetDimensions(w, h);
 	return id / float2(w - 1, h - 1);
 }
-float2 GetUV(Texture2D<float> map, int2 id)
+float2 getUv(Texture2D<float> map, int2 id)
 {
 	float w, h;
 	map.GetDimensions(w, h);
@@ -76,7 +76,7 @@ float2 GetUV(Texture2D<float> map, int2 id)
 
 
 /*
-float3 SampleLinearFloat3(Texture2D<float3> map, float2 uv)
+float3 sampleLinearFloat3(Texture2D<float3> map, float2 uv)
 {
 	int w, h;
 	map.GetDimensions(w, h);
@@ -104,7 +104,7 @@ float3 SampleLinearFloat3(Texture2D<float3> map, float2 uv)
 }
 
 
-float SampleLinearFloat(Texture2D<float> map, float2 uv)
+float sampleLinearFloat(Texture2D<float> map, float2 uv)
 {
 	int w, h;
 	map.GetDimensions(w, h);
@@ -133,7 +133,7 @@ float SampleLinearFloat(Texture2D<float> map, float2 uv)
 */
 
 
-float SampleCubicFloat(Texture2D<float> map, float2 uv)
+float sampleCubicFloat(Texture2D<float> map, float2 uv)
 {
 	int w, h;
 	map.GetDimensions(w, h);
@@ -191,7 +191,7 @@ float SampleCubicFloat(Texture2D<float> map, float2 uv)
 
 
 
-int SampleCubicInt(Texture2D<int> map, float2 uv)
+int sampleCubicInt(Texture2D<int> map, float2 uv)
 {
 	int w, h;
 	map.GetDimensions(w, h);

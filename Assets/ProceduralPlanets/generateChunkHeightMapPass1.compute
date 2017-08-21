@@ -5,10 +5,10 @@
 
 
 Texture2D<int> _planetHeightMap;
-float3 _rangeA;
-float3 _rangeB;
-float3 _rangeC;
-float3 _rangeD;
+float3 _rangeUnitCubePosA;
+float3 _rangeUnitCubePosB;
+float3 _rangeUnitCubePosC;
+float3 _rangeUnitCubePosD;
 
 
 
@@ -19,18 +19,18 @@ RWTexture2D<int> _chunkHeightMap;
 [numthreads(16, 16, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
-	float2 uv = GetUV(_chunkHeightMap, id.xy);
+	float2 uv = getUv(_chunkHeightMap, id.xy);
 
 	float3 dir = lerp(
-		lerp(_rangeA, _rangeB, uv.x),
-		lerp(_rangeD, _rangeC, uv.x),
+		lerp(_rangeUnitCubePosA, _rangeUnitCubePosB, uv.x),
+		lerp(_rangeUnitCubePosD, _rangeUnitCubePosC, uv.x),
 		uv.y
 	);
-	dir = normalize(dir);
+	dir = unitCubeToUnitSphere(dir);
 
 	float2 heightMapUv = dirFromCenterToBaseMapUv(dir);
 
-	int height = SampleCubicInt(_planetHeightMap, heightMapUv);
+	int height = sampleCubicInt(_planetHeightMap, heightMapUv);
 
 
 	//height = clamp(height, 0, 1);

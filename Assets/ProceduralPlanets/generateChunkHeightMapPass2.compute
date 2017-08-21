@@ -11,10 +11,6 @@ Texture2D _chunkSlopeAndCurvatureMap;
 SamplerState sampler_chunkSlopeAndCurvatureMap;
 
 float _slopeModifier;
-float3 _rangeDirA;
-float3 _rangeDirB;
-float3 _rangeDirC;
-float3 _rangeDirD;
 
 
 
@@ -25,19 +21,12 @@ RWTexture2D<float> _chunkHeightMapNew;
 [numthreads(16, 16, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
-	float2 uv = GetUV(_chunkHeightMapNew, id.xy);
+	float2 uv = getUv(_chunkHeightMapNew, id.xy);
 
 
 
 	float height = _chunkHeightMap[id.xy];
 	//float height = clamp(s0, 0, 1);
-
-	float3 dir = lerp(
-		lerp(_rangeDirA, _rangeDirB, uv.x),
-		lerp(_rangeDirD, _rangeDirC, uv.x),
-		uv.y
-	);
-	dir = normalize(dir);
 
 	float2 slopeXY = _chunkSlopeAndCurvatureMap[id.xy];
 	float slope = sqrt(slopeXY.x * slopeXY.x + slopeXY.y * slopeXY.y);

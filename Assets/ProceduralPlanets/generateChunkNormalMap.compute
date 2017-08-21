@@ -19,7 +19,7 @@ RWTexture2D<float4> _chunkNormalMap;
 [numthreads(16, 16, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
-	//float2 uv = GetUV(_chunkNormalMap, id.xy);
+	//float2 uv = getUv(_chunkNormalMap, id.xy);
 
 	float2 slope = _chunkSlopeAndCurvatureMap[id.xy];
 

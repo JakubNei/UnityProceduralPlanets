@@ -29,16 +29,21 @@ float _slopeModifier;
 
 RWTexture2D<float4> _chunkDiffuseMap;
 
-
+float3 ramp(float v)
+{
+	return hsvToRgb(float3(clamp(v, 0, 1) / 1.35 + 0.25, 1, 1));
+}
 
 [numthreads(16, 16, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
-	float2 uv = GetUV(_chunkDiffuseMap, id.xy);
+	float2 uv = getUv(_chunkDiffuseMap, id.xy);
 
 
 	float2 slopeXY = _chunkSlopeAndCurvatureMap[id.xy].xy;
-	float slope = slopeXY.x + slopeXY.y;
+	float slope = sqrt(dot(slopeXY.xy, slopeXY.xy));
+
+	slope *= 3.0;
 
 	float3 dir = lerp(
 		lerp(_rangeDirA, _rangeDirB, uv.x),
@@ -68,7 +73,8 @@ void main(uint3 id : SV_DispatchThreadID)
 	//color = PACK_NORMAL(normal);
 	//color = SampleLinearFloat(_chunkNormalMap, uv);
 	//color = float3(1, 1, 1) * slope;
-	color = _chunkSlopeAndCurvatureMap[id.xy].xyz;
+	//color = _chunkSlopeAndCurvatureMap[id.xy].xyz;
+	color = ramp(smoothstep(0, 1, slope));
 
 	// SAFE
 	//if (slope > 1) color = float3(1, 0, 0);
