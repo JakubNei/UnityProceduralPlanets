@@ -30,21 +30,17 @@ RWStructuredBuffer<float3> _vertices;
 
 
 
-// -1 => unitCube.x && unitCube.x <= 1
-// -1 => unitCube.y && unitCube.y <= 1
-// -1 => unitCube.z && unitCube.z <= 1
-// uses http://mathproofs.blogspot.cz/2005/07/mapping-cube-to-sphere.html
+// -1 <= unitCube.x && unitCube.x <= 1
+// -1 <= unitCube.y && unitCube.y <= 1
+// -1 <= unitCube.z && unitCube.z <= 1
+// uses math from http://mathproofs.blogspot.cz/2005/07/mapping-cube-to-sphere.html
+// implementation license: public domain
 float3 UnitCubePosToUnitSpherePos(float3 unitCube)
 {
 	float3 unitCubePow2 = unitCube * unitCube;
-	float3 unitCubePow2Div2 = unitCubePow2 / 2.0;
-	float3 unitCubePow2Div3 = unitCubePow2 / 3.0;
-
-	return unitCube * float3(
-		sqrt(1 - unitCubePow2Div2.y - unitCubePow2Div2.z + unitCubePow2.y*unitCubePow2Div3.z),
-		sqrt(1 - unitCubePow2Div2.z - unitCubePow2Div2.x + unitCubePow2.z*unitCubePow2Div3.x),
-		sqrt(1 - unitCubePow2Div2.x - unitCubePow2Div2.y + unitCubePow2.x*unitCubePow2Div3.y)
-	);
+	float3 unitCubePow2Div2 = unitCubePow2 / 2;
+	float3 unitCubePow2Div3 = unitCubePow2 / 3;
+	return unitCube * sqrt(1 - unitCubePow2Div2.yzx - unitCubePow2Div2.zxy + unitCubePow2.yzx * unitCubePow2Div3.zxy);
 }
 
 
