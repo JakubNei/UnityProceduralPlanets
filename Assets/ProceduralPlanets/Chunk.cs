@@ -9,13 +9,6 @@ public class Chunk
 
 	public Planet planet;
 
-	public Planet.PlanetConfig planetConfig { get { return planet.planetConfig; } }
-	public Planet.ChunkConfig chunkConfig { get { return planet.chunkConfig; } }
-
-	public RenderTexture chunkHeightMap;
-	public RenderTexture chunkNormalMap;
-	public RenderTexture chunkDiffuseMap;
-
 	public ulong id;
 	public Chunk parent;
 	public ulong generation;
@@ -27,12 +20,27 @@ public class Chunk
 	public Range rangePosToGenerateInto;
 	public Range rangeDirToGenerateInto;
 	public Range rangeLocalPosToGenerateInto;
+	public Range rangeUnitCubePos;
 
 	public WorldPos offsetFromPlanetCenter;
 
 	public float chunkRangeMaxAngleDeg;
-	public bool GenerateUsingPlanetGlobalPos { get { return chunkRangeMaxAngleDeg > 1; } }
-	public float ChunkRelativeSize { get { return chunkRadius / planetConfig.radiusStart; } }
+
+
+	// float slope = (abs(sx0 - s0) + abs(sy0 - s0)) / _chunkRelativeSize * (w / 256.0);
+	//public float ChunkRelativeSize { get { return chunkRadius / planetConfig.radiusStart; } }
+
+	public bool GenerateUsingPlanetGlobalPos { get { return chunkRangeMaxAngleDeg > 2; } }
+	public float SlopeModifier { get { return (planetConfig.radiusStart / chunkRadius) * (diffuseMapResolution / 2048.0f) * planetConfig.radiusHeightMapMultiplier; } }
+	public Planet.PlanetConfig planetConfig { get { return planet.planetConfig; } }
+	public Planet.ChunkConfig chunkConfig { get { return planet.chunkConfig; } }
+
+
+	public RenderTexture chunkHeightMap;
+	public RenderTexture chunkNormalMap;
+	public RenderTexture chunkDiffuseMap;
+	public RenderTexture chunkSlopeAndCurvatureMap;
+
 
 	public ChildPosition childPosition;
 
@@ -52,9 +60,10 @@ public class Chunk
 	public float chunkRadius;
 
 	const int resolution = 256;
-	const int diffuseMapResolution = resolution;
 	const int heightMapResolution = resolution;
 	const int normalMapResolution = heightMapResolution; // must be the same
+	const int chunkSlopeAndCurvatureMapMapResolution = heightMapResolution;
+	const int diffuseMapResolution = chunkSlopeAndCurvatureMapMapResolution;
 
 	public class Behavior : MonoBehaviour
 	{
@@ -73,30 +82,36 @@ public class Chunk
 		var chunk = new Chunk();
 
 		chunk.planet = planet;
-		chunk.rangePosRealSubdivided = range;
-		chunk.rangePosToCalculateScreenSizeOn = range;
 		chunk.id = id;
+		chunk.parent = parent;
 		chunk.generation = generation;
 		chunk.childPosition = childPosition;
 		chunk.chunkRadius = range.ToBoundingSphere().radius;
+
+		chunk.rangeUnitCubePos = range;
+
+		chunk.rangePosToGenerateInto = new Range
+		{
+			a = chunk.rangeUnitCubePos.a.normalized * planet.planetConfig.radiusStart,
+			b = chunk.rangeUnitCubePos.b.normalized * planet.planetConfig.radiusStart,
+			c = chunk.rangeUnitCubePos.c.normalized * planet.planetConfig.radiusStart,
+			d = chunk.rangeUnitCubePos.d.normalized * planet.planetConfig.radiusStart,
+		};
+
+		chunk.rangePosToCalculateScreenSizeOn = chunk.rangePosToGenerateInto;
 
 		if (chunk.chunkConfig.useSkirts)
 		{
 			var ratio = ((chunk.chunkConfig.numberOfVerticesOnEdge - 1) / 2.0f) / ((chunk.chunkConfig.numberOfVerticesOnEdge - 1 - 2) / 2.0f);
 			var center = range.CenterPos;
-			var a = range.a - center;
-			var b = range.b - center;
-			var c = range.c - center;
-			var d = range.d - center;
-			range.a = a * ratio + center;
-			range.b = b * ratio + center;
-			range.c = c * ratio + center;
-			range.d = d * ratio + center;
-			chunk.rangePosToGenerateInto = range;
-		}
-		else
-		{
-			chunk.rangePosToGenerateInto = range;
+			var a = chunk.rangePosToGenerateInto.a - center;
+			var b = chunk.rangePosToGenerateInto.b - center;
+			var c = chunk.rangePosToGenerateInto.c - center;
+			var d = chunk.rangePosToGenerateInto.d - center;
+			chunk.rangePosToGenerateInto.a = a * ratio + center;
+			chunk.rangePosToGenerateInto.b = b * ratio + center;
+			chunk.rangePosToGenerateInto.c = c * ratio + center;
+			chunk.rangePosToGenerateInto.d = d * ratio + center;
 		}
 
 		chunk.rangeDirToGenerateInto = new Range
@@ -163,21 +178,15 @@ public class Chunk
 			d----dc---c
 			*/
 
-			var a = rangePosRealSubdivided.a;
-			var b = rangePosRealSubdivided.b;
-			var c = rangePosRealSubdivided.c;
-			var d = rangePosRealSubdivided.d;
-			var ab = WorldPos.Normalize((a + b) / 2.0f);
-			var ad = WorldPos.Normalize((a + d) / 2.0f);
-			var bc = WorldPos.Normalize((b + c) / 2.0f);
-			var dc = WorldPos.Normalize((d + c) / 2.0f);
-			var mid = WorldPos.Normalize((ab + ad + dc + bc) / 4.0f);
-
-			ab *= planetConfig.radiusStart;
-			ad *= planetConfig.radiusStart;
-			bc *= planetConfig.radiusStart;
-			dc *= planetConfig.radiusStart;
-			mid *= planetConfig.radiusStart;
+			var a = rangeUnitCubePos.a;
+			var b = rangeUnitCubePos.b;
+			var c = rangeUnitCubePos.c;
+			var d = rangeUnitCubePos.d;
+			var ab = (a + b) / 2.0f;
+			var ad = (a + d) / 2.0f;
+			var bc = (b + c) / 2.0f;
+			var dc = (d + c) / 2.0f;
+			var mid = (ab + ad + dc + bc) / 4.0f;
 
 			AddChild(a, ab, mid, ad, ChildPosition.TopLeft, 0);
 			AddChild(ab, b, bc, mid, ChildPosition.TopRight, 1);
@@ -217,7 +226,7 @@ public class Chunk
 		MyProfiler.EndSample();
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Normal map");
-		GenerateNormalMap();
+		//GenerateNormalMap();
 		MyProfiler.EndSample();
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Diffuse map");
@@ -255,26 +264,69 @@ public class Chunk
 			c.SetTexture(0, "_chunkHeightMap", height1);
 
 			c.Dispatch(0, height1.width / 16, height1.height / 16, 1);
+
+			GenerateSlopeAndCurvatureMap(height1);
 		}
 
 		// pass 2
 		{
 			var height2 = chunkHeightMap = new RenderTexture(heightMapResolution, heightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
 			height2.wrapMode = TextureWrapMode.Clamp;
-			height1.filterMode = FilterMode.Bilinear;
+			height2.filterMode = FilterMode.Bilinear;
 			height2.enableRandomWrite = true;
 			height2.Create();
 
 			var c = chunkConfig.generateChunkHeightMapPass2;
 			c.SetTexture(0, "_chunkHeightMap", height1);
-			c.SetFloat("_chunkRelativeSize", ChunkRelativeSize);
+			c.SetFloat("_slopeModifier", SlopeModifier);
 			rangeDirToGenerateInto.SetParams(c, "_rangeDir");
+			c.SetTexture(0, "_chunkSlopeAndCurvatureMap", chunkSlopeAndCurvatureMap);
 			c.SetTexture(0, "_chunkHeightMapNew", height2);
 
 			c.Dispatch(0, height2.width / 16, height2.height / 16, 1);
+
+			GenerateSlopeAndCurvatureMap(height2);
 		}
 
 	}
+
+
+	void GenerateSlopeAndCurvatureMap(RenderTexture heightMap)
+	{
+		if (chunkSlopeAndCurvatureMap == null)
+		{
+			chunkSlopeAndCurvatureMap = chunkSlopeAndCurvatureMap = new RenderTexture(chunkSlopeAndCurvatureMapMapResolution, chunkSlopeAndCurvatureMapMapResolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+			chunkSlopeAndCurvatureMap.wrapMode = TextureWrapMode.Clamp;
+			chunkSlopeAndCurvatureMap.filterMode = FilterMode.Bilinear;
+			chunkSlopeAndCurvatureMap.enableRandomWrite = true;
+			chunkSlopeAndCurvatureMap.Create();
+		}
+
+		var off = Vector2.zero;
+		if (childPosition == ChildPosition.TopLeft) off = new Vector2(0, 0);
+		else if (childPosition == ChildPosition.TopRight) off = new Vector2(0.5f, 0);
+		else if (childPosition == ChildPosition.BottomLeft) off = new Vector2(0, 0.5f);
+		else if (childPosition == ChildPosition.BottomRight) off = off = new Vector2(0.5f, 0.5f);
+
+		// uvInParentMap = myUv / 2.0 + off;
+
+		var c = chunkConfig.generateSlopeAndCurvatureMap;
+
+		var kernelIndex = 0;
+		if (parent != null) kernelIndex = c.FindKernel("parentExists");
+		else kernelIndex = c.FindKernel("parentDoesNotExist");
+
+
+		c.SetVector("_uvOffsetInParent", off);
+		if (parent != null)
+			c.SetTexture(kernelIndex, "_parentChunkSlopeAndCurvatureMap", parent.chunkSlopeAndCurvatureMap);
+		c.SetTexture(kernelIndex, "_chunkHeightMap", heightMap);
+		c.SetTexture(kernelIndex, "_chunkSlopeAndCurvatureMap", chunkSlopeAndCurvatureMap);
+
+		c.Dispatch(kernelIndex, chunkSlopeAndCurvatureMap.width / 16, chunkSlopeAndCurvatureMap.height / 16, 1);
+	}
+
+
 
 	ComputeBuffer vertexGPUBuffer { get { return planet.chunkVertexGPUBuffer; } }
 	Vector3[] vertexCPUBuffer { get { return planet.chunkVertexCPUBuffer; } }
@@ -292,8 +344,7 @@ public class Chunk
 		else kernelIndex = c.FindKernel("generateUsingChunkLocalPos");
 
 		c.SetBuffer(kernelIndex, "_vertices", vertexGPUBuffer);
-		rangeDirToGenerateInto.SetParams(c, "_rangeDir");
-		rangePosToGenerateInto.SetParams(c, "_rangePos");
+		rangeUnitCubePos.SetParams(c, "_rangeUnitCubePos");
 		rangeLocalPosToGenerateInto.SetParams(c, "_rangeLocalPos");
 		c.SetInt("_numberOfVerticesOnEdge", verticesOnEdge);
 		c.SetFloat("_planetRadiusStart", planetConfig.radiusStart);
@@ -409,9 +460,11 @@ public class Chunk
 
 		var c = chunkConfig.generateChunkNormapMap;
 		c.SetTexture(0, "_chunkHeightMap", chunkHeightMap);
-		c.SetFloat("_chunkRelativeSize", ChunkRelativeSize);
+		c.SetTexture(0, "_chunkSlopeAndCurvatureMap", chunkSlopeAndCurvatureMap);
+		c.SetFloat("_slopeModifier", SlopeModifier);
 		rangeDirToGenerateInto.SetParams(c, "_rangeDir");
 		c.SetTexture(0, "_chunkNormalMap", chunkNormalMap);
+
 
 		c.Dispatch(0, chunkNormalMap.width / 16, chunkNormalMap.height / 16, 1);
 
@@ -434,18 +487,17 @@ public class Chunk
 			chunkDiffuseMap.wrapMode = TextureWrapMode.Clamp;
 			chunkDiffuseMap.filterMode = FilterMode.Trilinear;
 			chunkDiffuseMap.enableRandomWrite = true;
-			chunkDiffuseMap.useMipMap = true;
-			chunkDiffuseMap.autoGenerateMips = false;
-			chunkDiffuseMap.antiAliasing = 8;
+			/*	chunkDiffuseMap.useMipMap = true;
+				chunkDiffuseMap.autoGenerateMips = false;
+				chunkDiffuseMap.antiAliasing = 8;*/
 			chunkDiffuseMap.Create();
 		}
 
 		var c = chunkConfig.generateChunkDiffuseMap;
-		c.SetTexture(0, "_chunkHeightMap", chunkHeightMap);
+		c.SetTexture(0, "_chunkSlopeAndCurvatureMap", chunkSlopeAndCurvatureMap);
 		c.SetTexture(0, "_chunkDiffuseMap", chunkDiffuseMap);
 		rangeDirToGenerateInto.SetParams(c, "_rangeDir");
-		c.SetFloat("_chunkRelativeSize", ChunkRelativeSize);
-		c.SetFloat("_textureSamplingLOD", Mathf.Max(0, 10 - generation));
+		c.SetFloat("_slopeModifier", SlopeModifier);
 
 		c.SetTexture(0, "_grass", chunkConfig.grass);
 		c.SetTexture(0, "_clay", chunkConfig.clay);
@@ -453,7 +505,7 @@ public class Chunk
 
 		c.Dispatch(0, chunkDiffuseMap.width / 16, chunkDiffuseMap.height / 16, 1);
 
-		chunkDiffuseMap.GenerateMips();
+		if (chunkDiffuseMap.useMipMap) chunkDiffuseMap.GenerateMips();
 		if (material) material.mainTexture = chunkDiffuseMap;
 	}
 

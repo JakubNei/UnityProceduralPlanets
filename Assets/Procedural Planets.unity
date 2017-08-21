@@ -201,7 +201,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 48616960}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: -1500}
+  m_LocalPosition: {x: 0, y: 2000, z: -2000}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -317,7 +317,7 @@ MonoBehaviour:
     weightNeededToSubdivide: 0.6
     stopSegmentRecursionAtWorldSize: 2
     destroyGameObjectIfNotVisibleForSeconds: 5
-    addColliders: 1
+    addColliders: 0
     chunkMaterial: {fileID: 2100000, guid: c1ef8c7ce330c5347a701bc512336e1f, type: 2}
     generateChunkVertices: {fileID: 7200000, guid: 651301ac22831ad45b2814adffcc8488,
       type: 3}
@@ -328,6 +328,8 @@ MonoBehaviour:
     generateChunkDiffuseMap: {fileID: 7200000, guid: fb9af6c0006df1748af7cf9fca53d058,
       type: 3}
     generateChunkNormapMap: {fileID: 7200000, guid: 2d5e7e75df2190a41889b445d4a8d23b,
+      type: 3}
+    generateSlopeAndCurvatureMap: {fileID: 7200000, guid: aa19f88d5397e0946892c5d96e017537,
       type: 3}
     grass: {fileID: 2800000, guid: 0d1e02d044018cf4fbe9227c6defdcd6, type: 3}
     clay: {fileID: 2800000, guid: 0c955ca61f0ba394e93ddf126f707683, type: 3}
@@ -382,7 +384,7 @@ Light:
   m_SpotAngle: 30
   m_CookieSize: 10
   m_Shadows:
-    m_Type: 2
+    m_Type: 0
     m_Resolution: -1
     m_CustomResolution: -1
     m_Strength: 1

@@ -120,5 +120,14 @@ float4 cubic(float v)
 	float w = 6.0 - x - y - z;
 	return float4(x, y, z, w) * (1.0 / 6.0);
 }
-
+double4 cubic(double v)
+{
+	double4 n = double4(1.0, 2.0, 3.0, 4.0) - v;
+	double4 s = n * n * n;
+	double x = s.x;
+	double y = s.y - 4.0 * s.x;
+	double z = s.z - 4.0 * s.y + 6.0 * s.x;
+	double w = 6.0 - x - y - z;
+	return double4(x, y, z, w) * (1.0 / 6.0);
+}
 #endif

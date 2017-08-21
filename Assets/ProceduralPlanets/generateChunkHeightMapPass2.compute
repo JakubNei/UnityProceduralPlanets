@@ -7,7 +7,10 @@
 Texture2D _chunkHeightMap;
 SamplerState sampler_chunkHeightMap;
 
-float _chunkRelativeSize;
+Texture2D _chunkSlopeAndCurvatureMap;
+SamplerState sampler_chunkSlopeAndCurvatureMap;
+
+float _slopeModifier;
 float3 _rangeDirA;
 float3 _rangeDirB;
 float3 _rangeDirC;
@@ -25,19 +28,9 @@ void main(uint3 id : SV_DispatchThreadID)
 	float2 uv = GetUV(_chunkHeightMapNew, id.xy);
 
 
-	int w, h;
-	_chunkHeightMap.GetDimensions(w, h);
-	int2 off = int2(-1, 0);
-	int2 pos = id.xy;
-	if (pos.x == 0) pos.x = 1;
-	if (pos.y == 0) pos.y = 1;
-	float s0 = _chunkHeightMap[pos].r;
-	float sx0 = _chunkHeightMap[pos + off.xy].r;
-	float sy0 = _chunkHeightMap[pos + off.yx].r;
 
-	float slope = (abs(sx0 - s0) + abs(sy0 - s0)) / _chunkRelativeSize * (w / 256.0);
-
-	float height = clamp(s0, 0, 1);
+	float height = _chunkHeightMap[id.xy];
+	//float height = clamp(s0, 0, 1);
 
 	float3 dir = lerp(
 		lerp(_rangeDirA, _rangeDirB, uv.x),
@@ -46,12 +39,15 @@ void main(uint3 id : SV_DispatchThreadID)
 	);
 	dir = normalize(dir);
 
+	float2 slopeXY = _chunkSlopeAndCurvatureMap[id.xy];
+	float slope = sqrt(slopeXY.x * slopeXY.x + slopeXY.y * slopeXY.y);
+
 
 	float distToEdge = 0.5 - max(abs(uv.x - 0.5), abs(uv.y - 0.5));
 	distToEdge = smoothstep(0, 0.1, distToEdge);
 
-	slope = clamp(slope, 0, 1);
-	height += slope * (abs(snoise(dir * 100, 20, 1.4))) * 0.1;
+	//slope = clamp(slope, 0, 1);
+	//height += slope * (abs(snoise(dir * 100, 20, 1.4))) * 0.1;
 
 	//height += (abs(snoise(dir * 100, 20, 1.4))) * 0.05;
 	//height = distToEdge * 0.5;
@@ -61,6 +57,6 @@ void main(uint3 id : SV_DispatchThreadID)
 	//height = uv.x;
 	//height = slope;
 
-	height = clamp(height, 0, 1);
+	//height = clamp(height, 0, 1);
 	_chunkHeightMapNew[id.xy] = height;
 }

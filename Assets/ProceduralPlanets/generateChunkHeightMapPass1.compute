@@ -4,7 +4,7 @@
 
 
 
-Texture2D<float> _planetHeightMap;
+Texture2D<int> _planetHeightMap;
 float3 _rangeA;
 float3 _rangeB;
 float3 _rangeC;
@@ -12,7 +12,7 @@ float3 _rangeD;
 
 
 
-RWTexture2D<float> _chunkHeightMap;
+RWTexture2D<int> _chunkHeightMap;
 
 
 
@@ -30,7 +30,8 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	float2 heightMapUv = dirFromCenterToBaseMapUv(dir);
 
-	float height = SampleCubicFloat(_planetHeightMap, heightMapUv);
+	int height = SampleCubicInt(_planetHeightMap, heightMapUv);
+
 
 	//height = clamp(height, 0, 1);
 	/*
@@ -45,8 +46,6 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	// DEBUG
 	//height = uv.x;
-
-	height = clamp(height, 0, 1);
 
 	_chunkHeightMap[id.xy] = height;
 }

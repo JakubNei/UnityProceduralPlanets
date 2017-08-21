@@ -36,6 +36,7 @@ public partial class Planet : MonoBehaviour
 		public ComputeShader generateChunkHeightMapPass2;
 		public ComputeShader generateChunkDiffuseMap;
 		public ComputeShader generateChunkNormapMap;
+		public ComputeShader generateSlopeAndCurvatureMap;
 
 		public Texture2D grass;
 		public Texture2D clay;
@@ -167,14 +168,14 @@ public partial class Planet : MonoBehaviour
 
 
 
-	void AddRootChunk(ulong id, WorldPos[] vertices, int a, int b, int c, int d)
+	void AddRootChunk(ulong id, WorldPos[] corners, int a, int b, int c, int d)
 	{
 		var range = new Range()
 		{
-			a = vertices[a],
-			b = vertices[b],
-			c = vertices[c],
-			d = vertices[d],
+			a = corners[a],
+			b = corners[b],
+			c = corners[c],
+			d = corners[d],
 		};
 
 		var child = Chunk.Create(
@@ -196,8 +197,6 @@ public partial class Planet : MonoBehaviour
 
 		var indicies = new List<uint>();
 
-		var halfSIze = Mathf.Sqrt((planetConfig.radiusStart * planetConfig.radiusStart) / 3.0f);
-
 		/* 3----------0
 		  /|         /|
 		 / |        / |
@@ -208,25 +207,25 @@ public partial class Planet : MonoBehaviour
 		|/         |/         |/
 		6----------5          0----------x  */
 
-		var vertices = new[] {
+		var corners = new[] {
 			// top 4
-			new WorldPos(halfSIze, halfSIze, halfSIze),
-			new WorldPos(halfSIze, halfSIze, -halfSIze),
-			new WorldPos(-halfSIze, halfSIze, -halfSIze),
-			new WorldPos(-halfSIze, halfSIze, halfSIze),
+			new WorldPos(1, 1, 1),
+			new WorldPos(1, 1, -1),
+			new WorldPos(-1, 1, -1),
+			new WorldPos(-1, 1, 1),
 			// bottom 4
-			new WorldPos(halfSIze, -halfSIze, halfSIze),
-			new WorldPos(halfSIze, -halfSIze, -halfSIze),
-			new WorldPos(-halfSIze, -halfSIze, -halfSIze),
-			new WorldPos(-halfSIze, -halfSIze, halfSIze)
+			new WorldPos(1, -1, 1),
+			new WorldPos(1, -1, -1),
+			new WorldPos(-1, -1, -1),
+			new WorldPos(-1, -1, 1)
 		};
 
-		AddRootChunk(0, vertices, 0, 1, 2, 3); // top
-		AddRootChunk(1, vertices, 5, 4, 7, 6); // bottom
-		AddRootChunk(2, vertices, 1, 5, 6, 2); // front
-		AddRootChunk(3, vertices, 3, 7, 4, 0); // back
-		AddRootChunk(4, vertices, 0, 4, 5, 1); // right
-		AddRootChunk(5, vertices, 2, 6, 7, 3); // left
+		AddRootChunk(0, corners, 0, 1, 2, 3); // top
+		AddRootChunk(1, corners, 5, 4, 7, 6); // bottom
+		AddRootChunk(2, corners, 1, 5, 6, 2); // front
+		AddRootChunk(3, corners, 3, 7, 4, 0); // back
+		AddRootChunk(4, corners, 0, 4, 5, 1); // right
+		AddRootChunk(5, corners, 2, 6, 7, 3); // left
 	}
 
 

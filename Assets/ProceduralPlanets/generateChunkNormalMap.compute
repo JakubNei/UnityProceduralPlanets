@@ -2,12 +2,10 @@
 
 #include "planet.compute.cginc"
 
+Texture2D _chunkSlopeAndCurvatureMap;
+SamplerState sampler_chunkSlopeAndCurvatureMap;
 
-
-Texture2D _chunkHeightMap;
-SamplerState sampler_chunkHeightMap;
-
-float _chunkRelativeSize;
+float _slopeModifier;
 float3 _rangeDirA;
 float3 _rangeDirB;
 float3 _rangeDirC;
@@ -21,24 +19,14 @@ RWTexture2D<float4> _chunkNormalMap;
 [numthreads(16, 16, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
-	float2 uv = GetUV(_chunkNormalMap, id.xy);
+	//float2 uv = GetUV(_chunkNormalMap, id.xy);
 
-
-	int w, h;
-	_chunkHeightMap.GetDimensions(w, h);
-	int2 off = int2(-1, 0);
-	int2 pos = id.xy;
-	if (pos.x == 0) pos.x = 1;
-	if (pos.y == 0) pos.y = 1;
-	float s0 = _chunkHeightMap[pos].r;
-	float sx0 = _chunkHeightMap[pos + off.xy].r;
-	float sy0 = _chunkHeightMap[pos + off.yx].r;
-
+	float2 slope = _chunkSlopeAndCurvatureMap[id.xy];
 
 	float3 normal;
 	normal = cross(
-		normalize(float3(_chunkRelativeSize * (256.0 / w), 0, sx0 - s0)),
-		normalize(float3(0, _chunkRelativeSize * (256.0 / w), sy0 - s0))
+		normalize(float3(1, 0, slope.x)),
+		normalize(float3(0, 1, slope.y))
 	);
 
 	normal = normalize(normal);
@@ -46,7 +34,7 @@ void main(uint3 id : SV_DispatchThreadID)
 	normal = PACK_NORMAL(normal);
 
 	// DEBUG
-	//normal = float3(0.5, 0.5, 1);
+	normal = float3(0.5, 0.5, 1);
 
 	_chunkNormalMap[id.xy] = float4(normal, 1);
 

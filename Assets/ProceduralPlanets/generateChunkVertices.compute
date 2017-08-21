@@ -12,15 +12,10 @@ int _numberOfVerticesOnEdge;
 float _planetRadiusStart;
 float _planetRadiusHeightMapMultiplier;
 
-float3 _rangeDirA;
-float3 _rangeDirB;
-float3 _rangeDirC;
-float3 _rangeDirD;
-
-float3 _rangePosA;
-float3 _rangePosB;
-float3 _rangePosC;
-float3 _rangePosD;
+float3 _rangeUnitCubePosA;
+float3 _rangeUnitCubePosB;
+float3 _rangeUnitCubePosC;
+float3 _rangeUnitCubePosD;
 
 float3 _rangeLocalPosA;
 float3 _rangeLocalPosB;
@@ -35,26 +30,44 @@ RWStructuredBuffer<float3> _vertices;
 
 
 
+// -1 => unitCube.x && unitCube.x <= 1
+// -1 => unitCube.y && unitCube.y <= 1
+// -1 => unitCube.z && unitCube.z <= 1
+// uses http://mathproofs.blogspot.cz/2005/07/mapping-cube-to-sphere.html
+float3 UnitCubePosToUnitSpherePos(float3 unitCube)
+{
+	float3 unitCubePow2 = unitCube * unitCube;
+	float3 unitCubePow2Div2 = unitCubePow2 / 2.0;
+	float3 unitCubePow2Div3 = unitCubePow2 / 3.0;
+
+	return unitCube * float3(
+		sqrt(1 - unitCubePow2Div2.y - unitCubePow2Div2.z + unitCubePow2.y*unitCubePow2Div3.z),
+		sqrt(1 - unitCubePow2Div2.z - unitCubePow2Div2.x + unitCubePow2.z*unitCubePow2Div3.x),
+		sqrt(1 - unitCubePow2Div2.x - unitCubePow2Div2.y + unitCubePow2.x*unitCubePow2Div3.y)
+	);
+}
+
+
 [numthreads(1, 1, 1)]
 void generateUsingPlanetGlobalPos(uint3 id : SV_DispatchThreadID)
 {
 	float max = _numberOfVerticesOnEdge - 1;
 	float2 uv = float2(id.x / max, id.y / max);
 
-	float3 dir = lerp(
-		lerp(_rangeDirA, _rangeDirB, uv.x),
-		lerp(_rangeDirD, _rangeDirC, uv.x),
+	float3 unitCubePos = lerp(
+		lerp(_rangeUnitCubePosA, _rangeUnitCubePosB, uv.x),
+		lerp(_rangeUnitCubePosD, _rangeUnitCubePosC, uv.x),
 		uv.y
 	);
-
-	float3 dirNorm = normalize(dir);
+	
+	float3 dirNorm = UnitCubePosToUnitSpherePos(unitCubePos);
 
 	float height =
 		_chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r *
 		_planetRadiusHeightMapMultiplier;
 
 	//DEBUG
-	//height = 0;
+	height = 0;
 	//height = clamp(height, 0, 1000);
 
 	height += _planetRadiusStart;
@@ -67,25 +80,27 @@ void generateUsingChunkLocalPos(uint3 id : SV_DispatchThreadID)
 	float max = _numberOfVerticesOnEdge - 1;
 	float2 uv = float2(id.x / max, id.y / max);
 
-	float3 dir = lerp(
-		lerp(_rangeDirA, _rangeDirB, uv.x),
-		lerp(_rangeDirD, _rangeDirC, uv.x),
-		uv.y
-	);
-
 	float3 localPos = lerp(
 		lerp(_rangeLocalPosA, _rangeLocalPosB, uv.x),
 		lerp(_rangeLocalPosD, _rangeLocalPosC, uv.x),
 		uv.y
 	);
-	float3 dirNorm = normalize(dir);
+
+	float3 unitCubePos = lerp(
+		lerp(_rangeUnitCubePosA, _rangeUnitCubePosB, uv.x),
+		lerp(_rangeUnitCubePosD, _rangeUnitCubePosC, uv.x),
+		uv.y
+	);
+
+	float3 dirNorm = UnitCubePosToUnitSpherePos(unitCubePos);
+
 
 	float height =
 		_chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r *
 		_planetRadiusHeightMapMultiplier;
 
 	//DEBUG
-	//height = 0;
+	height = 0;
 
 	_vertices[id.x + id.y * _numberOfVerticesOnEdge] = localPos + dirNorm * height;
 }

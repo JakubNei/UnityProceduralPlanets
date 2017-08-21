@@ -34,6 +34,14 @@ float2 GetUV(RWTexture2D<float> map, int2 id)
 	map.GetDimensions(w, h);
 	return id / float2(w - 1, h - 1);
 }
+float2 GetUV(RWTexture2D<int> map, int2 id)
+{
+	float w, h;
+	map.GetDimensions(w, h);
+	return id / float2(w - 1, h - 1);
+}
+
+
 
 
 
@@ -177,6 +185,64 @@ float SampleCubicFloat(Texture2D<float> map, float2 uv)
 
 	// then one final row on y axis
 	float f = dot(ty, c);
+
+	return f;
+}
+
+
+
+int SampleCubicInt(Texture2D<int> map, float2 uv)
+{
+	int w, h;
+	map.GetDimensions(w, h);
+	float2 xy = uv * float2(w - 1, h - 1); // 0,0 ... w,h
+
+										   // p03--p13-------p23--p33
+										   //  |    |         |    |
+										   // p02--p12-------p22--p32     1
+										   //  |    |         |    |     ...
+										   //  |   t.y  xy    |    |     t.y
+										   //  |    |         |    |     ...
+										   // p01--p11--t.x--p21--p31     0...tx...1
+										   //  |    |         |    |
+										   // p00--p10-------p20--p30
+
+	double2 t = frac(xy); // 0,0 ... 1,1
+	double4 tx = cubic(t.x);
+	double4 ty = cubic(t.y);
+
+	int2 p12 = int2(xy);
+	int2 p00 = p12 - int2(1, 2);
+
+	int4x4 v = int4x4(
+
+		map[p00 + int2(0, 0)],
+		map[p00 + int2(1, 0)],
+		map[p00 + int2(2, 0)],
+		map[p00 + int2(3, 0)],
+
+		map[p00 + int2(0, 1)],
+		map[p00 + int2(1, 1)],
+		map[p00 + int2(2, 1)],
+		map[p00 + int2(3, 1)],
+
+		map[p00 + int2(0, 2)],
+		map[p00 + int2(1, 2)],
+		map[p00 + int2(2, 2)],
+		map[p00 + int2(3, 2)],
+
+		map[p00 + int2(0, 3)],
+		map[p00 + int2(1, 3)],
+		map[p00 + int2(2, 3)],
+		map[p00 + int2(3, 3)]
+
+	);
+
+	// first interpolate 4 rows (16 values) on x axis
+	double4 c = mul(v, tx);
+
+	// then one final row on y axis
+	int f = int(dot(ty, c));
 
 	return f;
 }

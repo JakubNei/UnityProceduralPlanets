@@ -7,6 +7,9 @@
 Texture2D _chunkHeightMap;
 SamplerState sampler_chunkHeightMap;
 
+Texture2D _chunkSlopeAndCurvatureMap;
+SamplerState sampler_chunkSlopeAndCurvatureMap;
+
 Texture2D _grass;
 SamplerState sampler_grass;
 
@@ -20,27 +23,11 @@ float3 _rangeDirA;
 float3 _rangeDirB;
 float3 _rangeDirC;
 float3 _rangeDirD;
-float _chunkRelativeSize;
-float _textureSamplingLOD;
+float _slopeModifier;
 
 
 
 RWTexture2D<float4> _chunkDiffuseMap;
-
-
-
-float3 triPlanar(Texture2D tex, SamplerState samp, float3 position, float3 normal, float scale)
-{
-
-	float3 blendWeights = pow(abs(normal), float3(20, 20, 20));
-	blendWeights /= blendWeights.x + blendWeights.y + blendWeights.z;
-
-	return
-		blendWeights.x * tex.SampleLevel(samp, position.yz * scale, _textureSamplingLOD).xyz +
-		blendWeights.y * tex.SampleLevel(samp, position.zx * scale, _textureSamplingLOD).xyz +
-		blendWeights.z * tex.SampleLevel(samp, position.xy * scale, _textureSamplingLOD).xyz;
-}
-
 
 
 
@@ -50,17 +37,8 @@ void main(uint3 id : SV_DispatchThreadID)
 	float2 uv = GetUV(_chunkDiffuseMap, id.xy);
 
 
-	int w, h;
-	_chunkHeightMap.GetDimensions(w, h);
-	int2 off = int2(-1, 0);
-	int2 pos = id.xy;
-	if (pos.x == 0) pos.x = 1;
-	if (pos.y == 0) pos.y = 1;
-	float s0 = _chunkHeightMap[pos].r;
-	float sx0 = _chunkHeightMap[pos + off.xy].r;
-	float sy0 = _chunkHeightMap[pos + off.yx].r;
-	float slope = (abs(sx0 - s0) + abs(sy0 - s0)) / _chunkRelativeSize * (w / 256.0);
-
+	float2 slopeXY = _chunkSlopeAndCurvatureMap[id.xy].xy;
+	float slope = slopeXY.x + slopeXY.y;
 
 	float3 dir = lerp(
 		lerp(_rangeDirA, _rangeDirB, uv.x),
@@ -68,8 +46,6 @@ void main(uint3 id : SV_DispatchThreadID)
 		uv.y
 	);
 	dir = normalize(dir);
-
-	float3 normal = normalize(float3(sx0 - s0, sy0 - s0, 1000));
 
 
 	const float3 grass = float3(121, 136, 69) / float3(255, 255, 255); // grass
@@ -79,18 +55,20 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	float3 color;
 
-	/*if (slope < 0.1) color = triPlanar(_grass, sampler_grass, dir, dir, 1);
-	else if (slope < 0.3) color = triPlanar(_clay, sampler_clay, dir, dir, 1);
-	else color = triPlanar(_rock, sampler_rock, dir, dir, 1);*/
-
-
+	if (slope < 0.7)
+		color = grass;
+	else if (slope < 0.3)
+		color = clay;
+	else
+		color = rock;
 
 
 	// DEBUG
 	//color = float3(1, 1, 1) * slope;
 	//color = PACK_NORMAL(normal);
 	//color = SampleLinearFloat(_chunkNormalMap, uv);
-	if (slope < 0.25) color = grass; else if (slope < 0.5) color = clay;	else color = rock;
+	//color = float3(1, 1, 1) * slope;
+	color = _chunkSlopeAndCurvatureMap[id.xy].xyz;
 
 	// SAFE
 	//if (slope > 1) color = float3(1, 0, 0);

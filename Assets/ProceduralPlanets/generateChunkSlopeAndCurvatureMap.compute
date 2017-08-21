@@ -1,0 +1,85 @@
+﻿#pragma kernel parentExists
+#pragma kernel parentDoesNotExist
+
+#include "planet.compute.cginc"
+
+
+
+Texture2D _chunkHeightMap;
+SamplerState sampler_chunkHeightMap;
+
+Texture2D _parentChunkSlopeAndCurvatureMap;
+SamplerState sampler_parentChunkSlopeAndCurvatureMap;
+
+float2 _uvOffsetInParent;
+
+
+
+
+RWTexture2D<float4> _chunkSlopeAndCurvatureMap;
+
+
+[numthreads(16, 16, 1)]
+void parentExists(uint3 id : SV_DispatchThreadID)
+{
+	float2 uv = GetUV(_chunkHeightMap, id.xy);
+
+
+	int w, h;
+	_chunkHeightMap.GetDimensions(w, h);
+	int2 off = int2(-1, 0);
+	int2 pos = id.xy;
+	if (pos.x == 0) pos.x = 1;
+	if (pos.y == 0) pos.y = 1;
+	float s0 = _chunkHeightMap[pos].r;
+	float sx0 = _chunkHeightMap[pos + off.xy].r;
+	float sy0 = _chunkHeightMap[pos + off.yx].r;
+
+	float4 slope = float4(
+		abs(sx0 - s0),
+		abs(sy0 - s0),
+		0,
+		0
+	);
+
+	float4 parentSlope = _parentChunkSlopeAndCurvatureMap.SampleLevel(sampler_parentChunkSlopeAndCurvatureMap, uv / 2.0 + _uvOffsetInParent, 0);
+
+	slope += parentSlope;
+
+	//DEBUG
+	//slope = float4(0, 1, 0, 0);
+	slope = parentSlope;
+	//slope = float4(uv / 2.0 + _uvOffsetInParent, 0, 0);
+
+	_chunkSlopeAndCurvatureMap[id.xy] = slope;
+}
+
+[numthreads(16, 16, 1)]
+void parentDoesNotExist(uint3 id : SV_DispatchThreadID)
+{
+	float2 uv = GetUV(_chunkHeightMap, id.xy);
+
+
+	int w, h;
+	_chunkHeightMap.GetDimensions(w, h);
+	int2 off = int2(-1, 0);
+	int2 pos = id.xy;
+	if (pos.x == 0) pos.x = 1;
+	if (pos.y == 0) pos.y = 1;
+	float s0 = _chunkHeightMap[pos].r;
+	float sx0 = _chunkHeightMap[pos + off.xy].r;
+	float sy0 = _chunkHeightMap[pos + off.yx].r;
+
+	float4 slope = float4(
+		abs(sx0 - s0) * 10,
+		abs(sy0 - s0) * 10,
+		1,
+		0
+	);
+
+	//DEBUG
+	//slope = float4(1, 0, 0, 0);
+	slope = float4(uv.x % 0.2, uv.y % 0.2, 0, 0);
+
+	_chunkSlopeAndCurvatureMap[id.xy] = slope;
+}
