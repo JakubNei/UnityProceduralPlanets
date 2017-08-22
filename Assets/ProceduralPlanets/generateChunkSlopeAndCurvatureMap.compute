@@ -1,6 +1,4 @@
-﻿#pragma kernel parentExists
-#pragma kernel parentDoesNotExist
-
+﻿#pragma kernel main
 #include "planet.compute.cginc"
 
 
@@ -8,13 +6,7 @@
 Texture2D<float> _chunkHeightMap;
 SamplerState sampler_chunkHeightMap;
 
-Texture2D<float2> _parentChunkSlopeAndCurvatureMap;
-SamplerState sampler_parentChunkSlopeAndCurvatureMap;
-
-float2 _uvOffsetInParent;
-
-
-int _slopeModifier;
+float _slopeModifier;
 
 RWTexture2D<float4> _chunkSlopeAndCurvatureMap;
 
@@ -33,17 +25,17 @@ int2 getSlopeInt(int2 idXy)
 	// s01 __ s11 __ s21
 	//  |      |      |
 	// s02 __ s12 __ s22
-	int s00 = _chunkHeightMap[s11pos + off.xx].r;
-	int s10 = _chunkHeightMap[s11pos + off.yx].r;
-	int s20 = _chunkHeightMap[s11pos + off.zx].r;
+	int s00 = _chunkHeightMap[s11pos + off.xx];
+	int s10 = _chunkHeightMap[s11pos + off.yx];
+	int s20 = _chunkHeightMap[s11pos + off.zx];
 
-	int s01 = _chunkHeightMap[s11pos + off.xy].r;
-	int s11 = _chunkHeightMap[s11pos].r;
-	int s21 = _chunkHeightMap[s11pos + off.zy].r;
+	int s01 = _chunkHeightMap[s11pos + off.xy];
+	int s11 = _chunkHeightMap[s11pos];
+	int s21 = _chunkHeightMap[s11pos + off.zy];
 
-	int s02 = _chunkHeightMap[s11pos + off.xz].r;
-	int s12 = _chunkHeightMap[s11pos + off.yz].r;
-	int s22 = _chunkHeightMap[s11pos + off.zz].r;
+	int s02 = _chunkHeightMap[s11pos + off.xz];
+	int s12 = _chunkHeightMap[s11pos + off.yz];
+	int s22 = _chunkHeightMap[s11pos + off.zz];
 
 	// https://en.wikipedia.org/wiki/Sobel_operator
 	// 1 __ 0 __-1
@@ -104,23 +96,108 @@ float2 getSlopeFloat(int2 idXy)
 	return float2(sx, sy);
 }
 
+
+double2 getSlopeDouble(int2 idXy)
+{
+	int w, h;
+	_chunkHeightMap.GetDimensions(w, h);
+	int3 off = int3(-1, 0, 1);
+	int2 s11pos = idXy;
+	s11pos = max(s11pos, int2(1, 1));
+	s11pos = min(s11pos, int2(w - 1, h - 1));
+	// s00 __ s10 __ s20
+	//  |      |      |
+	// s01 __ s11 __ s21
+	//  |      |      |
+	// s02 __ s12 __ s22
+	double s00 = _chunkHeightMap[s11pos + off.xx].r;
+	double s10 = _chunkHeightMap[s11pos + off.yx].r;
+	double s20 = _chunkHeightMap[s11pos + off.zx].r;
+
+	double s01 = _chunkHeightMap[s11pos + off.xy].r;
+	double s11 = _chunkHeightMap[s11pos].r;
+	double s21 = _chunkHeightMap[s11pos + off.zy].r;
+
+	double s02 = _chunkHeightMap[s11pos + off.xz].r;
+	double s12 = _chunkHeightMap[s11pos + off.yz].r;
+	double s22 = _chunkHeightMap[s11pos + off.zz].r;
+
+	// https://en.wikipedia.org/wiki/Sobel_operator
+	// 1 __ 0 __-1
+	// |    |    |
+	// 2 __ 0 __-2
+	// |    |    |
+	// 1 __ 0 __-1
+	double sx = (s00 - s20) + (s01 - s21) * 2 + (s02 - s22);
+	// 1 __ 2 __ 1
+	// |    |    |
+	// 0 __ 0 __ 0
+	// |    |    |
+	//-1 __-2 __-1
+	double sy = (s00 - s02) + (s10 - s12) * 2 + (s20 - s22);
+
+	return double2(sx, sy);
+}
+
+
+double2 getSlopeDoubleInterpolated(int2 idXy)
+{
+	int w, h;
+	_chunkHeightMap.GetDimensions(w, h);
+	double2 res = double2(w - 1, h - 1);
+
+	idXy = max(idXy, int2(1, 1));
+	idXy = min(idXy, int2(w - 1, h - 1));
+	double2 s11pos = idXy / res;
+
+	double3 off = double3(-1.5, 0, 1.5) / res.xxx;
+
+	// s00 __ s10 __ s20
+	//  |      |      |
+	// s01 __ s11 __ s21
+	//  |      |      |
+	// s02 __ s12 __ s22
+	double s00 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, s11pos + off.xx, 0).r;
+	double s10 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, s11pos + off.yx, 0).r;
+	double s20 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, s11pos + off.zx, 0).r;
+
+	double s01 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, s11pos + off.xy, 0).r;
+	double s11 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, s11pos, 0).r;
+	double s21 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, s11pos + off.zy, 0).r;
+
+	double s02 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, s11pos + off.xz, 0).r;
+	double s12 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, s11pos + off.yz, 0).r;
+	double s22 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, s11pos + off.zz, 0).r;
+
+	// https://en.wikipedia.org/wiki/Sobel_operator
+	// 1 __ 0 __-1
+	// |    |    |
+	// 2 __ 0 __-2
+	// |    |    |
+	// 1 __ 0 __-1
+	double sx = (s00 - s20) + (s01 - s21) * 2 + (s02 - s22);
+	// 1 __ 2 __ 1
+	// |    |    |
+	// 0 __ 0 __ 0
+	// |    |    |
+	//-1 __-2 __-1
+	double sy = (s00 - s02) + (s10 - s12) * 2 + (s20 - s22);
+
+	return double2(sx, sy);
+}
+
+
+
 #define MAX_INT 2147483647
 
 
 [numthreads(16, 16, 1)]
-void parentExists(uint3 id : SV_DispatchThreadID)
+void main(uint3 id : SV_DispatchThreadID)
 {
-	float2 slope = getSlopeFloat(id.xy) * _slopeModifier;
-	
-	//DEBUG
-	//slope = float(MAX_INT, 0);
+	double2 slope = getSlopeDouble(id.xy);
+	//double2 slope = getSlopeDoubleInterpolated(id.xy);
+	//double2 slope = getSlopeInt(id.xy) / 100000000.0;
+	slope *= _slopeModifier;
 
-	_chunkSlopeAndCurvatureMap[id.xy] = float4(slope, 0, 0);
-}
-
-[numthreads(16, 16, 1)]
-void parentDoesNotExist(uint3 id : SV_DispatchThreadID)
-{
-	float2 slope = getSlopeFloat(id.xy) * _slopeModifier;
 	_chunkSlopeAndCurvatureMap[id.xy] = float4(slope, 0, 0);
 }

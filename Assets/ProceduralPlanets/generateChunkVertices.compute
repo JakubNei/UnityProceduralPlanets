@@ -5,7 +5,7 @@
 
 
 
-Texture2D _chunkHeightMap;
+Texture2D<float> _chunkHeightMap;
 SamplerState sampler_chunkHeightMap;
 
 int _numberOfVerticesOnEdge;

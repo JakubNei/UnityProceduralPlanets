@@ -3,20 +3,21 @@
 #include "planet.compute.cginc"
 
 
+Texture2D<float> _planetHeightMap;
 
-Texture2D _chunkHeightMap;
+Texture2D<float> _chunkHeightMap;
 SamplerState sampler_chunkHeightMap;
 
-Texture2D _chunkSlopeAndCurvatureMap;
+Texture2D<float4> _chunkSlopeAndCurvatureMap;
 SamplerState sampler_chunkSlopeAndCurvatureMap;
 
-Texture2D _grass;
+Texture2D<float4> _grass;
 SamplerState sampler_grass;
 
-Texture2D _clay;
+Texture2D<float4> _clay;
 SamplerState sampler_clay;
 
-Texture2D _rock;
+Texture2D<float4> _rock;
 SamplerState sampler_rock;
 
 float3 _rangeDirA;
@@ -43,10 +44,8 @@ void main(uint3 id : SV_DispatchThreadID)
 	float2 uv = getUv(_chunkDiffuseMap, id.xy);
 
 
-	float2 slopeXY = _chunkSlopeAndCurvatureMap[id.xy].xy;
-	float slope = saturate(length(slopeXY) * 0.3);
-
-	//slope *= 3.0;
+	double2 slopeXY = double2(_chunkSlopeAndCurvatureMap[id.xy].xy);
+	double slope = saturate(length(slopeXY) * 0.5);
 
 
 	const float3 grass = float3(121, 136, 69) / float3(255, 255, 255); // grass
@@ -73,6 +72,9 @@ void main(uint3 id : SV_DispatchThreadID)
 	color = ramp(slope);
 	//color = float3(slopeXY, 0);
 	//color = float3(slope > 0, 0, 0);
+	//color = _chunkSlopeAndCurvatureMap[id.xy].xyz;
+	//color = float3(_chunkHeightMap[id.xy].x > 0 && _chunkHeightMap[id.xy].x < 0.5, 0, 0);
+	//color = _chunkHeightMap[id.xy].xyz;
 
 	// SAFE
 	//if (slope > 1) color = float3(1, 0, 0);

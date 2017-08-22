@@ -36,15 +36,12 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	float3 dir = unitCubeToUnitSphere(unitCubePos);
 
-	float height = _chunkHeightMap[id.xy];
+	double height = double(_chunkHeightMap[id.xy]);
 	//float height = clamp(s0, 0, 1);
 
-	float2 slopeXY = _chunkSlopeAndCurvatureMap[id.xy].xy;
-	float slope = saturate(length(slopeXY));
+	double2 slopeXY = double2(_chunkSlopeAndCurvatureMap[id.xy].xy);
+	double slope = saturate(length(slopeXY));
 
-
-	float distToEdge = 0.5 - max(abs(uv.x - 0.5), abs(uv.y - 0.5));
-	distToEdge = smoothstep(0, 0.1, distToEdge);
 
 	//slope = clamp(slope, 0, 1);
 	height += slope * (abs(snoise(dir * 100, 20, 1.4))) * 0.01;
@@ -60,5 +57,5 @@ void main(uint3 id : SV_DispatchThreadID)
 	//height = slope;
 
 	//height = clamp(height, 0, 1);
-	_chunkHeightMapNew[id.xy] = height;
+	_chunkHeightMapNew[id.xy] = float(height);
 }

@@ -32,7 +32,8 @@ public class Chunk
 
 	//public bool GenerateUsingPlanetGlobalPos { get { return chunkRangeMaxAngleDeg > 2; } }
 	public bool GenerateUsingPlanetGlobalPos { get { return true; } }
-	public int SlopeModifier { get { return (int)Mathf.Pow(2, generation); } }
+	//public int SlopeModifier { get { return (int)Mathf.Pow(2, generation); } }
+	public float SlopeModifier { get { return (float)( (planetConfig.radiusStart / chunkRadius / 4 * (heightMapResolution / 1024.0)) / 44.0  ); } }
 	public Planet.PlanetConfig planetConfig { get { return planet.planetConfig; } }
 	public Planet.ChunkConfig chunkConfig { get { return planet.chunkConfig; } }
 
@@ -203,6 +204,9 @@ public class Chunk
 		if (generationBegan) return;
 		generationBegan = true;
 
+		// Debug.Log((int)Mathf.Pow(2, generation) + " or " + SlopeModifier);
+
+
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk");
 
 		if (gameObject) GameObject.Destroy(gameObject);
@@ -240,7 +244,7 @@ public class Chunk
 	}
 
 
-	void SetAll(ComputeShader c, int kernelIndex = 0)
+	void SetAll(ComputeShader c, int kernelIndex)
 	{
 		rangeUnitCubePos.SetParams(c, "_rangeUnitCubePos");
 		rangeDirToGenerateInto.SetParams(c, "_rangeDir");
@@ -250,10 +254,10 @@ public class Chunk
 
 		c.SetTexture(kernelIndex, "_planetHeightMap", planetConfig.planetHeightMap);
 		if (chunkHeightMap != null) c.SetTexture(kernelIndex, "_chunkHeightMap", chunkHeightMap);
-		if (chunkNormalMap != null) c.SetTexture(0, "_chunkNormalMap", chunkNormalMap);
+		if (chunkNormalMap != null) c.SetTexture(kernelIndex, "_chunkNormalMap", chunkNormalMap);
 		if (chunkSlopeAndCurvatureMap != null) c.SetTexture(kernelIndex, "_chunkSlopeAndCurvatureMap", chunkSlopeAndCurvatureMap);
 
-		c.SetInt("_slopeModifier", SlopeModifier);
+		c.SetFloat("_slopeModifier", SlopeModifier);
 	}
 
 
@@ -265,7 +269,7 @@ public class Chunk
 
 			if (height1 == null)
 			{
-				height1 = planet.chunkHeightFirstPassTemp = new RenderTexture(heightMapResolution, heightMapResolution, 0, RenderTextureFormat.RFloat, RenderTextureReadWrite.Linear);
+				height1 = planet.chunkHeightFirstPassTemp = new RenderTexture(heightMapResolution, heightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
 				height1.wrapMode = TextureWrapMode.Clamp;
 				height1.filterMode = FilterMode.Bilinear;
 				height1.enableRandomWrite = true;
@@ -286,7 +290,7 @@ public class Chunk
 		{
 			if (chunkHeightMap == null)
 			{
-				chunkHeightMap = new RenderTexture(heightMapResolution, heightMapResolution, 0, RenderTextureFormat.RFloat, RenderTextureReadWrite.Linear);
+				chunkHeightMap = new RenderTexture(heightMapResolution, heightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
 				chunkHeightMap.wrapMode = TextureWrapMode.Clamp;
 				chunkHeightMap.filterMode = FilterMode.Bilinear;
 				chunkHeightMap.enableRandomWrite = true;
@@ -294,7 +298,7 @@ public class Chunk
 			}
 
 			var c = chunkConfig.generateChunkHeightMapPass2;
-			SetAll(c);
+			SetAll(c, 0);
 			c.SetTexture(0, "_chunkHeightMap", height1);
 			c.SetTexture(0, "_chunkHeightMapNew", chunkHeightMap);
 
@@ -310,7 +314,7 @@ public class Chunk
 	{
 		if (chunkSlopeAndCurvatureMap == null)
 		{
-			chunkSlopeAndCurvatureMap = new RenderTexture(chunkSlopeAndCurvatureMapMapResolution, chunkSlopeAndCurvatureMapMapResolution, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+			chunkSlopeAndCurvatureMap = new RenderTexture(chunkSlopeAndCurvatureMapMapResolution, chunkSlopeAndCurvatureMapMapResolution, 0, RenderTextureFormat.RFloat, RenderTextureReadWrite.Linear);
 			chunkSlopeAndCurvatureMap.wrapMode = TextureWrapMode.Clamp;
 			chunkSlopeAndCurvatureMap.filterMode = FilterMode.Bilinear;
 			chunkSlopeAndCurvatureMap.enableRandomWrite = true;
@@ -328,10 +332,10 @@ public class Chunk
 		var c = chunkConfig.generateSlopeAndCurvatureMap;
 
 		var kernelIndex = 0;
-		if (parent != null) kernelIndex = c.FindKernel("parentExists");
-		else kernelIndex = c.FindKernel("parentDoesNotExist");
+		//if (parent != null) kernelIndex = c.FindKernel("parentExists");
+		//else kernelIndex = c.FindKernel("parentDoesNotExist");
 
-		SetAll(c);
+		SetAll(c, kernelIndex);
 		c.SetVector("_uvOffsetInParent", off);
 		if (parent != null)
 			c.SetTexture(kernelIndex, "_parentChunkSlopeAndCurvatureMap", parent.chunkSlopeAndCurvatureMap);
@@ -476,7 +480,7 @@ public class Chunk
 			chunkNormalMap.Create();
 		}
 
-		SetAll(c);
+		SetAll(c, 0);
 		c.SetTexture(0, "_chunkNormalMap", chunkNormalMap);
 
 
@@ -508,7 +512,7 @@ public class Chunk
 		}
 
 		var c = chunkConfig.generateChunkDiffuseMap;
-		SetAll(c);
+		SetAll(c, 0);
 		c.SetTexture(0, "_grass", chunkConfig.grass);
 		c.SetTexture(0, "_clay", chunkConfig.clay);
 		c.SetTexture(0, "_rock", chunkConfig.rock);

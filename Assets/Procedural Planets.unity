@@ -317,7 +317,7 @@ MonoBehaviour:
     weightNeededToSubdivide: 0.6
     stopSegmentRecursionAtWorldSize: 2
     destroyGameObjectIfNotVisibleForSeconds: 5
-    addColliders: 0
+    createColliders: 0
     chunkMaterial: {fileID: 2100000, guid: c1ef8c7ce330c5347a701bc512336e1f, type: 2}
     generateChunkVertices: {fileID: 7200000, guid: 651301ac22831ad45b2814adffcc8488,
       type: 3}

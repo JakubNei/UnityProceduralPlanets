@@ -4,7 +4,9 @@
 
 
 
-Texture2D<int> _planetHeightMap;
+Texture2D<float> _planetHeightMap;
+SamplerState sampler_planetHeightMap;
+
 float3 _rangeUnitCubePosA;
 float3 _rangeUnitCubePosB;
 float3 _rangeUnitCubePosC;
@@ -12,7 +14,7 @@ float3 _rangeUnitCubePosD;
 
 
 
-RWTexture2D<int> _chunkHeightMap;
+RWTexture2D<float> _chunkHeightMap;
 
 
 
@@ -30,7 +32,8 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	float2 heightMapUv = dirFromCenterToBaseMapUv(dir);
 
-	int height = sampleCubicInt(_planetHeightMap, heightMapUv);
+	double height = sampleCubicDouble(_planetHeightMap, heightMapUv);
+	//double height = _planetHeightMap.SampleLevel(sampler_planetHeightMap, heightMapUv, 0);
 
 
 	//height = clamp(height, 0, 1);
@@ -47,5 +50,6 @@ void main(uint3 id : SV_DispatchThreadID)
 	// DEBUG
 	//height = uv.x;
 
-	_chunkHeightMap[id.xy] = height;
+	height = clamp(height, 0, 1);
+	_chunkHeightMap[id.xy] = float(height);
 }
