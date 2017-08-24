@@ -12,6 +12,8 @@ float3 _rangeUnitCubePosB;
 float3 _rangeUnitCubePosC;
 float3 _rangeUnitCubePosD;
 
+float _heightMin;
+float _heightMax;
 
 
 RWTexture2D<float> _chunkHeightMap;
@@ -32,9 +34,14 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	float2 heightMapUv = dirFromCenterToBaseMapUv(dir);
 
-	double height = sampleCubicDouble(_planetHeightMap, heightMapUv);
+	float height = sampleCubicFloat(_planetHeightMap, heightMapUv);
+	//double height = sampleCubicDouble(_planetHeightMap, heightMapUv);
 	//double height = _planetHeightMap.SampleLevel(sampler_planetHeightMap, heightMapUv, 0);
+	//double height = getProceduralHeight01(dir);
 
+	height += snoise(dir * 1000, 20, 1.5) * 0.0001; // high frequency small amplitude noise, to hide planet height map sampling artefacts
+
+	height = (height - _heightMin) / (_heightMax - _heightMin);
 
 	//height = clamp(height, 0, 1);
 	/*
@@ -51,5 +58,5 @@ void main(uint3 id : SV_DispatchThreadID)
 	//height = uv.x;
 
 	height = clamp(height, 0, 1);
-	_chunkHeightMap[id.xy] = float(height);
+	_chunkHeightMap[id.xy] = height;
 }

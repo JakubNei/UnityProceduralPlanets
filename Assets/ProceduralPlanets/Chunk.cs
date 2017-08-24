@@ -13,14 +13,13 @@ public class Chunk
 	public Chunk parent;
 	public ulong generation;
 
-	public Range rangePosRealSubdivided;
-
+	//public Range rangePosRealSubdivided;
+	//public Range rangePosToGenerateInto;
+	//public Range rangeLocalPosToGenerateInto;
+	public Range rangeUnitCubePosRealSubdivided;
+	public Range rangeUnitCubePosToGenerateInto;
 	public Range rangePosToCalculateScreenSizeOn;
 
-	public Range rangePosToGenerateInto;
-	public Range rangeDirToGenerateInto;
-	public Range rangeLocalPosToGenerateInto;
-	public Range rangeUnitCubePos;
 
 	public WorldPos offsetFromPlanetCenter;
 
@@ -33,7 +32,9 @@ public class Chunk
 	//public bool GenerateUsingPlanetGlobalPos { get { return chunkRangeMaxAngleDeg > 2; } }
 	public bool GenerateUsingPlanetGlobalPos { get { return true; } }
 	//public int SlopeModifier { get { return (int)Mathf.Pow(2, generation); } }
-	public float SlopeModifier { get { return (float)( (planetConfig.radiusStart / chunkRadius / 4 * (heightMapResolution / 1024.0)) / 44.0  ); } }
+	public float SlopeModifier { get { return (float)((planetConfig.radiusStart / chunkRadius / 4 * (heightMapResolution / 1024.0)) / 44.0 * HeightRange); } }
+	public float HeightRange { get { return heightMax - heightMin; } }
+
 	public Planet.PlanetConfig planetConfig { get { return planet.planetConfig; } }
 	public Planet.ChunkConfig chunkConfig { get { return planet.chunkConfig; } }
 
@@ -43,6 +44,8 @@ public class Chunk
 	public RenderTexture chunkDiffuseMap;
 	public RenderTexture chunkSlopeAndCurvatureMap;
 
+	public float heightMin = 0;
+	public float heightMax = 1;
 
 	public ChildPosition childPosition;
 
@@ -90,56 +93,71 @@ public class Chunk
 		chunk.childPosition = childPosition;
 		chunk.chunkRadius = range.ToBoundingSphere().radius;
 
-		chunk.rangeUnitCubePos = range;
+		chunk.rangeUnitCubePosRealSubdivided = range;
 
-		chunk.rangePosToGenerateInto = new Range
-		{
-			a = chunk.rangeUnitCubePos.a.normalized * planet.planetConfig.radiusStart,
-			b = chunk.rangeUnitCubePos.b.normalized * planet.planetConfig.radiusStart,
-			c = chunk.rangeUnitCubePos.c.normalized * planet.planetConfig.radiusStart,
-			d = chunk.rangeUnitCubePos.d.normalized * planet.planetConfig.radiusStart,
-		};
-
-		chunk.rangePosToCalculateScreenSizeOn = chunk.rangePosToGenerateInto;
+		//chunk.rangePosToGenerateInto = new Range
+		//{
+		//	a = chunk.rangeUnitCubePos.a.normalized * planet.planetConfig.radiusStart,
+		//	b = chunk.rangeUnitCubePos.b.normalized * planet.planetConfig.radiusStart,
+		//	c = chunk.rangeUnitCubePos.c.normalized * planet.planetConfig.radiusStart,
+		//	d = chunk.rangeUnitCubePos.d.normalized * planet.planetConfig.radiusStart,
+		//};
 
 		if (chunk.chunkConfig.useSkirts)
 		{
 			var ratio = ((chunk.chunkConfig.numberOfVerticesOnEdge - 1) / 2.0f) / ((chunk.chunkConfig.numberOfVerticesOnEdge - 1 - 2) / 2.0f);
-			var center = range.CenterPos;
-			var a = chunk.rangePosToGenerateInto.a - center;
-			var b = chunk.rangePosToGenerateInto.b - center;
-			var c = chunk.rangePosToGenerateInto.c - center;
-			var d = chunk.rangePosToGenerateInto.d - center;
-			chunk.rangePosToGenerateInto.a = a * ratio + center;
-			chunk.rangePosToGenerateInto.b = b * ratio + center;
-			chunk.rangePosToGenerateInto.c = c * ratio + center;
-			chunk.rangePosToGenerateInto.d = d * ratio + center;
+			var center = chunk.rangeUnitCubePosRealSubdivided.CenterPos;
+			var a = chunk.rangeUnitCubePosRealSubdivided.a - center;
+			var b = chunk.rangeUnitCubePosRealSubdivided.b - center;
+			var c = chunk.rangeUnitCubePosRealSubdivided.c - center;
+			var d = chunk.rangeUnitCubePosRealSubdivided.d - center;
+			chunk.rangeUnitCubePosToGenerateInto.a = a * ratio + center;
+			chunk.rangeUnitCubePosToGenerateInto.b = b * ratio + center;
+			chunk.rangeUnitCubePosToGenerateInto.c = c * ratio + center;
+			chunk.rangeUnitCubePosToGenerateInto.d = d * ratio + center;
+		}
+		else
+		{
+			chunk.rangeUnitCubePosToGenerateInto = chunk.rangeUnitCubePosRealSubdivided;
 		}
 
-		chunk.rangeDirToGenerateInto = new Range
+
+		chunk.rangePosToCalculateScreenSizeOn = new Range
 		{
-			a = chunk.rangePosToGenerateInto.a.normalized,
-			b = chunk.rangePosToGenerateInto.b.normalized,
-			c = chunk.rangePosToGenerateInto.c.normalized,
-			d = chunk.rangePosToGenerateInto.d.normalized,
+			a = chunk.rangeUnitCubePosToGenerateInto.a.normalized * planet.planetConfig.radiusStart,
+			b = chunk.rangeUnitCubePosToGenerateInto.b.normalized * planet.planetConfig.radiusStart,
+			c = chunk.rangeUnitCubePosToGenerateInto.c.normalized * planet.planetConfig.radiusStart,
+			d = chunk.rangeUnitCubePosToGenerateInto.d.normalized * planet.planetConfig.radiusStart,
 		};
 
-		chunk.offsetFromPlanetCenter = chunk.rangePosRealSubdivided.CenterPos;
 
-		chunk.rangeLocalPosToGenerateInto = new Range
-		{
-			a = chunk.rangePosToGenerateInto.a - chunk.offsetFromPlanetCenter,
-			b = chunk.rangePosToGenerateInto.b - chunk.offsetFromPlanetCenter,
-			c = chunk.rangePosToGenerateInto.c - chunk.offsetFromPlanetCenter,
-			d = chunk.rangePosToGenerateInto.d - chunk.offsetFromPlanetCenter,
-		};
+		//chunk.rangeDirToGenerateInto = new Range
+		//{
+		//	a = chunk.rangePosToGenerateInto.a.normalized,
+		//	b = chunk.rangePosToGenerateInto.b.normalized,
+		//	c = chunk.rangePosToGenerateInto.c.normalized,
+		//	d = chunk.rangePosToGenerateInto.d.normalized,
+		//};
+
+
+		//chunk.rangeLocalPosToGenerateInto = new Range
+		//{
+		//	a = chunk.rangePosToGenerateInto.a - chunk.offsetFromPlanetCenter,
+		//	b = chunk.rangePosToGenerateInto.b - chunk.offsetFromPlanetCenter,
+		//	c = chunk.rangePosToGenerateInto.c - chunk.offsetFromPlanetCenter,
+		//	d = chunk.rangePosToGenerateInto.d - chunk.offsetFromPlanetCenter,
+		//};
 
 		chunk.chunkRangeMaxAngleDeg = Mathf.Max(
-			Vector3.Angle(chunk.rangeDirToGenerateInto.a, chunk.rangeDirToGenerateInto.b),
-			Vector3.Angle(chunk.rangeDirToGenerateInto.b, chunk.rangeDirToGenerateInto.c),
-			Vector3.Angle(chunk.rangeDirToGenerateInto.c, chunk.rangeDirToGenerateInto.d),
-			Vector3.Angle(chunk.rangeDirToGenerateInto.d, chunk.rangeDirToGenerateInto.a)
+			Vector3.Angle(chunk.rangeUnitCubePosToGenerateInto.a, chunk.rangeUnitCubePosToGenerateInto.b),
+			Vector3.Angle(chunk.rangeUnitCubePosToGenerateInto.b, chunk.rangeUnitCubePosToGenerateInto.c),
+			Vector3.Angle(chunk.rangeUnitCubePosToGenerateInto.c, chunk.rangeUnitCubePosToGenerateInto.d),
+			Vector3.Angle(chunk.rangeUnitCubePosToGenerateInto.d, chunk.rangeUnitCubePosToGenerateInto.a),
+			Vector3.Angle(chunk.rangeUnitCubePosToGenerateInto.a, chunk.rangeUnitCubePosToGenerateInto.c),
+			Vector3.Angle(chunk.rangeUnitCubePosToGenerateInto.b, chunk.rangeUnitCubePosToGenerateInto.d)
 		);
+
+		chunk.offsetFromPlanetCenter = chunk.rangeUnitCubePosToGenerateInto.CenterPos.normalized * planet.planetConfig.radiusStart;
 
 		MyProfiler.EndSample();
 
@@ -180,10 +198,10 @@ public class Chunk
 			d----dc---c
 			*/
 
-			var a = rangeUnitCubePos.a;
-			var b = rangeUnitCubePos.b;
-			var c = rangeUnitCubePos.c;
-			var d = rangeUnitCubePos.d;
+			var a = rangeUnitCubePosRealSubdivided.a;
+			var b = rangeUnitCubePosRealSubdivided.b;
+			var c = rangeUnitCubePosRealSubdivided.c;
+			var d = rangeUnitCubePosRealSubdivided.d;
 			var ab = (a + b) / 2.0f;
 			var ad = (a + d) / 2.0f;
 			var bc = (b + c) / 2.0f;
@@ -204,7 +222,6 @@ public class Chunk
 		if (generationBegan) return;
 		generationBegan = true;
 
-		// Debug.Log((int)Mathf.Pow(2, generation) + " or " + SlopeModifier);
 
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk");
@@ -241,16 +258,17 @@ public class Chunk
 		MyProfiler.EndSample();
 
 		isGenerationDone = true;
+
+		Debug.Log((int)Mathf.Pow(2, generation) + " or " + SlopeModifier);
 	}
 
 
 	void SetAll(ComputeShader c, int kernelIndex)
 	{
-		rangeUnitCubePos.SetParams(c, "_rangeUnitCubePos");
-		rangeDirToGenerateInto.SetParams(c, "_rangeDir");
-		rangeUnitCubePos.SetParams(c, "_rangeUnitCubePos");
-		rangeLocalPosToGenerateInto.SetParams(c, "_rangeLocalPos");
-		rangePosToGenerateInto.SetParams(c, "_rangeGlobalPos");
+		rangeUnitCubePosToGenerateInto.SetParams(c, "_rangeUnitCubePos");
+
+		c.SetFloat("_heightMin", heightMin);
+		c.SetFloat("_heightMax", heightMax);
 
 		c.SetTexture(kernelIndex, "_planetHeightMap", planetConfig.planetHeightMap);
 		if (chunkHeightMap != null) c.SetTexture(kernelIndex, "_chunkHeightMap", chunkHeightMap);
@@ -263,24 +281,52 @@ public class Chunk
 
 	void GenerateHeightMap()
 	{
-		// pass 1
-		var height1 = planet.chunkHeightFirstPassTemp;
+		// pass 0
 		{
-
-			if (height1 == null)
-			{
-				height1 = planet.chunkHeightFirstPassTemp = new RenderTexture(heightMapResolution, heightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
-				height1.wrapMode = TextureWrapMode.Clamp;
-				height1.filterMode = FilterMode.Bilinear;
-				height1.enableRandomWrite = true;
-				height1.Create();
-			}
+			var heightRough = RenderTexture.GetTemporary(16, 16, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
+			heightRough.wrapMode = TextureWrapMode.Clamp;
+			heightRough.filterMode = FilterMode.Bilinear;
+			heightRough.enableRandomWrite = true;
+			heightRough.Create();
 
 			var c = chunkConfig.generateChunkHeightMapPass1;
 			c.SetTexture(0, "_planetHeightMap", planetConfig.planetHeightMap);
-			rangeUnitCubePos.SetParams(c, "_rangeUnitCubePos");
-			c.SetTexture(0, "_chunkHeightMap", height1);
+			rangeUnitCubePosToGenerateInto.SetParams(c, "_rangeUnitCubePos");
+			c.SetFloat("_heightMin", 0);
+			c.SetFloat("_heightMax", 1);
 
+			c.SetTexture(0, "_chunkHeightMap", heightRough);
+			c.Dispatch(0, heightRough.width / 16, heightRough.height / 16, 1);
+
+			MyProfiler.BeginSample("find texture min max");
+			var result = FindTextureMinMax.Find(heightRough);
+			MyProfiler.EndSample();
+			heightMax = result.max.x;
+			heightMin = result.min.x;
+
+			var r = 0.1f;//HeightRange / 10.0f;
+			heightMax += r;
+			heightMin -= r;
+
+			RenderTexture.ReleaseTemporary(heightRough);
+		}
+
+		// pass 1
+		RenderTexture height1;
+		{
+			height1 = RenderTexture.GetTemporary(heightMapResolution, heightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
+			height1.wrapMode = TextureWrapMode.Clamp;
+			height1.filterMode = FilterMode.Bilinear;
+			height1.enableRandomWrite = true;
+			height1.Create();
+
+			var c = chunkConfig.generateChunkHeightMapPass1;
+			c.SetTexture(0, "_planetHeightMap", planetConfig.planetHeightMap);
+			rangeUnitCubePosToGenerateInto.SetParams(c, "_rangeUnitCubePos");
+			c.SetFloat("_heightMin", heightMin);
+			c.SetFloat("_heightMax", heightMax);
+
+			c.SetTexture(0, "_chunkHeightMap", height1);
 			c.Dispatch(0, height1.width / 16, height1.height / 16, 1);
 
 			GenerateSlopeAndCurvatureMap(height1);
@@ -300,12 +346,15 @@ public class Chunk
 			var c = chunkConfig.generateChunkHeightMapPass2;
 			SetAll(c, 0);
 			c.SetTexture(0, "_chunkHeightMap", height1);
-			c.SetTexture(0, "_chunkHeightMapNew", chunkHeightMap);
 
+			c.SetTexture(0, "_chunkHeightMapNew", chunkHeightMap);
 			c.Dispatch(0, chunkHeightMap.width / 16, chunkHeightMap.height / 16, 1);
 
 			GenerateSlopeAndCurvatureMap(chunkHeightMap);
 		}
+
+		RenderTexture.ReleaseTemporary(height1);
+
 
 	}
 
@@ -314,7 +363,7 @@ public class Chunk
 	{
 		if (chunkSlopeAndCurvatureMap == null)
 		{
-			chunkSlopeAndCurvatureMap = new RenderTexture(chunkSlopeAndCurvatureMapMapResolution, chunkSlopeAndCurvatureMapMapResolution, 0, RenderTextureFormat.RFloat, RenderTextureReadWrite.Linear);
+			chunkSlopeAndCurvatureMap = new RenderTexture(chunkSlopeAndCurvatureMapMapResolution, chunkSlopeAndCurvatureMapMapResolution, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
 			chunkSlopeAndCurvatureMap.wrapMode = TextureWrapMode.Clamp;
 			chunkSlopeAndCurvatureMap.filterMode = FilterMode.Bilinear;
 			chunkSlopeAndCurvatureMap.enableRandomWrite = true;
@@ -362,15 +411,15 @@ public class Chunk
 		if (GenerateUsingPlanetGlobalPos) kernelIndex = c.FindKernel("generateUsingPlanetGlobalPos");
 		else kernelIndex = c.FindKernel("generateUsingChunkLocalPos");
 
-		c.SetBuffer(kernelIndex, "_vertices", vertexGPUBuffer);
-		rangeUnitCubePos.SetParams(c, "_rangeUnitCubePos");
-		rangeLocalPosToGenerateInto.SetParams(c, "_rangeLocalPos");
+		rangeUnitCubePosToGenerateInto.SetParams(c, "_rangeUnitCubePos");
 		c.SetInt("_numberOfVerticesOnEdge", verticesOnEdge);
 		c.SetFloat("_planetRadiusStart", planetConfig.radiusStart);
 		c.SetFloat("_planetRadiusHeightMapMultiplier", planetConfig.radiusHeightMapMultiplier);
 		c.SetTexture(kernelIndex, "_chunkHeightMap", chunkHeightMap);
+		c.SetFloat("_heightMin", heightMin);
+		c.SetFloat("_heightMax", heightMax);
 
-
+		c.SetBuffer(kernelIndex, "_vertices", vertexGPUBuffer);
 		c.Dispatch(kernelIndex, verticesOnEdge, verticesOnEdge, 1);
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Generate / Download data");
@@ -419,7 +468,7 @@ public class Chunk
 			var v = vertexCPUBuffer;
 			var verticesOnEdge = chunkConfig.numberOfVerticesOnEdge;
 
-			var decreaseSkirtsBy = -offsetFromPlanetCenter.normalized.ToVector3() * (chunkRadius / 10.0f);
+			var decreaseSkirtsBy = -offsetFromPlanetCenter.ToVector3() * (chunkRadius / 10.0f);
 			for (int i = 0; i < verticesOnEdge; i++)
 			{
 				v[i] += decreaseSkirtsBy; // top line
@@ -439,28 +488,6 @@ public class Chunk
 		mesh.UploadMeshData(false);
 	}
 
-	void CreateNormalMapFromMesh()
-	{
-		const int resolution = 256;
-
-		if (chunkNormalMap != null && chunkNormalMap.width != resolution)
-		{
-			chunkNormalMap.Release();
-			chunkNormalMap = null;
-		}
-
-		if (chunkNormalMap == null)
-		{
-			chunkNormalMap = new RenderTexture(resolution, resolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
-			chunkNormalMap.wrapMode = TextureWrapMode.Clamp;
-			chunkNormalMap.filterMode = FilterMode.Trilinear;
-			chunkNormalMap.enableRandomWrite = true;
-			chunkNormalMap.Create();
-		}
-
-		DoRender(true);
-		planet.RenderNormalsToTexture(this.gameObject, chunkNormalMap);
-	}
 
 	void GenerateNormalMap()
 	{

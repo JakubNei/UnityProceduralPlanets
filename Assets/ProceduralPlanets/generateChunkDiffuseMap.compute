@@ -20,10 +20,6 @@ SamplerState sampler_clay;
 Texture2D<float4> _rock;
 SamplerState sampler_rock;
 
-float3 _rangeDirA;
-float3 _rangeDirB;
-float3 _rangeDirC;
-float3 _rangeDirD;
 int _slopeModifier;
 
 
@@ -44,8 +40,9 @@ void main(uint3 id : SV_DispatchThreadID)
 	float2 uv = getUv(_chunkDiffuseMap, id.xy);
 
 
-	double2 slopeXY = double2(_chunkSlopeAndCurvatureMap[id.xy].xy);
-	double slope = saturate(length(slopeXY) * 0.5);
+	//double2 slopeXY = double2(_chunkSlopeAndCurvatureMap[id.xy].xy);
+	double2 slopeXY = double2(_chunkSlopeAndCurvatureMap.SampleLevel(sampler_chunkSlopeAndCurvatureMap, uv, 0).xy);
+	double slope = length(slopeXY);
 
 
 	const float3 grass = float3(121, 136, 69) / float3(255, 255, 255); // grass
@@ -55,9 +52,9 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	float3 color;
 
-	if (slope < 0.7)
+	if (slope < 0.3)
 		color = grass;
-	else if (slope < 0.3)
+	else if (slope < 0.6)
 		color = clay;
 	else
 		color = rock;
@@ -69,12 +66,12 @@ void main(uint3 id : SV_DispatchThreadID)
 	//color = SampleLinearFloat(_chunkNormalMap, uv);
 	//color = float3(1, 1, 1) * slope;
 	//color = _chunkSlopeAndCurvatureMap[id.xy].xyz;
-	color = ramp(slope);
 	//color = float3(slopeXY, 0);
 	//color = float3(slope > 0, 0, 0);
 	//color = _chunkSlopeAndCurvatureMap[id.xy].xyz;
 	//color = float3(_chunkHeightMap[id.xy].x > 0 && _chunkHeightMap[id.xy].x < 0.5, 0, 0);
 	//color = _chunkHeightMap[id.xy].xyz;
+	//color = ramp(slope);
 
 	// SAFE
 	//if (slope > 1) color = float3(1, 0, 0);

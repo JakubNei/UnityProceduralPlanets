@@ -17,12 +17,8 @@ float3 _rangeUnitCubePosB;
 float3 _rangeUnitCubePosC;
 float3 _rangeUnitCubePosD;
 
-float3 _rangeLocalPosA;
-float3 _rangeLocalPosB;
-float3 _rangeLocalPosC;
-float3 _rangeLocalPosD;
-
-bool _shouldUseChunkLocalPossition;
+float _heightMin;
+float _heightMax;
 
 
 
@@ -43,22 +39,23 @@ void generateUsingPlanetGlobalPos(uint3 id : SV_DispatchThreadID)
 		lerp(_rangeUnitCubePosD, _rangeUnitCubePosC, uv.x),
 		uv.y
 	);
-	
+
 	float3 dirNorm = unitCubeToUnitSphere(unitCubePos);
 
-	float height =
-		_chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r *
-		_planetRadiusHeightMapMultiplier;
+	double height = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r;
+	height = height * (_heightMax - _heightMin) + _heightMin;
+	height *= _planetRadiusHeightMapMultiplier;
+	height += _planetRadiusStart;
 
 	//DEBUG
 	//height = 0;
 	//height = clamp(height, 0, 1000);
 
-	height += _planetRadiusStart;
 
 	_vertices[id.x + id.y * _numberOfVerticesOnEdge] = dirNorm * height;
 }
 
+/*
 [numthreads(1, 1, 1)]
 void generateUsingChunkLocalPos(uint3 id : SV_DispatchThreadID)
 {
@@ -77,7 +74,7 @@ void generateUsingChunkLocalPos(uint3 id : SV_DispatchThreadID)
 		uv.y
 	);
 
-	
+
 	float3 dirNorm = unitCubeToUnitSphere(unitCubePos);
 
 
@@ -88,4 +85,4 @@ void generateUsingChunkLocalPos(uint3 id : SV_DispatchThreadID)
 
 	_vertices[id.x + id.y * _numberOfVerticesOnEdge] = localPos + dirNorm * height;
 }
-
+*/

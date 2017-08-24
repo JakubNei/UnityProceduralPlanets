@@ -10,8 +10,8 @@
 
 #define MAX_INT 2147483647
 
-#define PACK_NORMAL(NORMAL) ((NORMAL + float3(1, 1, 1)) / float3(2, 2, 2))
-#define UNPACK_NORMAL(NORMAL) (NORMAL * float3(2, 2, 2) - float3(1, 1, 1))
+#define PACK_NORMAL(NORMAL) ((NORMAL + 1) / 2)
+#define UNPACK_NORMAL(NORMAL) (NORMAL * 2 - 1)
 
 
 #define M_PI 3.1415926535897932384626433832795
