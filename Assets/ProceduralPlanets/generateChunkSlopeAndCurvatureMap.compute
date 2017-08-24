@@ -8,60 +8,19 @@ SamplerState sampler_chunkHeightMap;
 
 float _slopeModifier;
 
+
+
 RWTexture2D<float4> _chunkSlopeAndCurvatureMap;
 
 
-
-int2 getSobelInt(int2 idXy)
+float2 getSlope(int2 idXy)
 {
 	int w, h;
 	_chunkHeightMap.GetDimensions(w, h);
 	int3 off = int3(-1, 0, 1);
 	int2 s11pos = idXy;
 	s11pos = max(s11pos, int2(1, 1));
-	s11pos = min(s11pos, int2(w - 1, h - 1));
-	// s00 __ s10 __ s20
-	//  |      |      |
-	// s01 __ s11 __ s21
-	//  |      |      |
-	// s02 __ s12 __ s22
-	int s00 = _chunkHeightMap[s11pos + off.xx];
-	int s10 = _chunkHeightMap[s11pos + off.yx];
-	int s20 = _chunkHeightMap[s11pos + off.zx];
-
-	int s01 = _chunkHeightMap[s11pos + off.xy];
-	int s11 = _chunkHeightMap[s11pos];
-	int s21 = _chunkHeightMap[s11pos + off.zy];
-
-	int s02 = _chunkHeightMap[s11pos + off.xz];
-	int s12 = _chunkHeightMap[s11pos + off.yz];
-	int s22 = _chunkHeightMap[s11pos + off.zz];
-
-	// https://en.wikipedia.org/wiki/Sobel_operator
-	// 1 __ 0 __-1
-	// |    |    |
-	// 2 __ 0 __-2
-	// |    |    |
-	// 1 __ 0 __-1
-	int sx = (s00 - s20) + (s01 - s21) * 2 + (s02 - s22);
-	// 1 __ 2 __ 1
-	// |    |    |
-	// 0 __ 0 __ 0
-	// |    |    |
-	//-1 __-2 __-1
-	int sy = (s00 - s02) + (s10 - s12) * 2 + (s20 - s22);
-
-	return int2(sx, sy);
-}
-
-float2 getSobelFloat(int2 idXy)
-{
-	int w, h;
-	_chunkHeightMap.GetDimensions(w, h);
-	int3 off = int3(-1, 0, 1);
-	int2 s11pos = idXy;
-	s11pos = max(s11pos, int2(1, 1));
-	s11pos = min(s11pos, int2(w - 1, h - 1));
+	s11pos = min(s11pos, int2(w - 2, h - 2));
 	// s00 __ s10 __ s20
 	//  |      |      |
 	// s01 __ s11 __ s21
@@ -79,157 +38,27 @@ float2 getSobelFloat(int2 idXy)
 	float s12 = _chunkHeightMap[s11pos + off.yz].r;
 	float s22 = _chunkHeightMap[s11pos + off.zz].r;
 
-	// https://en.wikipedia.org/wiki/Sobel_operator
-	// 1 __ 0 __-1
+	// modified https://en.wikipedia.org/wiki/Sobel_operator
+	//-1 __ 0 __ 1
 	// |    |    |
-	// 2 __ 0 __-2
+	//-2 __ 0 __ 2
 	// |    |    |
-	// 1 __ 0 __-1
-	float sx = (s00 - s20) + (s01 - s21) * 2 + (s02 - s22);
-	// 1 __ 2 __ 1
+	//-1 __ 0 __ 1
+	float sx = (s20 - s00) + (s21 - s01) * 2 + (s22 - s02);
+	//-1 __-2 __-1
 	// |    |    |
 	// 0 __ 0 __ 0
 	// |    |    |
-	//-1 __-2 __-1
-	float sy = (s00 - s02) + (s10 - s12) * 2 + (s20 - s22);
+	// 1 __ 2 __ 1
+	float sy = (s02 - s00) + (s12 - s10) * 2 + (s22 - s20);
 
 	return float2(sx, sy);
 }
-
-
-double2 getSobelDouble(int2 idXy)
-{
-	int w, h;
-	_chunkHeightMap.GetDimensions(w, h);
-	int3 off = int3(-1, 0, 1);
-	int2 s11pos = idXy;
-	s11pos = max(s11pos, int2(1, 1));
-	s11pos = min(s11pos, int2(w - 1, h - 1));
-	// s00 __ s10 __ s20
-	//  |      |      |
-	// s01 __ s11 __ s21
-	//  |      |      |
-	// s02 __ s12 __ s22
-	double s00 = _chunkHeightMap[s11pos + off.xx].r;
-	double s10 = _chunkHeightMap[s11pos + off.yx].r;
-	double s20 = _chunkHeightMap[s11pos + off.zx].r;
-
-	double s01 = _chunkHeightMap[s11pos + off.xy].r;
-	double s11 = _chunkHeightMap[s11pos].r;
-	double s21 = _chunkHeightMap[s11pos + off.zy].r;
-
-	double s02 = _chunkHeightMap[s11pos + off.xz].r;
-	double s12 = _chunkHeightMap[s11pos + off.yz].r;
-	double s22 = _chunkHeightMap[s11pos + off.zz].r;
-
-	/*s00 -= s11;
-	s10 -= s11;
-	s20 -= s11;
-
-	s01 -= s11;
-	s21 -= s11;
-
-	s02 -= s11;
-	s12 -= s11;
-	s22 -= s11;*/
-
-	// https://en.wikipedia.org/wiki/Sobel_operator
-	// 1 __ 0 __-1
-	// |    |    |
-	// 2 __ 0 __-2
-	// |    |    |
-	// 1 __ 0 __-1
-	double sx = (s00 - s20) + (s01 - s21) * 2 + (s02 - s22);
-	//double sx = (s21 - s11) - (s01 - s11);
-	// 1 __ 2 __ 1
-	// |    |    |
-	// 0 __ 0 __ 0
-	// |    |    |
-	//-1 __-2 __-1
-	double sy = (s00 - s02) + (s10 - s12) * 2 + (s20 - s22);
-	//double sy = (s12 - s11) - (s10 - s11);
-
-	return double2(sx, sy);
-}
-
-
-double2 getSobelDoubleInterpolated(int2 idXy)
-{
-	int w, h;
-	_chunkHeightMap.GetDimensions(w, h);
-	float2 res = float2(w - 1, h - 1);
-
-	idXy = max(idXy, int2(1, 1));
-	idXy = min(idXy, int2(w - 1, h - 1));
-	float2 s11pos = idXy / res;
-
-	float3 off = float3(-1.5, 0, 1.5) / res.xxx;
-
-	// s00 __ s10 __ s20
-	//  |      |      |
-	// s01 __ s11 __ s21
-	//  |      |      |
-	// s02 __ s12 __ s22
-	double s00 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, s11pos + off.xx, 0).r;
-	double s10 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, s11pos + off.yx, 0).r;
-	double s20 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, s11pos + off.zx, 0).r;
-
-	double s01 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, s11pos + off.xy, 0).r;
-	double s11 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, s11pos, 0).r;
-	double s21 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, s11pos + off.zy, 0).r;
-
-	double s02 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, s11pos + off.xz, 0).r;
-	double s12 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, s11pos + off.yz, 0).r;
-	double s22 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, s11pos + off.zz, 0).r;
-
-	// https://en.wikipedia.org/wiki/Sobel_operator
-	// 1 __ 0 __-1
-	// |    |    |
-	// 2 __ 0 __-2
-	// |    |    |
-	// 1 __ 0 __-1
-	double sx = (s00 - s20) + (s01 - s21) * 2 + (s02 - s22);
-	// 1 __ 2 __ 1
-	// |    |    |
-	// 0 __ 0 __ 0
-	// |    |    |
-	//-1 __-2 __-1
-	double sy = (s00 - s02) + (s10 - s12) * 2 + (s20 - s22);
-
-	return double2(sx, sy);
-}
-
-
-float2 getSlopeFloat(int2 idXy)
-{
-	int w, h;
-	_chunkHeightMap.GetDimensions(w, h);
-	int3 off = int3(-1, 0, 1);
-	int2 s00pos = idXy;
-	s00pos = max(s00pos, int2(1, 1));
-	s00pos = min(s00pos, int2(w - 1, h - 1));
-	//     __ sx0 __  
-	//  |      |      |
-	// sy0 __ s00 __ sy1
-	//  |      |      |
-	//     __ sx1 __ 
-		
-	float sx0 = _chunkHeightMap[s00pos + off.yx].r;
-	float sy0 = _chunkHeightMap[s00pos + off.xy].r;
-	float sy1 = _chunkHeightMap[s00pos + off.zy].r;
-	float sx1 = _chunkHeightMap[s00pos + off.yz].r;
-
-	float sx = sx0 - sx1;
-	float sy = sy0 - sy1;
-
-	return float2(sx, sy);
-}
-
 
 [numthreads(16, 16, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
-	float2 slope = getSlopeFloat(id.xy);
+	float2 slope = getSlope(id.xy);
 	slope *= _slopeModifier;
 
 	_chunkSlopeAndCurvatureMap[id.xy] = float4(slope, 0, 0);

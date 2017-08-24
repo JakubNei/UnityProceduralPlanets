@@ -32,7 +32,8 @@ public class Chunk
 	//public bool GenerateUsingPlanetGlobalPos { get { return chunkRangeMaxAngleDeg > 2; } }
 	public bool GenerateUsingPlanetGlobalPos { get { return true; } }
 	//public int SlopeModifier { get { return (int)Mathf.Pow(2, generation); } }
-	public float SlopeModifier { get { return (float)((planetConfig.radiusStart / chunkRadius / 4 * (heightMapResolution / 1024.0)) / 44.0 * HeightRange); } }
+	//public float SlopeModifier { get { return (float)((planetConfig.radiusStart / chunkRadius / 4 * (heightMapResolution / 1024.0)) / 44.0 * HeightRange); } }
+	public float SlopeModifier { get { return (float)(Mathf.Pow(2, generation) * (HeightMapResolution / 1024.0) * HeightRange); } }
 	public float HeightRange { get { return heightMax - heightMin; } }
 
 	public Planet.PlanetConfig planetConfig { get { return planet.planetConfig; } }
@@ -64,11 +65,10 @@ public class Chunk
 	public List<Chunk> children = new List<Chunk>(4);
 	public float chunkRadius;
 
-	const int resolution = 256;
-	const int heightMapResolution = resolution;
-	const int normalMapResolution = heightMapResolution; // must be the same
-	const int chunkSlopeAndCurvatureMapMapResolution = heightMapResolution;
-	const int diffuseMapResolution = chunkSlopeAndCurvatureMapMapResolution;
+	int HeightMapResolution { get { return chunkConfig.textureResolution; } }
+	int NormalMapResolution { get { return HeightMapResolution; } }
+	int ChunkSlopeMapResolution { get { return HeightMapResolution; } }
+	int DiffuseMapResolution { get { return ChunkSlopeMapResolution; } }
 
 	public class Behavior : MonoBehaviour
 	{
@@ -258,8 +258,6 @@ public class Chunk
 		MyProfiler.EndSample();
 
 		isGenerationDone = true;
-
-		Debug.Log((int)Mathf.Pow(2, generation) + " or " + SlopeModifier);
 	}
 
 
@@ -308,13 +306,16 @@ public class Chunk
 			heightMax += r;
 			heightMin -= r;
 
+			//DEBUG
+			heightMax = 1; heightMin = 0;
+
 			RenderTexture.ReleaseTemporary(heightRough);
 		}
 
 		// pass 1
 		RenderTexture height1;
 		{
-			height1 = RenderTexture.GetTemporary(heightMapResolution, heightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
+			height1 = RenderTexture.GetTemporary(HeightMapResolution, HeightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
 			height1.wrapMode = TextureWrapMode.Clamp;
 			height1.filterMode = FilterMode.Bilinear;
 			height1.enableRandomWrite = true;
@@ -336,7 +337,7 @@ public class Chunk
 		{
 			if (chunkHeightMap == null)
 			{
-				chunkHeightMap = new RenderTexture(heightMapResolution, heightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
+				chunkHeightMap = new RenderTexture(HeightMapResolution, HeightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
 				chunkHeightMap.wrapMode = TextureWrapMode.Clamp;
 				chunkHeightMap.filterMode = FilterMode.Bilinear;
 				chunkHeightMap.enableRandomWrite = true;
@@ -363,7 +364,7 @@ public class Chunk
 	{
 		if (chunkSlopeAndCurvatureMap == null)
 		{
-			chunkSlopeAndCurvatureMap = new RenderTexture(chunkSlopeAndCurvatureMapMapResolution, chunkSlopeAndCurvatureMapMapResolution, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+			chunkSlopeAndCurvatureMap = new RenderTexture(ChunkSlopeMapResolution, ChunkSlopeMapResolution, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
 			chunkSlopeAndCurvatureMap.wrapMode = TextureWrapMode.Clamp;
 			chunkSlopeAndCurvatureMap.filterMode = FilterMode.Bilinear;
 			chunkSlopeAndCurvatureMap.enableRandomWrite = true;
@@ -494,7 +495,7 @@ public class Chunk
 		var c = chunkConfig.generateChunkNormapMap;
 		if (c == null) return;
 
-		if (chunkNormalMap != null && chunkNormalMap.width != normalMapResolution)
+		if (chunkNormalMap != null && chunkNormalMap.width != NormalMapResolution)
 		{
 			chunkNormalMap.Release();
 			chunkNormalMap = null;
@@ -502,15 +503,14 @@ public class Chunk
 
 		if (chunkNormalMap == null)
 		{
-			chunkNormalMap = new RenderTexture(normalMapResolution, normalMapResolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+			chunkNormalMap = new RenderTexture(NormalMapResolution, NormalMapResolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
 			chunkNormalMap.enableRandomWrite = true;
 			chunkNormalMap.Create();
 		}
 
 		SetAll(c, 0);
+
 		c.SetTexture(0, "_chunkNormalMap", chunkNormalMap);
-
-
 		c.Dispatch(0, chunkNormalMap.width / 16, chunkNormalMap.height / 16, 1);
 
 		if (material) material.SetTexture("_BumpMap", chunkNormalMap);
@@ -520,7 +520,7 @@ public class Chunk
 
 	void GenerateDiffuseMap()
 	{
-		if (chunkDiffuseMap != null && chunkDiffuseMap.width != diffuseMapResolution)
+		if (chunkDiffuseMap != null && chunkDiffuseMap.width != DiffuseMapResolution)
 		{
 			chunkDiffuseMap.Release();
 			chunkDiffuseMap = null;
@@ -528,7 +528,7 @@ public class Chunk
 
 		if (chunkDiffuseMap == null)
 		{
-			chunkDiffuseMap = new RenderTexture(diffuseMapResolution, diffuseMapResolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+			chunkDiffuseMap = new RenderTexture(DiffuseMapResolution, DiffuseMapResolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
 			chunkDiffuseMap.wrapMode = TextureWrapMode.Clamp;
 			chunkDiffuseMap.filterMode = FilterMode.Trilinear;
 			chunkDiffuseMap.enableRandomWrite = true;

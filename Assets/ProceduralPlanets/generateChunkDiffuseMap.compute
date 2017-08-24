@@ -20,7 +20,15 @@ SamplerState sampler_clay;
 Texture2D<float4> _rock;
 SamplerState sampler_rock;
 
+float3 _rangeUnitCubePosA;
+float3 _rangeUnitCubePosB;
+float3 _rangeUnitCubePosC;
+float3 _rangeUnitCubePosD;
+
 int _slopeModifier;
+
+float _heightMin;
+float _heightMax;
 
 
 
@@ -39,25 +47,46 @@ void main(uint3 id : SV_DispatchThreadID)
 {
 	float2 uv = getUv(_chunkDiffuseMap, id.xy);
 
+	float3 dir = lerp(
+		lerp(_rangeUnitCubePosA, _rangeUnitCubePosB, uv.x),
+		lerp(_rangeUnitCubePosD, _rangeUnitCubePosC, uv.x),
+		uv.y
+	);
+	dir = unitCubeToUnitSphere(dir);
 
 	//double2 slopeXY = double2(_chunkSlopeAndCurvatureMap[id.xy].xy);
-	double2 slopeXY = double2(_chunkSlopeAndCurvatureMap.SampleLevel(sampler_chunkSlopeAndCurvatureMap, uv, 0).xy);
-	double slope = length(slopeXY);
+	float2 slopeXY = _chunkSlopeAndCurvatureMap.SampleLevel(sampler_chunkSlopeAndCurvatureMap, uv, 0).xy;
+	float slope = length(slopeXY);
 
+	float height = _chunkHeightMap[id.xy] * (_heightMax - _heightMin);
 
 	const float3 grass = float3(121, 136, 69) / float3(255, 255, 255); // grass
 	const float3 clay = float3(139, 133, 75) / float3(255, 255, 255); // clay
 	const float3 rock = float3(100, 100, 100) / float3(255, 255, 255); // rock
+	const float3 snow = float3(1, 1, 1); // white
+	const float3 tundra = float3(0.5, 0.5, 0.5); // grey
 
+	float altidute = height;
+	float distanceToPoles = smoothstep(0.4, 1, abs(dir.z));
+	float snowWeight = altidute + distanceToPoles + snoise(dir * 100, 5, 2) * 0.1;
 
 	float3 color;
 
-	if (slope < 0.3)
-		color = grass;
-	else if (slope < 0.6)
-		color = clay;
-	else
+	if(slope > 0.4)
 		color = rock;
+	else {
+		if (snowWeight > 1.5)
+			color = snow;
+		else if (snowWeight > 1.2)
+			color = tundra;
+		else if (slope < 0.25)
+			color = grass;
+		else
+			color = clay;
+	}
+
+
+		
 
 
 	// DEBUG

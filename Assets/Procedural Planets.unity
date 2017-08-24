@@ -313,11 +313,12 @@ MonoBehaviour:
     seaLevel01: 0.5
   chunkConfig:
     useSkirts: 1
-    numberOfVerticesOnEdge: 30
+    numberOfVerticesOnEdge: 10
     weightNeededToSubdivide: 0.6
     stopSegmentRecursionAtWorldSize: 2
     destroyGameObjectIfNotVisibleForSeconds: 5
-    createColliders: 0
+    createColliders: 1
+    textureResolution: 256
     chunkMaterial: {fileID: 2100000, guid: c1ef8c7ce330c5347a701bc512336e1f, type: 2}
     generateChunkVertices: {fileID: 7200000, guid: 651301ac22831ad45b2814adffcc8488,
       type: 3}
@@ -381,7 +382,7 @@ Light:
   m_SpotAngle: 30
   m_CookieSize: 10
   m_Shadows:
-    m_Type: 0
+    m_Type: 2
     m_Resolution: -1
     m_CustomResolution: -1
     m_Strength: 1

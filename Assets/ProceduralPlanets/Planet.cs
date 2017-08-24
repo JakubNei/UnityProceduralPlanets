@@ -28,7 +28,7 @@ public partial class Planet : MonoBehaviour
 		public float stopSegmentRecursionAtWorldSize = 10;
 		public float destroyGameObjectIfNotVisibleForSeconds = 5;
 		public bool createColliders = true;
-
+		public int textureResolution = 256; // must be multiplier of 16
 
 		public Material chunkMaterial;
 		public ComputeShader generateChunkVertices;
