@@ -10,10 +10,12 @@ public class GenerateAndSetSpaceSkyBox : MonoBehaviour
 
 	public RenderTexture[] skybox;
 
-	const int resolution = 2048;
+	public KeyCode refreshKey = KeyCode.None;
 
-	string[] texNames =
-{
+	public int resolution = 2048;
+
+	string[] textureNames =
+	{
 		"_FrontTex",
 		"_BackTex",
 		"_LeftTex",
@@ -29,41 +31,41 @@ public class GenerateAndSetSpaceSkyBox : MonoBehaviour
 	}
 	
 
+	private void Update()
+	{
+		if (Input.GetKeyDown(refreshKey))
+			Generate();
+	}
 
 	void Prepare()
 	{
-
 		if (skybox == null || skybox.Length != 6)
 		{
 			skybox = new RenderTexture[6];
 			for (int i = 0; i < 6; i++)
 			{
-				var t = new RenderTexture(resolution, resolution, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
+				var t = new RenderTexture(resolution, resolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
 				t.wrapMode = TextureWrapMode.Mirror;
 				t.filterMode = FilterMode.Trilinear;
 				t.enableRandomWrite = true;
-				//t.useMipMap = true;
-				//t.autoGenerateMips = false;
-				//t.antiAliasing = 8;
 				t.Create();
-				t.name = texNames[i];
+				t.name = textureNames[i];
 				skybox[i] = t;
 			}
 
 		}
 
-		for (int i = 0; i < 6; i++)
-			shader.SetTexture(0, texNames[i], skybox[i]);
-		//skybox.GenerateMips();
-
 		var material = GetComponent<Skybox>().material;
 		for (int i = 0; i < 6; i++)
-			material.SetTexture(texNames[i], skybox[i]);
+			material.SetTexture(textureNames[i], skybox[i]);
 	}
 
 	void Generate()
 	{
 		shader.SetFloat("_time", Time.realtimeSinceStartup);
+
+		for (int i = 0; i < 6; i++)
+			shader.SetTexture(0, textureNames[i], skybox[i]);
 		shader.Dispatch(0, resolution / 16, resolution / 16, 6);
 	}
 

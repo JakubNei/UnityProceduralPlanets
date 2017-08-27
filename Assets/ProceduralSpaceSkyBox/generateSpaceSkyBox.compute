@@ -1,135 +1,123 @@
 ﻿#pragma kernel main
 
-#define RESOLUTION 1024
+// inspired by and parts copied from: 
+// https://wwwtyro.github.io/space-3d/
+// https://www.shadertoy.com/view/4sBXzG
+
 float _time;
 
-// taken from https://www.shadertoy.com/view/4sBXzG
-// Star map shader...procedural space background
+#include "classic-noise-4d.cginc"
 
-// Uncomment to see the lat-long grid for context
-// #define SHOW_LARGE_GRID
-#define SHOW_SPHERE
-#define SHOW_SPHERE_GRID
-#define SHOW_PLANET
-
-#define PI 3.1415927;
-#define DEG (PI / 180.0);
 
 // See derivation of noise functions by Morgan McGuire at https://www.shadertoy.com/view/4dS3Wd
-#define NUM_OCTAVES 4
 float hash(float n) { return frac(sin(n) * 1e4); }
 float hash(float2 p) { return frac(1e4 * sin(17.0 * p.x + p.y * 0.1) * (0.1 + abs(sin(p.y * 13.0 + p.x)))); }
-// 1 octave value noise
 float noise(float x) { float i = floor(x); float f = frac(x); float u = f * f * (3.0 - 2.0 * f); return lerp(hash(i), hash(i + 1.0), u); }
 float noise(float2 x) { float2 i = floor(x); float2 f = frac(x);	float a = hash(i); float b = hash(i + float2(1.0, 0.0)); float c = hash(i + float2(0.0, 1.0)); float d = hash(i + float2(1.0, 1.0)); float2 u = f * f * (3.0 - 2.0 * f); return lerp(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y; }
 float noise(float3 x) { const float3 step = float3(110, 241, 171); float3 i = floor(x); float3 f = frac(x); float n = dot(i, step); float3 u = f * f * (3.0 - 2.0 * f); return lerp(lerp(lerp(hash(n + dot(step, float3(0, 0, 0))), hash(n + dot(step, float3(1, 0, 0))), u.x), lerp(hash(n + dot(step, float3(0, 1, 0))), hash(n + dot(step, float3(1, 1, 0))), u.x), u.y), lerp(lerp(hash(n + dot(step, float3(0, 0, 1))), hash(n + dot(step, float3(1, 0, 1))), u.x), lerp(hash(n + dot(step, float3(0, 1, 1))), hash(n + dot(step, float3(1, 1, 1))), u.x), u.y), u.z); }
-// Multi-octave value noise
-float NOISE(float x) { float v = 0.0; float a = 0.5; float shift = float(100); for (int i = 0; i < NUM_OCTAVES; ++i) { v += a * noise(x); x = x * 2.0 + shift; a *= 0.5; } return v; }
-float NOISE(float2 x) { float v = 0.0; float a = 0.5; float2 shift = float2(100, 100); float2x2 rot = float2x2(cos(0.5), sin(0.5), -sin(0.5), cos(0.50)); for (int i = 0; i < NUM_OCTAVES; ++i) { v += a * noise(x); x = mul(rot, x) * 2.0 + shift;a *= 0.5; } return v; }
 
-// Fast hash2 from https://www.shadertoy.com/view/lsfGWH
-float hash2(float2 co) { return frac(sin(dot(co.xy, float2(12.9898, 78.233))) * 43758.5453); }
-float maxComponent(float2 v) { return max(v.x, v.y); }
-float maxComponent(float3 v) { return max(max(v.x, v.y), v.z); }
-float minComponent(float2 v) { return min(v.x, v.y); }
-float3x3 rotation(float yaw, float pitch) { return float3x3(cos(yaw), 0, -sin(yaw), 0, 1, 0, sin(yaw), 0, cos(yaw)) * float3x3(1, 0, 0, 0, cos(pitch), sin(pitch), 0, -sin(pitch), cos(pitch)); }
-float square(float x) { return x * x; }
 
-///////////////////////////////////////////////////////////////////////
 
-// Only globals needed for the actual spheremap
+float3 rgbToHsv(float3 c)
+{
+	float4 K = float4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+	float4 p = lerp(float4(c.bg, K.wz), float4(c.gb, K.xy), step(c.b, c.g));
+	float4 q = lerp(float4(p.xyw, c.r), float4(c.r, p.yzx), step(p.x, c.r));
 
-// starplane was derived from https://www.shadertoy.com/view/lsfGWH
-float starplane(float3 dir) {
-	float screenscale = 1.0 / RESOLUTION;
+	float d = q.x - min(q.w, q.y);
+	float e = 1.0e-10;
+	return float3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
 
-	// Project to a cube-map plane and scale with the resolution of the display
-	float2 basePos = dir.xy * (0.5 / screenscale) / max(1e-3, abs(dir.z));
+float3 hsvToRgb(float3 c)
+{
+	float4 K = float4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+	float3 p = abs(frac(c.xxx + K.xyz) * 6.0 - K.www);
+	return c.z * lerp(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
 
-	const float largeStarSizePixels = 20.0;
+float3 hsvToRgb(float hue)
+{
+	float4 K = float4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+	float3 p = abs(frac(K.xyz + hue) * 6.0 - K.www);
+	return clamp(p - K.xxx, 0.0, 1.0);
+}
 
-	// Probability that a pixel is NOT on a large star. Must change with largeStarSizePixels
-	const float prob = 0.97;
 
-	float color = 0.0;
-	float2 pos = floor(basePos / largeStarSizePixels);
-	float starValue = hash2(pos);
+#define ROT_MAT(X,Y,Z) (float3x3(1,0,0,0,cos(X),-sin(X),0,sin(X),cos(X)) * float3x3(cos(Y),0,sin(Y),0,1,0,-sin(Y),0,cos(Y)) * float3x3(cos(Z),-sin(Z),0,sin(Z),cos(Z),0,0,0,1))
 
-	// Big stars
-	if (starValue > prob) {
-
-		// Sphere blobs
-		float2 delta = basePos - largeStarSizePixels * (pos + float2(0.5, 0.5));
-		color = max(1.0 - length(delta) / (0.5 * largeStarSizePixels), 0.0);
-
-		// Star shapes
-		color *= 1.0 / max(1e-3, abs(delta.x) * abs(delta.y));
-
-		// Avoid triplanar seams where star distort and clump
-		color *= pow(abs(dir.z), 12.0);
+float fnoise(float3 x)
+{
+	float v = 0.0;
+	float a = 0.5;
+	float3 shift = float3(100, 100, 100);
+	float3x3 rot = ROT_MAT(0.5, 0.5, 0.5);
+	for (int i = 0; i < 10; ++i)
+	{
+		v += a * noise(x);
+		x = x * 2.0;
+		a *= 0.5;
 	}
+	return v;
+}
 
-	// Small stars
 
-	// Stabilize stars under motion by locking to a grid
-	basePos = floor(basePos);
 
-	if (hash2(basePos.xy * screenscale) > 0.997) {
-		float r = hash2(basePos.xy * 0.5);
-		color += r * (0.3 * sin(_time * (r * 5.0) + r) + 0.7) * 1.5;
+float nebula_noise(float3 p) {
+	return 0.5 * cnoise(float4(p,0)) + 0.5;
+}
+
+float nebula_impl(float3 p) {
+	const int steps = 6;
+	float scale = pow(2.0, float(steps));
+	float3 displace = 0;
+	for (int i = 0; i < steps; i++) {
+		displace = float3(
+			nebula_noise(p.xyz * scale + displace),
+			nebula_noise(p.yzx * scale + displace),
+			nebula_noise(p.zxy * scale + displace)
+			);
+		scale *= 0.5;
 	}
-
-	// Weight by the z-plane
-	return color * abs(dir.z);
+	return nebula_noise(p * scale + displace);
 }
 
 
-float starbox(float3 dir) {
-	return starplane(dir.xyz) + starplane(dir.yzx) + starplane(dir.zxy);
+float nebula(float3 dir)
+{
+	float c = min(1.0, nebula_impl(dir));
+	c = pow(c, 6.0);
+	return c;
 }
 
+float3 star(float3 dir)
+{
+	float starProb = abs(fnoise(dir * 200));
+	starProb = max(0, starProb - 0.8);
+	starProb = pow(starProb, 0.1);
 
-float starfield(float3 dir) {
-	return starbox(dir);// +starbox(mul(rotation(45.0 * DEG, 45.0 * DEG), dir));
+	float starHue = abs(fnoise(dir * 1000)) * 2;
+
+	float whiteWeight = min(starProb, 1);
+
+	float inShadow = 1 - (0.3 * sin(_time * (starProb * 5.0) + starProb) + 0.7) * 1.5;
+
+	float3 starColor = lerp(hsvToRgb(starHue), 1, whiteWeight) * starProb;
+	starColor = lerp(starColor, 0, inShadow);
+
+	return starColor;
 }
 
+float3 getColor(float3 dir)
+{
+	float3 finalColor = 0;
 
-float3 nebula(float3 dir) {
-	float purple = abs(dir.x);
-	float yellow = noise(dir.y);
-	float3 streakyHue = float3(purple + yellow, yellow * 0.7, purple);
-	float3 puffyHue = float3(0.8, 0.1, 1.0);
+	finalColor += float3(0.75, 0.56, 0.12) * nebula(dir);
+	finalColor += float3(0.23, 0.34, 0.56) * nebula(dir * 2 + 3);
+	finalColor += star(dir) * max(0, 1 - length(finalColor) * 3);
 
-	float streaky = min(1.0, 8.0 * pow(abs(NOISE(dir.yz * square(dir.x) * 13.0 + dir.xy * square(dir.z) * 7.0 + float2(150.0, 2.0))), 10.0));
-	float puffy = square(NOISE(dir.xz * 4.0 + float2(30, 10)) * dir.y);
-
-	return clamp(puffyHue * puffy * (1.0 - streaky) + streaky * streakyHue, 0.0, 1.0);
+	return finalColor;
 }
-
-
-float3 sun(float3 d) {
-	float angle = atan2(d.x, d.y); // TODO: check correctness, was atan
-	float falloff = pow(max(d.z, 0.0), 10.0);
-	float3 core = float3(2.8, 1.5 + 0.5 * noise(_time * 0.25 + d.xy * 5.0), 1.5) * falloff;
-	float corona = NOISE(float2(d.z * 250.0 + _time, _time * 0.2 + angle * 50.0)) * smoothstep(0.95, 0.92, d.z) * falloff * square(d.z);
-
-	return core * (1.0 - corona);
-}
-
-
-
-float3 sphereColor(float3 dir) {
-	float3 n = nebula(dir);
-	float3 s = starfield(dir);
-	float3 color =
-		//sun(dir) +
-		s * (1.0 - maxComponent(n)) +  // Nebula holds out star
-		n; // nebula
-
-	return color;
-}
-
-
 
 RWTexture2D<float3> _FrontTex;
 RWTexture2D<float3> _BackTex;
@@ -141,18 +129,16 @@ RWTexture2D<float3> _DownTex;
 [numthreads(16, 16, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
-#define face id.z
+#define FACE id.z
 
 	float w, h;
 	_FrontTex.GetDimensions(w, h);
 	float2 uv = id.xy / float2(w - 1, h - 1);
-
 	uv = uv * 2 - 1;
 
 	float3 dir = 0;
 
-
-	switch (face)
+	switch (FACE)
 	{
 	case 0: // front
 		dir = float3(uv.xy, 1);
@@ -178,12 +164,14 @@ void main(uint3 id : SV_DispatchThreadID)
 	dir = normalize(dir);
 
 	float3 color;
+	color = getColor(dir);
+	//color = sphereColor(dir);
 
-	color = (dir + 1) / 2;
-	color = float3(1, 1, 1) / 6.0 * face;
-	color = sphereColor(dir);
+	// DEBUG
+	//color = (dir + 1) / 2;
+	//color = float3(1, 1, 1) / 6.0 * FACE;
 
-	switch (face)
+	switch (FACE)
 	{
 	case 0:
 		_FrontTex[id.xy] = color;

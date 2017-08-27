@@ -275,6 +275,8 @@ MonoBehaviour:
   shader: {fileID: 7200000, guid: 46cc0e9f8e0b2db4ea0ab167f25599cd, type: 3}
   skybox:
   - {fileID: 0}
+  refreshKey: 98
+  resolution: 2048
 --- !u!1 &1141529112
 GameObject:
   m_ObjectHideFlags: 0
