@@ -1,4 +1,6 @@
-﻿#pragma kernel main
+﻿#pragma kernel parentExists
+#pragma kernel parentDoesNotExist
+
 #include "planet.compute.cginc"
 
 
@@ -7,6 +9,11 @@ Texture2D<float> _chunkHeightMap;
 SamplerState sampler_chunkHeightMap;
 
 float _slopeModifier;
+
+Texture2D<float4> _parentChunkSlopeAndCurvatureMap;
+SamplerState sampler_parentChunkSlopeAndCurvatureMap;
+
+float2 _uvOffsetInParent;
 
 
 
@@ -56,7 +63,21 @@ float2 getSlope(int2 idXy)
 }
 
 [numthreads(16, 16, 1)]
-void main(uint3 id : SV_DispatchThreadID)
+void parentExists(uint3 id : SV_DispatchThreadID)
+{
+	float2 slope = getSlope(id.xy);
+	slope *= _slopeModifier;
+	
+	float2 uv = getUv(_chunkHeightMap, id.xy);
+	float2 parentSlope = _parentChunkSlopeAndCurvatureMap.SampleLevel(sampler_parentChunkSlopeAndCurvatureMap, uv / 2.0 + _uvOffsetInParent, 0).xy;
+	//slope = slope * 0.3 + parentSlope * 0.7;
+
+	_chunkSlopeAndCurvatureMap[id.xy] = float4(slope, 0, 0);
+}
+
+
+[numthreads(16, 16, 1)]
+void parentDoesNotExist(uint3 id : SV_DispatchThreadID)
 {
 	float2 slope = getSlope(id.xy);
 	slope *= _slopeModifier;

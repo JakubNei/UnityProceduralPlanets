@@ -29,6 +29,7 @@ public partial class Planet : MonoBehaviour
 		public float destroyGameObjectIfNotVisibleForSeconds = 5;
 		public bool createColliders = true;
 		public int textureResolution = 256; // must be multiplier of 16
+		public bool rescaleToMinMax = true;
 
 		public Material chunkMaterial;
 		public ComputeShader generateChunkVertices;
@@ -73,7 +74,7 @@ public partial class Planet : MonoBehaviour
 	{
 		MyProfiler.BeginSample("Procedural Planet / Initialize planet & generate base height map");
 
-		const int resolution = 1024;
+		const int resolution = 2048;
 		var height = planetConfig.planetHeightMap = new RenderTexture(resolution, resolution, 0, RenderTextureFormat.R8, RenderTextureReadWrite.Linear);
 		height.filterMode = FilterMode.Trilinear;
 		height.wrapMode = TextureWrapMode.Repeat;

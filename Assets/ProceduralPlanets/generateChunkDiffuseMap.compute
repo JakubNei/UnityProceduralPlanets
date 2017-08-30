@@ -72,7 +72,7 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	float3 color;
 
-	if(slope > 0.4)
+	if(slope > 0.3)
 		color = rock;
 	else {
 		if (snowWeight > 1.5)

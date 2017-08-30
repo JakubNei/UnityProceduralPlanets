@@ -8,12 +8,69 @@ SamplerState sampler_chunkSlopeAndCurvatureMap;
 Texture2D<float> _chunkHeightMap;
 SamplerState sampler_chunkHeightMap;
 
+Texture2D<float3> _chunkMeshNormals;
+SamplerState sampler_chunkMeshNormals;
+
 float _heightMin;
 float _heightMax;
+int _numberOfVerticesOnEdge;
+float _slopeModifier;
+float _radiusHeightMapMultiplier;
+float _chunkRadius;
+
+float3 _rangeUnitCubePosA;
+float3 _rangeUnitCubePosB;
+float3 _rangeUnitCubePosC;
+float3 _rangeUnitCubePosD;
+
+
+
+
 
 
 RWTexture2D<float4> _chunkNormalMap;
 
+float2 getNormal(int2 idXy)
+{
+	int w, h;
+	_chunkHeightMap.GetDimensions(w, h);
+	float3 off = float3(-1, 0, 1) / (_numberOfVerticesOnEdge - 1);
+	float2 uv = idXy / float2(w - 1, h - 1);
+	// s00 __ s10 __ s20
+	//  |      |      |
+	// s01 __ s11 __ s21
+	//  |      |      |
+	// s02 __ s12 __ s22
+	float s00 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + off.xx, 0).r;
+	float s10 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + off.yx, 0).r;
+	float s20 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + off.zx, 0).r;
+
+	float s01 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + off.xy, 0).r;
+	float s11 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r;
+	float s21 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + off.zy, 0).r;
+
+	float s02 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + off.xz, 0).r;
+	float s12 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + off.yz, 0).r;
+	float s22 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + off.zz, 0).r;
+
+	// modified https://en.wikipedia.org/wiki/Sobel_operator
+	//-1 __ 0 __ 1
+	// |    |    |
+	//-2 __ 0 __ 2
+	// |    |    |
+	//-1 __ 0 __ 1
+	//float sx = (s20 - s00) + (s21 - s01) * 2 + (s22 - s02);
+	float sx = s10 - s00;
+	//-1 __-2 __-1
+	// |    |    |
+	// 0 __ 0 __ 0
+	// |    |    |
+	// 1 __ 2 __ 1
+	//float sy = (s02 - s00) + (s12 - s10) * 2 + (s22 - s20);
+	float sy = s01 - s00;
+
+	return float2(sx, sy);
+}
 
 float2 getSlope(int2 idXy)
 {
@@ -46,13 +103,13 @@ float2 getSlope(int2 idXy)
 	//-2 __ 0 __ 2
 	// |    |    |
 	//-1 __ 0 __ 1
-	float sx = (s20 - s00) + (s21 - s01) * 2 + (s22 - s02);
+	float sx = s10 - s00;
 	//-1 __-2 __-1
 	// |    |    |
 	// 0 __ 0 __ 0
 	// |    |    |
 	// 1 __ 2 __ 1
-	float sy = (s02 - s00) + (s12 - s10) * 2 + (s22 - s20);
+	float sy = s01 - s00;
 
 	return float2(sx, sy);
 }
@@ -60,22 +117,34 @@ float2 getSlope(int2 idXy)
 [numthreads(16, 16, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
-	float2 slope = _chunkSlopeAndCurvatureMap[id.xy].xy;
-	//float2 slope = getSlope(id.xy);
+	float2 slope = getSlope(id.xy);
+	float len = _chunkRadius / 256.0; // ~1.4 for root chunks
+	slope *= _radiusHeightMapMultiplier;
 
-	float3 normal;
-	normal = cross(
-		normalize(float3(1, 0, slope.x)),
-		normalize(float3(0, 1, slope.y))
+	float3 slopeNormal = cross(
+		normalize(float3(len, 0, slope.x)),
+		normalize(float3(0, len, slope.y))
 	);
 	//normal = float3(slope.x, slope.y, 1);
+	
+	slope = getNormal(id.xy);
+	len = _chunkRadius / _numberOfVerticesOnEdge;
+	slope *= _radiusHeightMapMultiplier;
 
+	float3 meshNormal = cross(
+		normalize(float3(len, 0, slope.x)),
+		normalize(float3(0, len, slope.y))
+	);
+
+	float3 normal = slopeNormal - meshNormal;
 	normal = normalize(normal);
+
+	//normal -= getNormal(id.xy);
 
 	normal = PACK_NORMAL(normal);
 
 	//DEBUG
-	//normal = float3(0.5, 0.5, 1);
+	normal = float3(0.5, 0.5, 1);
 
 	_chunkNormalMap[id.xy] = float4(normal, 1);
 

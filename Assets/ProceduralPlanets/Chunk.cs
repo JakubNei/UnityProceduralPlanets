@@ -44,6 +44,7 @@ public class Chunk
 	public RenderTexture chunkNormalMap;
 	public RenderTexture chunkDiffuseMap;
 	public RenderTexture chunkSlopeAndCurvatureMap;
+	public RenderTexture chunkMeshNormals;
 
 	public float heightMin = 0;
 	public float heightMax = 1;
@@ -91,8 +92,6 @@ public class Chunk
 		chunk.parent = parent;
 		chunk.generation = generation;
 		chunk.childPosition = childPosition;
-		chunk.chunkRadius = range.ToBoundingSphere().radius;
-
 		chunk.rangeUnitCubePosRealSubdivided = range;
 
 		//chunk.rangePosToGenerateInto = new Range
@@ -129,6 +128,8 @@ public class Chunk
 			c = chunk.rangeUnitCubePosToGenerateInto.c.normalized * planet.planetConfig.radiusStart,
 			d = chunk.rangeUnitCubePosToGenerateInto.d.normalized * planet.planetConfig.radiusStart,
 		};
+
+		chunk.chunkRadius = chunk.rangePosToCalculateScreenSizeOn.ToBoundingSphere().radius;
 
 
 		//chunk.rangeDirToGenerateInto = new Range
@@ -265,8 +266,15 @@ public class Chunk
 	{
 		rangeUnitCubePosToGenerateInto.SetParams(c, "_rangeUnitCubePos");
 
+		c.SetInt("_numberOfVerticesOnEdge", chunkConfig.numberOfVerticesOnEdge);
+
 		c.SetFloat("_heightMin", heightMin);
 		c.SetFloat("_heightMax", heightMax);
+
+		c.SetFloat("_radiusStart", planetConfig.radiusStart);
+		c.SetFloat("_radiusHeightMapMultiplier", planetConfig.radiusHeightMapMultiplier);
+
+		c.SetFloat("_chunkRadius", chunkRadius);
 
 		c.SetTexture(kernelIndex, "_planetHeightMap", planetConfig.planetHeightMap);
 		if (chunkHeightMap != null) c.SetTexture(kernelIndex, "_chunkHeightMap", chunkHeightMap);
@@ -280,6 +288,7 @@ public class Chunk
 	void GenerateHeightMap()
 	{
 		// pass 0
+		if (chunkConfig.rescaleToMinMax)
 		{
 			var heightRough = RenderTexture.GetTemporary(16, 16, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
 			heightRough.wrapMode = TextureWrapMode.Clamp;
@@ -307,7 +316,7 @@ public class Chunk
 			heightMin -= r;
 
 			//DEBUG
-			heightMax = 1; heightMin = 0;
+			//heightMax = 1; heightMin = 0;
 
 			RenderTexture.ReleaseTemporary(heightRough);
 		}
@@ -382,8 +391,8 @@ public class Chunk
 		var c = chunkConfig.generateSlopeAndCurvatureMap;
 
 		var kernelIndex = 0;
-		//if (parent != null) kernelIndex = c.FindKernel("parentExists");
-		//else kernelIndex = c.FindKernel("parentDoesNotExist");
+		if (parent != null) kernelIndex = c.FindKernel("parentExists");
+		else kernelIndex = c.FindKernel("parentDoesNotExist");
 
 		SetAll(c, kernelIndex);
 		c.SetVector("_uvOffsetInParent", off);
@@ -469,7 +478,7 @@ public class Chunk
 			var v = vertexCPUBuffer;
 			var verticesOnEdge = chunkConfig.numberOfVerticesOnEdge;
 
-			var decreaseSkirtsBy = -offsetFromPlanetCenter.ToVector3() * (chunkRadius / 10.0f);
+			var decreaseSkirtsBy = -offsetFromPlanetCenter.ToVector3() / 10.0f;
 			for (int i = 0; i < verticesOnEdge; i++)
 			{
 				v[i] += decreaseSkirtsBy; // top line
@@ -487,6 +496,13 @@ public class Chunk
 	void UploadMesh()
 	{
 		mesh.UploadMeshData(false);
+
+		chunkMeshNormals = new RenderTexture(NormalMapResolution, NormalMapResolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+		chunkMeshNormals.enableRandomWrite = true;
+		chunkMeshNormals.wrapMode = TextureWrapMode.Clamp;
+		chunkMeshNormals.filterMode = FilterMode.Bilinear;
+		chunkMeshNormals.Create();
+		RenderNormalsToTexture.Render(mesh, chunkMeshNormals);
 	}
 
 
@@ -509,6 +525,9 @@ public class Chunk
 		}
 
 		SetAll(c, 0);
+		c.SetFloat("_normalLength", chunkRadius / chunkNormalMap.width);
+		c.SetFloat("_heightMapRealRange", planetConfig.radiusHeightMapMultiplier);
+		c.SetTexture(0, "_chunkMeshNormals", chunkMeshNormals);
 
 		c.SetTexture(0, "_chunkNormalMap", chunkNormalMap);
 		c.Dispatch(0, chunkNormalMap.width / 16, chunkNormalMap.height / 16, 1);
