@@ -87,17 +87,17 @@ float3 getDir(float2 uv)
 [numthreads(16, 16, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
+	int w, h;
+	_chunkHeightMap.GetDimensions(w, h);
+
 	float2 uv = getUv(_chunkHeightMap, id.xy);
 
 	float circumference = 2 * M_PI * _radiusStart;
 
-	circumference = 6280;
-
-	float lenX = acos(dot(getDir(float2(0, uv.y)), getDir(float2(1, uv.y)))) / 3.14 / 2.0 * circumference / 256.0;
-	float lenY = acos(dot(getDir(float2(uv.x, 0)), getDir(float2(uv.x, 1)))) / 3.14 / 2.0 * circumference / 256.0;
+	float lenX = acos(dot(getDir(float2(0, uv.y)), getDir(float2(1, uv.y)))) / 3.14 / 2.0 * circumference / w;
+	float lenY = acos(dot(getDir(float2(uv.x, 0)), getDir(float2(uv.x, 1)))) / 3.14 / 2.0 * circumference / h;
 
 	float2 slope = getSlope(id.xy);
-	float len = _chunkRadius / 256.0; // ~1.4 for root chunks
 	slope *= _radiusHeightMapMultiplier;
 
 	//len *= sqrt(sqrt(_generation + 1));
@@ -126,7 +126,7 @@ void main(uint3 id : SV_DispatchThreadID)
 	float3 normal;
 	
 	normal = slopeNormal - (meshNormal - dir);
-	//normal = slopeNormal;
+	normal = slopeNormal;
 
 	normal = normalize(normal);
 	normal = PACK_NORMAL(normal);
