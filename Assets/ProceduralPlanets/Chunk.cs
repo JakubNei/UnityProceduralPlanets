@@ -381,14 +381,6 @@ public class Chunk
 			chunkSlopeAndCurvatureMap.Create();
 		}
 
-		var off = Vector2.zero;
-		if (childPosition == ChildPosition.TopLeft) off = new Vector2(0, 0);
-		else if (childPosition == ChildPosition.TopRight) off = new Vector2(0.5f, 0);
-		else if (childPosition == ChildPosition.BottomLeft) off = new Vector2(0, 0.5f);
-		else if (childPosition == ChildPosition.BottomRight) off = off = new Vector2(0.5f, 0.5f);
-
-		// uvInParentMap = myUv / 2.0 + off;
-
 		var c = chunkConfig.generateSlopeAndCurvatureMap;
 
 		var kernelIndex = 0;
@@ -396,7 +388,7 @@ public class Chunk
 		else kernelIndex = c.FindKernel("parentDoesNotExist");
 
 		SetAll(c, kernelIndex);
-		c.SetVector("_uvOffsetInParent", off);
+		c.SetVector("_uvOffsetInParent", ChildStarUv());
 		if (parent != null)
 			c.SetTexture(kernelIndex, "_parentChunkSlopeAndCurvatureMap", parent.chunkSlopeAndCurvatureMap);
 		c.SetTexture(kernelIndex, "_chunkHeightMap", heightMap);
@@ -405,6 +397,16 @@ public class Chunk
 		c.Dispatch(kernelIndex, chunkSlopeAndCurvatureMap.width / 16, chunkSlopeAndCurvatureMap.height / 16, 1);
 	}
 
+
+	Vector2 ChildStarUv()
+	{
+		var off = Vector2.zero;
+		if (childPosition == ChildPosition.TopLeft) off = new Vector2(0, 0);
+		else if (childPosition == ChildPosition.TopRight) off = new Vector2(0.5f, 0);
+		else if (childPosition == ChildPosition.BottomLeft) off = new Vector2(0, 0.5f);
+		else if (childPosition == ChildPosition.BottomRight) off = off = new Vector2(0.5f, 0.5f);
+		return off;
+	}
 
 
 	ComputeBuffer vertexGPUBuffer { get { return planet.chunkVertexGPUBuffer; } }
@@ -525,13 +527,17 @@ public class Chunk
 			chunkNormalMap.Create();
 		}
 
-		SetAll(c, 0);
-		c.SetFloat("_normalLength", chunkRadius / chunkNormalMap.width);
-		c.SetFloat("_heightMapRealRange", planetConfig.radiusHeightMapMultiplier);
-		c.SetTexture(0, "_chunkMeshNormals", chunkMeshNormals);
+		var kernelIndex = 0;
+		if (parent != null) kernelIndex = c.FindKernel("parentExists");
+		else kernelIndex = c.FindKernel("parentDoesNotExist");
 
-		c.SetTexture(0, "_chunkNormalMap", chunkNormalMap);
-		c.Dispatch(0, chunkNormalMap.width / 16, chunkNormalMap.height / 16, 1);
+		SetAll(c, kernelIndex);
+		c.SetVector("_uvOffsetInParent", ChildStarUv());
+		if (parent != null)
+			c.SetTexture(kernelIndex, "_parentChunkNormalMap", parent.chunkNormalMap);
+
+		c.SetTexture(kernelIndex, "_chunkNormalMap", chunkNormalMap);
+		c.Dispatch(kernelIndex, chunkNormalMap.width / 16, chunkNormalMap.height / 16, 1);
 
 		if (material) material.SetTexture("_BumpMap", chunkNormalMap);
 	}

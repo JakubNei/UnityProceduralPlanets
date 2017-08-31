@@ -1,4 +1,5 @@
-﻿#pragma kernel main
+﻿#pragma kernel parentExists
+#pragma kernel parentDoesNotExist
 
 #include "Planet.Compute.cginc"
 
@@ -14,28 +15,22 @@ SamplerState sampler_chunkMeshNormals;
 float _heightMin;
 float _heightMax;
 int _numberOfVerticesOnEdge;
-float _slopeModifier;
 float _radiusStart;
 float _radiusHeightMapMultiplier;
 float _chunkRadius;
 
-float3 _rangeUnitCubePosA;
-float3 _rangeUnitCubePosB;
-float3 _rangeUnitCubePosC;
-float3 _rangeUnitCubePosD;
-
-int _generation;
-
-
+Texture2D<float4> _parentChunkNormalMap;
+SamplerState sampler_parentChunkNormalMap;
+float2 _uvOffsetInParent;
 
 
 
 RWTexture2D<float4> _chunkNormalMap;
 
-float2 getSlope(int2 idXy)
+
+
+float2 getSlope(int2 idXy, int w, int h)
 {
-	int w, h;
-	_chunkHeightMap.GetDimensions(w, h);
 	int3 off = int3(-1, 0, 1);
 	int2 s11pos = idXy;
 	s11pos = max(s11pos, int2(1, 1));
@@ -74,66 +69,52 @@ float2 getSlope(int2 idXy)
 	return float2(sx, sy);
 }
 
-float3 getDir(float2 uv)
+
+float3 getNormal(int2 idXy, int w, int h)
 {
-	float3 dir = lerp(
-		lerp(_rangeUnitCubePosA, _rangeUnitCubePosB, uv.x),
-		lerp(_rangeUnitCubePosD, _rangeUnitCubePosC, uv.x),
-		uv.y
+	float len = _chunkRadius / w;
+	float2 slope = getSlope(idXy, w, h) * _radiusHeightMapMultiplier;
+
+	float3 normal = cross(
+		normalize(float3(len, 0, slope.x)),
+		normalize(float3(0, len, slope.y))
 	);
-	return normalize(dir);
+
+	normal = normalize(normal);
+
+	return normal;
 }
 
 [numthreads(16, 16, 1)]
-void main(uint3 id : SV_DispatchThreadID)
+void parentExists(uint3 id : SV_DispatchThreadID)
 {
 	int w, h;
 	_chunkHeightMap.GetDimensions(w, h);
+	float2 uv = id.xy / float2(w - 1, h - 1);
 
-	float2 uv = getUv(_chunkHeightMap, id.xy);
+	float3 normal = getNormal(id.xy, w, h);
 
-	float circumference = 2 * M_PI * _radiusStart;
-
-	float lenX = acos(dot(getDir(float2(0, uv.y)), getDir(float2(1, uv.y)))) / 3.14 / 2.0 * circumference / w;
-	float lenY = acos(dot(getDir(float2(uv.x, 0)), getDir(float2(uv.x, 1)))) / 3.14 / 2.0 * circumference / h;
-
-	float2 slope = getSlope(id.xy);
-	slope *= _radiusHeightMapMultiplier;
-
-	//len *= sqrt(sqrt(_generation + 1));
-	//slope = _chunkSlopeAndCurvatureMap[id.xy].xy;
-	//len = 0.5;
-
-	float3 slopeNormal = cross(
-		normalize(float3(lenX, 0, slope.x)),
-		normalize(float3(0, lenY, slope.y))
-	);
-	slopeNormal = normalize(slopeNormal);
-
-
-	float3 dir = lerp(
-		lerp(_rangeUnitCubePosA, _rangeUnitCubePosB, uv.x),
-		lerp(_rangeUnitCubePosD, _rangeUnitCubePosC, uv.x),
-		uv.y
-	);
-	dir = normalize(dir);
-	dir = unitCubeToUnitSphere(dir);
-
-
-	float3 meshNormal = UNPACK_NORMAL(_chunkMeshNormals.SampleLevel(sampler_chunkMeshNormals, uv, 0).xyz);
-	meshNormal = normalize(meshNormal);
-
-	float3 normal;
-	
-	normal = slopeNormal - (meshNormal - dir);
-	normal = slopeNormal;
+	float3 parentNormal = UNPACK_NORMAL(_parentChunkNormalMap.SampleLevel(sampler_parentChunkNormalMap, uv / 2.0 + _uvOffsetInParent, 0).xyz);
+	normal = lerp(parentNormal, normal, 0.5);
 
 	normal = normalize(normal);
-	normal = PACK_NORMAL(normal);
 
 	//DEBUG
 	//normal = float3(0.5, 0.5, 1);
 
-	_chunkNormalMap[id.xy] = float4(normal, 1);
+	_chunkNormalMap[id.xy] = float4(PACK_NORMAL(normal), 1);
+}
 
+[numthreads(16, 16, 1)]
+void parentDoesNotExist(uint3 id : SV_DispatchThreadID)
+{
+	int w, h;
+	_chunkHeightMap.GetDimensions(w, h);
+
+	float3 normal = getNormal(id.xy, w, h);
+
+	//DEBUG
+	//normal = float3(0.5, 0.5, 1);
+
+	_chunkNormalMap[id.xy] = float4(PACK_NORMAL(normal), 1);
 }
