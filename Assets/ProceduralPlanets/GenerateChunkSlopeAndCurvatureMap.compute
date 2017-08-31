@@ -1,0 +1,89 @@
+﻿#pragma kernel parentExists
+#pragma kernel parentDoesNotExist
+
+#include "Planet.Compute.cginc"
+
+
+
+Texture2D<float> _chunkHeightMap;
+SamplerState sampler_chunkHeightMap;
+
+float _slopeModifier;
+
+Texture2D<float4> _parentChunkSlopeAndCurvatureMap;
+SamplerState sampler_parentChunkSlopeAndCurvatureMap;
+
+float2 _uvOffsetInParent;
+
+
+
+RWTexture2D<float4> _chunkSlopeAndCurvatureMap;
+
+
+float2 getSlope(int2 idXy)
+{
+	int w, h;
+	_chunkHeightMap.GetDimensions(w, h);
+	int3 off = int3(-1, 0, 1);
+	int2 s11pos = idXy;
+	s11pos = max(s11pos, int2(1, 1));
+	s11pos = min(s11pos, int2(w - 2, h - 2));
+	// s00 __ s10 __ s20
+	//  |      |      |
+	// s01 __ s11 __ s21
+	//  |      |      |
+	// s02 __ s12 __ s22
+	float s00 = _chunkHeightMap[s11pos + off.xx].r;
+	float s10 = _chunkHeightMap[s11pos + off.yx].r;
+	float s20 = _chunkHeightMap[s11pos + off.zx].r;
+
+	float s01 = _chunkHeightMap[s11pos + off.xy].r;
+	float s11 = _chunkHeightMap[s11pos].r;
+	float s21 = _chunkHeightMap[s11pos + off.zy].r;
+
+	float s02 = _chunkHeightMap[s11pos + off.xz].r;
+	float s12 = _chunkHeightMap[s11pos + off.yz].r;
+	float s22 = _chunkHeightMap[s11pos + off.zz].r;
+
+	// modified https://en.wikipedia.org/wiki/Sobel_operator
+	//-1 __ 0 __ 1
+	// |    |    |
+	//-2 __ 0 __ 2
+	// |    |    |
+	//-1 __ 0 __ 1
+	float sx = (s20 - s00) + (s21 - s01) * 2 + (s22 - s02);
+	//-1 __-2 __-1
+	// |    |    |
+	// 0 __ 0 __ 0
+	// |    |    |
+	// 1 __ 2 __ 1
+	float sy = (s02 - s00) + (s12 - s10) * 2 + (s22 - s20);
+
+	return float2(sx, sy);
+}
+
+[numthreads(16, 16, 1)]
+void parentExists(uint3 id : SV_DispatchThreadID)
+{
+	float2 slope = getSlope(id.xy);
+	slope *= _slopeModifier;
+	
+	float2 uv = getUv(_chunkHeightMap, id.xy);
+	float2 parentSlope = _parentChunkSlopeAndCurvatureMap.SampleLevel(sampler_parentChunkSlopeAndCurvatureMap, uv / 2.0 + _uvOffsetInParent, 0).xy;
+	slope = lerp(parentSlope, slope, 0.02);
+
+	//DEBUG
+	//slope = parentSlope;
+
+	_chunkSlopeAndCurvatureMap[id.xy] = float4(slope, 0, 0);
+}
+
+
+[numthreads(16, 16, 1)]
+void parentDoesNotExist(uint3 id : SV_DispatchThreadID)
+{
+	float2 slope = getSlope(id.xy);
+	slope *= _slopeModifier;
+
+	_chunkSlopeAndCurvatureMap[id.xy] = float4(slope, 0, 0);
+}

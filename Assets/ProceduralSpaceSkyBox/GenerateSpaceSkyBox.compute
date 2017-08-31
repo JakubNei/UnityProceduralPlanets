@@ -1,0 +1,196 @@
+﻿#pragma kernel main
+
+// inspired by and parts copied from: 
+// https://wwwtyro.github.io/space-3d/
+// https://www.shadertoy.com/view/4sBXzG
+
+float _time;
+
+#include "ClassicNoise4D.cginc"
+
+
+// See derivation of noise functions by Morgan McGuire at https://www.shadertoy.com/view/4dS3Wd
+float hash(float n) { return frac(sin(n) * 1e4); }
+float hash(float2 p) { return frac(1e4 * sin(17.0 * p.x + p.y * 0.1) * (0.1 + abs(sin(p.y * 13.0 + p.x)))); }
+float noise(float x) { float i = floor(x); float f = frac(x); float u = f * f * (3.0 - 2.0 * f); return lerp(hash(i), hash(i + 1.0), u); }
+float noise(float2 x) { float2 i = floor(x); float2 f = frac(x);	float a = hash(i); float b = hash(i + float2(1.0, 0.0)); float c = hash(i + float2(0.0, 1.0)); float d = hash(i + float2(1.0, 1.0)); float2 u = f * f * (3.0 - 2.0 * f); return lerp(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y; }
+float noise(float3 x) { const float3 step = float3(110, 241, 171); float3 i = floor(x); float3 f = frac(x); float n = dot(i, step); float3 u = f * f * (3.0 - 2.0 * f); return lerp(lerp(lerp(hash(n + dot(step, float3(0, 0, 0))), hash(n + dot(step, float3(1, 0, 0))), u.x), lerp(hash(n + dot(step, float3(0, 1, 0))), hash(n + dot(step, float3(1, 1, 0))), u.x), u.y), lerp(lerp(hash(n + dot(step, float3(0, 0, 1))), hash(n + dot(step, float3(1, 0, 1))), u.x), lerp(hash(n + dot(step, float3(0, 1, 1))), hash(n + dot(step, float3(1, 1, 1))), u.x), u.y), u.z); }
+
+
+
+float3 rgbToHsv(float3 c)
+{
+	float4 K = float4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+	float4 p = lerp(float4(c.bg, K.wz), float4(c.gb, K.xy), step(c.b, c.g));
+	float4 q = lerp(float4(p.xyw, c.r), float4(c.r, p.yzx), step(p.x, c.r));
+
+	float d = q.x - min(q.w, q.y);
+	float e = 1.0e-10;
+	return float3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+
+float3 hsvToRgb(float3 c)
+{
+	float4 K = float4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+	float3 p = abs(frac(c.xxx + K.xyz) * 6.0 - K.www);
+	return c.z * lerp(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+float3 hsvToRgb(float hue)
+{
+	float4 K = float4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+	float3 p = abs(frac(K.xyz + hue) * 6.0 - K.www);
+	return clamp(p - K.xxx, 0.0, 1.0);
+}
+
+
+#define ROT_MAT(X,Y,Z) (float3x3(1,0,0,0,cos(X),-sin(X),0,sin(X),cos(X)) * float3x3(cos(Y),0,sin(Y),0,1,0,-sin(Y),0,cos(Y)) * float3x3(cos(Z),-sin(Z),0,sin(Z),cos(Z),0,0,0,1))
+
+float fnoise(float3 x)
+{
+	float v = 0.0;
+	float a = 0.5;
+	float3 shift = float3(100, 100, 100);
+	float3x3 rot = ROT_MAT(0.5, 0.5, 0.5);
+	for (int i = 0; i < 10; ++i)
+	{
+		v += a * noise(x);
+		x = x * 2.0;
+		a *= 0.5;
+	}
+	return v;
+}
+
+
+
+float nebula_noise(float3 p) {
+	return 0.5 * cnoise(float4(p,0)) + 0.5;
+}
+
+float nebula_impl(float3 p) {
+	const int steps = 6;
+	float scale = pow(2.0, float(steps));
+	float3 displace = 0;
+	for (int i = 0; i < steps; i++) {
+		displace = float3(
+			nebula_noise(p.xyz * scale + displace),
+			nebula_noise(p.yzx * scale + displace),
+			nebula_noise(p.zxy * scale + displace)
+			);
+		scale *= 0.5;
+	}
+	return nebula_noise(p * scale + displace);
+}
+
+
+float nebula(float3 dir)
+{
+	float c = min(1.0, nebula_impl(dir));
+	c = pow(c, 6.0);
+	return c;
+}
+
+float3 star(float3 dir)
+{
+	float starProb = abs(fnoise(dir * 200));
+	starProb = max(0, starProb - 0.8);
+	starProb = pow(starProb, 0.1);
+
+	float starHue = abs(fnoise(dir * 1000)) * 2;
+
+	float whiteWeight = min(starProb, 1);
+
+	float inShadow = 1 - (0.3 * sin(_time * (starProb * 5.0) + starProb) + 0.7) * 1.5;
+
+	float3 starColor = lerp(hsvToRgb(starHue), 1, whiteWeight) * starProb;
+	starColor = lerp(starColor, 0, inShadow);
+
+	return starColor;
+}
+
+float3 getColor(float3 dir)
+{
+	float3 finalColor = 0;
+
+	finalColor += float3(0.75, 0.56, 0.12) * nebula(dir);
+	finalColor += float3(0.23, 0.34, 0.56) * nebula(dir * 2 + 3);
+	finalColor += star(dir) * max(0, 1 - length(finalColor) * 3);
+
+	return finalColor;
+}
+
+RWTexture2D<float3> _FrontTex;
+RWTexture2D<float3> _BackTex;
+RWTexture2D<float3> _LeftTex;
+RWTexture2D<float3> _RightTex;
+RWTexture2D<float3> _UpTex;
+RWTexture2D<float3> _DownTex;
+
+[numthreads(16, 16, 1)]
+void main(uint3 id : SV_DispatchThreadID)
+{
+#define FACE id.z
+
+	float w, h;
+	_FrontTex.GetDimensions(w, h);
+	float2 uv = id.xy / float2(w - 1, h - 1);
+	uv = uv * 2 - 1;
+
+	float3 dir = 0;
+
+	switch (FACE)
+	{
+	case 0: // front
+		dir = float3(uv.xy, 1);
+		break;
+	case 1: // back
+		dir = float3(-uv.x, uv.y, -1);
+		break;
+	case 2: // left
+		dir = float3(1, uv.y, -uv.x);
+		break;
+	case 3: // right
+		dir = float3(-1, uv.y, uv.x);
+		break;
+	case 4: // up
+		dir = float3(uv.x, 1, -uv.y);
+		break;
+	case 5: // down
+		dir = float3(uv.x, -1, uv.y);
+		break;
+	}
+
+
+	dir = normalize(dir);
+
+	float3 color;
+	color = getColor(dir);
+	//color = sphereColor(dir);
+
+	// DEBUG
+	//color = (dir + 1) / 2;
+	//color = float3(1, 1, 1) / 6.0 * FACE;
+
+	switch (FACE)
+	{
+	case 0:
+		_FrontTex[id.xy] = color;
+		break;
+	case 1:
+		_BackTex[id.xy] = color;
+		break;
+	case 2:
+		_LeftTex[id.xy] = color;
+		break;
+	case 3:
+		_RightTex[id.xy] = color;
+		break;
+	case 4:
+		_UpTex[id.xy] = color;
+		break;
+	case 5:
+		_DownTex[id.xy] = color;
+		break;
+	}
+
+}

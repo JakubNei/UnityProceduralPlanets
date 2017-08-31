@@ -1,0 +1,25 @@
+﻿#pragma kernel main
+
+#include "Planet.Compute.cginc"
+
+
+
+RWTexture2D<float> _planetHeightMap;
+
+
+
+
+
+[numthreads(16, 16, 1)]
+void main(uint3 id : SV_DispatchThreadID)
+{
+	float2 uv = getUv(_planetHeightMap, id.xy);
+
+	float3 dir = baseMapUvToDirFromCenter(uv);
+
+	float height01 = getProceduralHeight01(dir);
+
+	height01 = clamp(height01, 0, 1);
+
+	_planetHeightMap[id.xy] = height01;
+}
