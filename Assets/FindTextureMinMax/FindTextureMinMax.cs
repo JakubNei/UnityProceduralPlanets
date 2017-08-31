@@ -17,7 +17,7 @@ public class FindTextureMinMax
 	{
 		get
 		{
-			return Resources.Load<ComputeShader>("findTextureMinMax");
+			return Resources.Load<ComputeShader>("FindTextureMinMax");
 		}
 	}
 

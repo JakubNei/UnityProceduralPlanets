@@ -6,7 +6,7 @@
 
 float _time;
 
-#include "classic-noise-4d.cginc"
+#include "ClassicNoise4D.cginc"
 
 
 // See derivation of noise functions by Morgan McGuire at https://www.shadertoy.com/view/4dS3Wd

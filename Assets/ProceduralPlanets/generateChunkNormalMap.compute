@@ -1,6 +1,6 @@
 ﻿#pragma kernel main
 
-#include "planet.compute.cginc"
+#include "Planet.Compute.cginc"
 
 Texture2D<float4> _chunkSlopeAndCurvatureMap;
 SamplerState sampler_chunkSlopeAndCurvatureMap;
@@ -15,6 +15,7 @@ float _heightMin;
 float _heightMax;
 int _numberOfVerticesOnEdge;
 float _slopeModifier;
+float _radiusStart;
 float _radiusHeightMapMultiplier;
 float _chunkRadius;
 
@@ -23,54 +24,13 @@ float3 _rangeUnitCubePosB;
 float3 _rangeUnitCubePosC;
 float3 _rangeUnitCubePosD;
 
+int _generation;
 
 
 
 
 
 RWTexture2D<float4> _chunkNormalMap;
-
-float2 getNormal(int2 idXy)
-{
-	int w, h;
-	_chunkHeightMap.GetDimensions(w, h);
-	float3 off = float3(-1, 0, 1) / (_numberOfVerticesOnEdge - 1);
-	float2 uv = idXy / float2(w - 1, h - 1);
-	// s00 __ s10 __ s20
-	//  |      |      |
-	// s01 __ s11 __ s21
-	//  |      |      |
-	// s02 __ s12 __ s22
-	float s00 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + off.xx, 0).r;
-	float s10 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + off.yx, 0).r;
-	float s20 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + off.zx, 0).r;
-
-	float s01 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + off.xy, 0).r;
-	float s11 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r;
-	float s21 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + off.zy, 0).r;
-
-	float s02 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + off.xz, 0).r;
-	float s12 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + off.yz, 0).r;
-	float s22 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv + off.zz, 0).r;
-
-	// modified https://en.wikipedia.org/wiki/Sobel_operator
-	//-1 __ 0 __ 1
-	// |    |    |
-	//-2 __ 0 __ 2
-	// |    |    |
-	//-1 __ 0 __ 1
-	//float sx = (s20 - s00) + (s21 - s01) * 2 + (s22 - s02);
-	float sx = s10 - s00;
-	//-1 __-2 __-1
-	// |    |    |
-	// 0 __ 0 __ 0
-	// |    |    |
-	// 1 __ 2 __ 1
-	//float sy = (s02 - s00) + (s12 - s10) * 2 + (s22 - s20);
-	float sy = s01 - s00;
-
-	return float2(sx, sy);
-}
 
 float2 getSlope(int2 idXy)
 {
@@ -114,37 +74,65 @@ float2 getSlope(int2 idXy)
 	return float2(sx, sy);
 }
 
+float3 getDir(float2 uv)
+{
+	float3 dir = lerp(
+		lerp(_rangeUnitCubePosA, _rangeUnitCubePosB, uv.x),
+		lerp(_rangeUnitCubePosD, _rangeUnitCubePosC, uv.x),
+		uv.y
+	);
+	return normalize(dir);
+}
+
 [numthreads(16, 16, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
+	float2 uv = getUv(_chunkHeightMap, id.xy);
+
+	float circumference = 2 * M_PI * _radiusStart;
+
+	circumference = 6280;
+
+	float lenX = acos(dot(getDir(float2(0, uv.y)), getDir(float2(1, uv.y)))) / 3.14 / 2.0 * circumference / 256.0;
+	float lenY = acos(dot(getDir(float2(uv.x, 0)), getDir(float2(uv.x, 1)))) / 3.14 / 2.0 * circumference / 256.0;
+
 	float2 slope = getSlope(id.xy);
 	float len = _chunkRadius / 256.0; // ~1.4 for root chunks
 	slope *= _radiusHeightMapMultiplier;
 
+	//len *= sqrt(sqrt(_generation + 1));
+	//slope = _chunkSlopeAndCurvatureMap[id.xy].xy;
+	//len = 0.5;
+
 	float3 slopeNormal = cross(
-		normalize(float3(len, 0, slope.x)),
-		normalize(float3(0, len, slope.y))
+		normalize(float3(lenX, 0, slope.x)),
+		normalize(float3(0, lenY, slope.y))
 	);
-	//normal = float3(slope.x, slope.y, 1);
+	slopeNormal = normalize(slopeNormal);
+
+
+	float3 dir = lerp(
+		lerp(_rangeUnitCubePosA, _rangeUnitCubePosB, uv.x),
+		lerp(_rangeUnitCubePosD, _rangeUnitCubePosC, uv.x),
+		uv.y
+	);
+	dir = normalize(dir);
+	dir = unitCubeToUnitSphere(dir);
+
+
+	float3 meshNormal = UNPACK_NORMAL(_chunkMeshNormals.SampleLevel(sampler_chunkMeshNormals, uv, 0).xyz);
+	meshNormal = normalize(meshNormal);
+
+	float3 normal;
 	
-	slope = getNormal(id.xy);
-	len = _chunkRadius / _numberOfVerticesOnEdge;
-	slope *= _radiusHeightMapMultiplier;
+	normal = slopeNormal - (meshNormal - dir);
+	//normal = slopeNormal;
 
-	float3 meshNormal = cross(
-		normalize(float3(len, 0, slope.x)),
-		normalize(float3(0, len, slope.y))
-	);
-
-	float3 normal = slopeNormal - meshNormal;
 	normal = normalize(normal);
-
-	//normal -= getNormal(id.xy);
-
 	normal = PACK_NORMAL(normal);
 
 	//DEBUG
-	normal = float3(0.5, 0.5, 1);
+	//normal = float3(0.5, 0.5, 1);
 
 	_chunkNormalMap[id.xy] = float4(normal, 1);
 

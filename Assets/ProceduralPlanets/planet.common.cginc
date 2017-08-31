@@ -6,7 +6,7 @@
 
 
 
-#include "noiseSimplex.cginc"
+#include "NoiseSimplex.cginc"
 
 #define MAX_INT 2147483647
 

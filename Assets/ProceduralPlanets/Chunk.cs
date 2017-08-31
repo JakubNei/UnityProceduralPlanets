@@ -275,6 +275,7 @@ public class Chunk
 		c.SetFloat("_radiusHeightMapMultiplier", planetConfig.radiusHeightMapMultiplier);
 
 		c.SetFloat("_chunkRadius", chunkRadius);
+		c.SetInt("_generation", (int)generation);
 
 		c.SetTexture(kernelIndex, "_planetHeightMap", planetConfig.planetHeightMap);
 		if (chunkHeightMap != null) c.SetTexture(kernelIndex, "_chunkHeightMap", chunkHeightMap);
@@ -551,14 +552,15 @@ public class Chunk
 			chunkDiffuseMap.wrapMode = TextureWrapMode.Clamp;
 			chunkDiffuseMap.filterMode = FilterMode.Trilinear;
 			chunkDiffuseMap.enableRandomWrite = true;
-			/*	chunkDiffuseMap.useMipMap = true;
-				chunkDiffuseMap.autoGenerateMips = false;
-				chunkDiffuseMap.antiAliasing = 8;*/
+			chunkDiffuseMap.useMipMap = true;
+			chunkDiffuseMap.autoGenerateMips = false;
+			chunkDiffuseMap.antiAliasing = 8;
 			chunkDiffuseMap.Create();
 		}
 
 		var c = chunkConfig.generateChunkDiffuseMap;
 		SetAll(c, 0);
+		c.SetFloat("_mipMapLevel", Mathf.Max(1, chunkRadius / 10.0f) - 1);
 		c.SetTexture(0, "_grass", chunkConfig.grass);
 		c.SetTexture(0, "_clay", chunkConfig.clay);
 		c.SetTexture(0, "_rock", chunkConfig.rock);

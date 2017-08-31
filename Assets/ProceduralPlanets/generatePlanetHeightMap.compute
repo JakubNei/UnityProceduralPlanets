@@ -1,6 +1,6 @@
 ﻿#pragma kernel main
 
-#include "planet.compute.cginc"
+#include "Planet.Compute.cginc"
 
 
 

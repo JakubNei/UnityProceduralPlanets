@@ -1,7 +1,7 @@
 ﻿#pragma kernel parentExists
 #pragma kernel parentDoesNotExist
 
-#include "planet.compute.cginc"
+#include "Planet.Compute.cginc"
 
 
 
@@ -70,7 +70,10 @@ void parentExists(uint3 id : SV_DispatchThreadID)
 	
 	float2 uv = getUv(_chunkHeightMap, id.xy);
 	float2 parentSlope = _parentChunkSlopeAndCurvatureMap.SampleLevel(sampler_parentChunkSlopeAndCurvatureMap, uv / 2.0 + _uvOffsetInParent, 0).xy;
-	//slope = slope * 0.3 + parentSlope * 0.7;
+	slope = lerp(parentSlope, slope, 0.02);
+
+	//DEBUG
+	//slope = parentSlope;
 
 	_chunkSlopeAndCurvatureMap[id.xy] = float4(slope, 0, 0);
 }

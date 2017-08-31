@@ -1,7 +1,7 @@
 ﻿#pragma kernel generateUsingPlanetGlobalPos
 //#pragma kernel generateUsingChunkLocalPos
 
-#include "planet.compute.cginc"
+#include "Planet.Compute.cginc"
 
 
 
@@ -40,7 +40,7 @@ void generateUsingPlanetGlobalPos(uint3 id : SV_DispatchThreadID)
 		uv.y
 	);
 
-	float3 dirNorm = unitCubeToUnitSphere(unitCubePos);
+	float3 dir = unitCubeToUnitSphere(unitCubePos);
 
 	double height = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r;
 	height = height * (_heightMax - _heightMin) + _heightMin;
@@ -52,7 +52,7 @@ void generateUsingPlanetGlobalPos(uint3 id : SV_DispatchThreadID)
 	//height = clamp(height, 0, 1000);
 
 
-	_vertices[id.x + id.y * _numberOfVerticesOnEdge] = dirNorm * height;
+	_vertices[id.x + id.y * _numberOfVerticesOnEdge] = dir * height;
 }
 
 /*
