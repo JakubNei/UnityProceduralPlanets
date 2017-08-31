@@ -315,7 +315,7 @@ MonoBehaviour:
     seaLevel01: 0.5
   chunkConfig:
     useSkirts: 0
-    numberOfVerticesOnEdge: 20
+    numberOfVerticesOnEdge: 10
     weightNeededToSubdivide: 0.6
     stopSegmentRecursionAtWorldSize: 2
     destroyGameObjectIfNotVisibleForSeconds: 5
