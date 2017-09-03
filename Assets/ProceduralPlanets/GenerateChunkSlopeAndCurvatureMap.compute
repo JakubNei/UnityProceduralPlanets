@@ -12,7 +12,6 @@ float _slopeModifier;
 
 Texture2D<float4> _parentChunkSlopeAndCurvatureMap;
 SamplerState sampler_parentChunkSlopeAndCurvatureMap;
-
 float2 _uvOffsetInParent;
 
 
@@ -20,10 +19,9 @@ float2 _uvOffsetInParent;
 RWTexture2D<float4> _chunkSlopeAndCurvatureMap;
 
 
-float2 getSlope(int2 idXy)
+
+float2 getSlope(int2 idXy, int w, int h)
 {
-	int w, h;
-	_chunkHeightMap.GetDimensions(w, h);
 	int3 off = int3(-1, 0, 1);
 	int2 s11pos = idXy;
 	s11pos = max(s11pos, int2(1, 1));
@@ -65,10 +63,13 @@ float2 getSlope(int2 idXy)
 [numthreads(16, 16, 1)]
 void parentExists(uint3 id : SV_DispatchThreadID)
 {
-	float2 slope = getSlope(id.xy);
+	int w, h;
+	_chunkSlopeAndCurvatureMap.GetDimensions(w, h);
+	float2 uv = id.xy / float2(w - 1, h - 1);
+
+	float2 slope = getSlope(id.xy, w, h);
 	slope *= _slopeModifier;
-	
-	float2 uv = getUv(_chunkHeightMap, id.xy);
+
 	float2 parentSlope = _parentChunkSlopeAndCurvatureMap.SampleLevel(sampler_parentChunkSlopeAndCurvatureMap, uv / 2.0 + _uvOffsetInParent, 0).xy;
 	slope = lerp(parentSlope, slope, 0.02);
 
@@ -82,7 +83,10 @@ void parentExists(uint3 id : SV_DispatchThreadID)
 [numthreads(16, 16, 1)]
 void parentDoesNotExist(uint3 id : SV_DispatchThreadID)
 {
-	float2 slope = getSlope(id.xy);
+	int w, h;
+	_chunkSlopeAndCurvatureMap.GetDimensions(w, h);
+
+	float2 slope = getSlope(id.xy, w, h);
 	slope *= _slopeModifier;
 
 	_chunkSlopeAndCurvatureMap[id.xy] = float4(slope, 0, 0);

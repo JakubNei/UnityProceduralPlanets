@@ -497,13 +497,6 @@ public class Chunk
 	void UploadMesh()
 	{
 		mesh.UploadMeshData(false);
-
-		chunkMeshNormals = new RenderTexture(NormalMapResolution, NormalMapResolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
-		chunkMeshNormals.enableRandomWrite = true;
-		chunkMeshNormals.wrapMode = TextureWrapMode.Clamp;
-		chunkMeshNormals.filterMode = FilterMode.Bilinear;
-		chunkMeshNormals.Create();
-		RenderNormalsToTexture.Render(mesh, chunkMeshNormals);
 	}
 
 
@@ -526,9 +519,8 @@ public class Chunk
 		}
 
 		SetAll(c, 0);
-		c.SetFloat("_normalLength", chunkRadius / chunkNormalMap.width);
 		c.SetFloat("_heightMapRealRange", planetConfig.radiusHeightMapMultiplier);
-		c.SetTexture(0, "_chunkMeshNormals", chunkMeshNormals);
+		c.SetFloat("_normalLength", chunkRadius / chunkNormalMap.width);
 
 		c.SetTexture(0, "_chunkNormalMap", chunkNormalMap);
 		c.Dispatch(0, chunkNormalMap.width / 16, chunkNormalMap.height / 16, 1);

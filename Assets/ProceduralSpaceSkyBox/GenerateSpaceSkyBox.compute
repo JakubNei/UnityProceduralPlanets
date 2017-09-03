@@ -1,10 +1,11 @@
 ﻿#pragma kernel main
 
 // inspired by and parts copied from: 
-// https://wwwtyro.github.io/space-3d/
+// https://wwwtyro.github.io/space-3d/ (source: https://github.com/wwwtyro/space-3d)
 // https://www.shadertoy.com/view/4sBXzG
 
 float _time;
+float3 _sunDir;
 
 #include "ClassicNoise4D.cginc"
 
@@ -102,7 +103,7 @@ float3 star(float3 dir)
 
 	float inShadow = 1 - (0.3 * sin(_time * (starProb * 5.0) + starProb) + 0.7) * 1.5;
 
-	float3 starColor = lerp(hsvToRgb(starHue), 1, whiteWeight) * starProb;
+	float3 starColor = lerp(hsvToRgb(float3(starHue, 0.8, 1)), 1, whiteWeight) * starProb;
 	starColor = lerp(starColor, 0, inShadow);
 
 	return starColor;
@@ -115,6 +116,9 @@ float3 getColor(float3 dir)
 	finalColor += float3(0.75, 0.56, 0.12) * nebula(dir);
 	finalColor += float3(0.23, 0.34, 0.56) * nebula(dir * 2 + 3);
 	finalColor += star(dir) * max(0, 1 - length(finalColor) * 3);
+
+	float sunWeight = 1 - smoothstep(0, 0.2, distance(_sunDir, dir));
+	finalColor = lerp(finalColor, float3(1, 1, 1), sunWeight);
 
 	return finalColor;
 }

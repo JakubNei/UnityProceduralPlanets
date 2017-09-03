@@ -14,6 +14,9 @@ public class GenerateAndSetSpaceSkyBox : MonoBehaviour
 
 	public int resolution = 2048;
 
+
+	public Light closestSun;
+
 	string[] textureNames =
 	{
 		"_FrontTex",
@@ -63,6 +66,7 @@ public class GenerateAndSetSpaceSkyBox : MonoBehaviour
 	void Generate()
 	{
 		shader.SetFloat("_time", Time.realtimeSinceStartup);
+		shader.SetVector("_sunDir", -closestSun.transform.forward);
 
 		for (int i = 0; i < 6; i++)
 			shader.SetTexture(0, textureNames[i], skybox[i]);

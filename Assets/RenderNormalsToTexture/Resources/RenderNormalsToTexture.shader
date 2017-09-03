@@ -1,4 +1,4 @@
-﻿﻿Shader "Custom/Procedural Planets/renderNormalsToTexture" {
+﻿﻿Shader "Custom/Render Normals To Texture" {
 	SubShader{
 		Pass{
 		ZWrite On

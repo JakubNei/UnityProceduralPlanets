@@ -156,7 +156,7 @@ Skybox:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 48616960}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CustomSkybox: {fileID: 2100000, guid: 8404d974f0217f14a93cd04abd1c70d5, type: 2}
 --- !u!20 &48616964
 Camera:
@@ -267,7 +267,7 @@ MonoBehaviour:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 48616960}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e1fb81e6b0840644abd06325990290de, type: 3}
   m_Name: 
@@ -277,6 +277,7 @@ MonoBehaviour:
   - {fileID: 0}
   refreshKey: 98
   resolution: 2048
+  closestSun: {fileID: 1926511766}
 --- !u!1 &1141529112
 GameObject:
   m_ObjectHideFlags: 0
