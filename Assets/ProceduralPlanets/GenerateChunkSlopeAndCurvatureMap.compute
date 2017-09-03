@@ -71,7 +71,7 @@ void parentExists(uint3 id : SV_DispatchThreadID)
 	slope *= _slopeModifier;
 
 	float2 parentSlope = _parentChunkSlopeAndCurvatureMap.SampleLevel(sampler_parentChunkSlopeAndCurvatureMap, uv / 2.0 + _uvOffsetInParent, 0).xy;
-	slope = lerp(parentSlope, slope, 0.02);
+	slope = lerp(parentSlope, slope, 0.05);
 
 	//DEBUG
 	//slope = parentSlope;

@@ -45,7 +45,7 @@ RWTexture2D<float4> _chunkDiffuseMap;
 float3 triPlanar(Texture2D tex, SamplerState samp, float3 pos, float3 normal, float scale)
 {
 
-	float3 blendWeights = pow(abs(normal), float3(20, 20, 20));
+	float3 blendWeights = pow(abs(normal), 5);
 	blendWeights /= blendWeights.x + blendWeights.y + blendWeights.z;
 
 	return
