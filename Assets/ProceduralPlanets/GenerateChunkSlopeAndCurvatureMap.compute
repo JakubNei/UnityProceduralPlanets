@@ -13,7 +13,7 @@ float _slopeModifier;
 Texture2D<float4> _parentChunkSlopeAndCurvatureMap;
 SamplerState sampler_parentChunkSlopeAndCurvatureMap;
 float2 _uvOffsetInParent;
-
+int _generation;
 
 
 RWTexture2D<float4> _chunkSlopeAndCurvatureMap;
@@ -24,40 +24,24 @@ float2 getSlope(int2 idXy, int w, int h)
 {
 	int3 off = int3(-1, 0, 1);
 	int2 s11pos = idXy;
-	s11pos = max(s11pos, int2(1, 1));
-	s11pos = min(s11pos, int2(w - 2, h - 2));
-	// s00 __ s10 __ s20
-	//  |      |      |
-	// s01 __ s11 __ s21
-	//  |      |      |
-	// s02 __ s12 __ s22
-	float s00 = _chunkHeightMap[s11pos + off.xx].r;
-	float s10 = _chunkHeightMap[s11pos + off.yx].r;
-	float s20 = _chunkHeightMap[s11pos + off.zx].r;
 
-	float s01 = _chunkHeightMap[s11pos + off.xy].r;
-	float s11 = _chunkHeightMap[s11pos].r;
-	float s21 = _chunkHeightMap[s11pos + off.zy].r;
+	int size = (_generation + 1) * 4;
+	s11pos = max(s11pos, int2(size, size));
+	s11pos = min(s11pos, int2(w - 1 - size, h - 1 - size));
 
-	float s02 = _chunkHeightMap[s11pos + off.xz].r;
-	float s12 = _chunkHeightMap[s11pos + off.yz].r;
-	float s22 = _chunkHeightMap[s11pos + off.zz].r;
+	float sx = 0;
+	float sy = 0;
 
-	// modified https://en.wikipedia.org/wiki/Sobel_operator
-	//-1 __ 0 __ 1
-	// |    |    |
-	//-2 __ 0 __ 2
-	// |    |    |
-	//-1 __ 0 __ 1
-	float sx = (s20 - s00) + (s21 - s01) * 2 + (s22 - s02);
-	//-1 __-2 __-1
-	// |    |    |
-	// 0 __ 0 __ 0
-	// |    |    |
-	// 1 __ 2 __ 1
-	float sy = (s02 - s00) + (s12 - s10) * 2 + (s22 - s20);
+	for (int i = 1; i <= size; i++) {
+		sx += _chunkHeightMap[s11pos + int2(i, 0)].r;
+		sx -= _chunkHeightMap[s11pos - int2(i, 0)].r;
 
-	return float2(sx, sy);
+		sy += _chunkHeightMap[s11pos + int2(0, i)].r;
+		sy -= _chunkHeightMap[s11pos - int2(0, i)].r;
+	}
+
+
+	return float2(sx, sy) / size / size * 7;
 }
 
 [numthreads(16, 16, 1)]
@@ -67,11 +51,14 @@ void parentExists(uint3 id : SV_DispatchThreadID)
 	_chunkSlopeAndCurvatureMap.GetDimensions(w, h);
 	float2 uv = id.xy / float2(w - 1, h - 1);
 
-	float2 slope = getSlope(id.xy, w, h);
-	slope *= _slopeModifier;
+	float2 childSlope = getSlope(id.xy, w, h);
+	childSlope *= _slopeModifier;
 
 	float2 parentSlope = _parentChunkSlopeAndCurvatureMap.SampleLevel(sampler_parentChunkSlopeAndCurvatureMap, uv / 2.0 + _uvOffsetInParent, 0).xy;
-	slope = lerp(parentSlope, slope, 0.05);
+	
+
+	float2 slope = lerp(parentSlope, childSlope, 0.5);
+	//float2 slope = childSlope; 
 
 	//DEBUG
 	//slope = parentSlope;

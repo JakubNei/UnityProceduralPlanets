@@ -32,8 +32,8 @@ int _slopeModifier;
 
 float _heightMin;
 float _heightMax;
-
-float _radiusStart;
+float _planetRadiusStart;
+float _planetRadiusHeightMapMultiplier;
 
 float _mipMapLevel;
 
@@ -92,15 +92,18 @@ void main(uint3 id : SV_DispatchThreadID)
 	);
 	dir = unitCubeToUnitSphere(dir);
 	
-	float3 pos = dir * _radiusStart;
-	float3 normal = _chunkNormalMap[id.xy];	
+	float height01 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r;
+	height01 = height01 * (_heightMax - _heightMin) + _heightMin;
+	float heightReal = height01 * _planetRadiusHeightMapMultiplier;
+	heightReal += _planetRadiusStart;
+
+	float3 pos = dir * heightReal;
+	float3 normal = UNPACK_NORMAL(_chunkNormalMap[id.xy]);
 
 	float2 slopeXY = _chunkSlopeAndCurvatureMap[id.xy];
 	float slope = length(slopeXY);
 
-	float height = _chunkHeightMap[id.xy] * (_heightMax - _heightMin);
-
-	float altidute = height;
+	float altidute = height01;
 	float distanceToPoles = smoothstep(0.4, 1, abs(dir.z));
 	float snowWeight = altidute + distanceToPoles + snoise(dir * 100, 5, 2) * 0.1;
 	

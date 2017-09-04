@@ -42,7 +42,7 @@ void generateUsingPlanetGlobalPos(uint3 id : SV_DispatchThreadID)
 
 	float3 dir = unitCubeToUnitSphere(unitCubePos);
 
-	double height = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r;
+	float height = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r;
 	height = height * (_heightMax - _heightMin) + _heightMin;
 	height *= _planetRadiusHeightMapMultiplier;
 	height += _planetRadiusStart;

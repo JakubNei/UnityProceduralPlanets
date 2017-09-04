@@ -274,6 +274,9 @@ public class Chunk
 		c.SetFloat("_radiusStart", planetConfig.radiusStart);
 		c.SetFloat("_radiusHeightMapMultiplier", planetConfig.radiusHeightMapMultiplier);
 
+		c.SetFloat("_planetRadiusStart", planetConfig.radiusStart);
+		c.SetFloat("_planetRadiusHeightMapMultiplier", planetConfig.radiusHeightMapMultiplier);
+
 		c.SetFloat("_chunkRadius", chunkRadius);
 		c.SetInt("_generation", (int)generation);
 
@@ -350,6 +353,10 @@ public class Chunk
 				chunkHeightMap = new RenderTexture(HeightMapResolution, HeightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
 				chunkHeightMap.wrapMode = TextureWrapMode.Clamp;
 				chunkHeightMap.filterMode = FilterMode.Bilinear;
+				/*chunkHeightMap.enableRandomWrite = true;
+				chunkHeightMap.useMipMap = true;
+				chunkHeightMap.autoGenerateMips = false;
+				chunkHeightMap.antiAliasing = 8;*/
 				chunkHeightMap.enableRandomWrite = true;
 				chunkHeightMap.Create();
 			}
@@ -360,6 +367,8 @@ public class Chunk
 
 			c.SetTexture(0, "_chunkHeightMapNew", chunkHeightMap);
 			c.Dispatch(0, chunkHeightMap.width / 16, chunkHeightMap.height / 16, 1);
+
+			if (chunkHeightMap.useMipMap) chunkHeightMap.GenerateMips();
 
 			GenerateSlopeAndCurvatureMap(chunkHeightMap);
 		}
