@@ -10,22 +10,37 @@
 //               https://github.com/stegu/webgl-noise
 // 
 
+#ifndef NOISE_SIMPLEX_3D_GRADIENT
+#define NOISE_SIMPLEX_3D_GRADIENT
+
+#ifndef NOISE_3_MOD289_3
+#define NOISE_3_MOD289_3
 float3 mod289(float3 x) {
   return x - floor(x * (1.0 / 289.0)) * 289.0;
 }
+#endif
 
+#ifndef NOISE_4_MOD289_4
+#define NOISE_4_MOD289_4
 float4 mod289(float4 x) {
   return x - floor(x * (1.0 / 289.0)) * 289.0;
 }
+#endif
 
+#ifndef NOISE_4_PERMUTE_4
+#define NOISE_4_PERMUTE_4
 float4 permute(float4 x) {
      return mod289(((x*34.0)+1.0)*x);
 }
+#endif
 
+#ifndef NOISE_4_TAYLORINVSQRT_4
+#define NOISE_4_TAYLORINVSQRT_4
 float4 taylorInvSqrt(float4 r)
 {
   return 1.79284291400159 - 0.85373472095314 * r;
 }
+#endif
 
 float snoise(float3 v, out float3 gradient)
 {
@@ -78,7 +93,7 @@ float snoise(float3 v, out float3 gradient)
   //float4 s1 = float4(lessThan(b1,0.0))*2.0 - 1.0;
   float4 s0 = floor(b0)*2.0 + 1.0;
   float4 s1 = floor(b1)*2.0 + 1.0;
-  float4 sh = -step(h, float4(0.0));
+  float4 sh = -step(h, float4(0.0, 0.0, 0.0, 0.0));
 
   float4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;
   float4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;
@@ -109,3 +124,5 @@ float snoise(float3 v, out float3 gradient)
 
   return 42.0 * dot(m4, pdotx);
 }
+
+#endif

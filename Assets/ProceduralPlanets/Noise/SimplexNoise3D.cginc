@@ -20,25 +20,40 @@
 //               https://github.com/ashima/webgl-noise
 //
 
+#ifndef NOISE_SIMPLEX_3D
+#define NOISE_SIMPLEX_3D
+
+#ifndef NOISE_3_MOD289_3
+#define NOISE_3_MOD289_3
 float3 mod289(float3 x)
 {
     return x - floor(x / 289.0) * 289.0;
 }
+#endif
 
+#ifndef NOISE_4_MOD289_4
+#define NOISE_4_MOD289_4
 float4 mod289(float4 x)
 {
     return x - floor(x / 289.0) * 289.0;
 }
+#endif
 
+#ifndef NOISE_4_PERMUTE_4
+#define NOISE_4_PERMUTE_4
 float4 permute(float4 x)
 {
     return mod289((x * 34.0 + 1.0) * x);
 }
+#endif
 
+#ifndef NOISE_4_TAYLORINVSQRT_4
+#define NOISE_4_TAYLORINVSQRT_4
 float4 taylorInvSqrt(float4 r)
 {
     return 1.79284291400159 - r * 0.85373472095314;
 }
+#endif
 
 float snoise(float3 v)
 {
@@ -190,3 +205,5 @@ float4 snoise_grad(float3 v)
     float4 px = float4(dot(x0, g0), dot(x1, g1), dot(x2, g2), dot(x3, g3));
     return 42.0 * float4(grad, dot(m4, px));
 }
+
+#endif

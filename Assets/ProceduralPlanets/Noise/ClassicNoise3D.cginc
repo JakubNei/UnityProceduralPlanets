@@ -22,35 +22,55 @@
 // Distributed under the MIT license. See LICENSE file.
 // https://github.com/ashima/webgl-noise
 //
+#ifndef NOISE_CLASSIC_3D
+#define NOISE_CLASSIC_3D
 
+#ifndef NOISE_3_MOD_3_3
+#define NOISE_3_MOD_3_3
 float3 mod(float3 x, float3 y)
 {
   return x - y * floor(x / y);
 }
+#endif
 
+#ifndef NOISE_3_MOD289_3
+#define NOISE_3_MOD289_3
 float3 mod289(float3 x)
 {
   return x - floor(x / 289.0) * 289.0;
 }
+#endif
 
+#ifndef NOISE_4_MOD289_4
+#define NOISE_4_MOD289_4
 float4 mod289(float4 x)
 {
   return x - floor(x / 289.0) * 289.0;
 }
+#endif
 
+#ifndef NOISE_4_PERMUTE_4
+#define NOISE_4_PERMUTE_4
 float4 permute(float4 x)
 {
   return mod289(((x*34.0)+1.0)*x);
 }
+#endif
 
+#ifndef NOISE_4_TAYLORINVSQRT_4
+#define NOISE_4_TAYLORINVSQRT_4
 float4 taylorInvSqrt(float4 r)
 {
   return (float4)1.79284291400159 - r * 0.85373472095314;
 }
+#endif
 
+#ifndef NOISE_3_FADE_3
+#define NOISE_3_FADE_3
 float3 fade(float3 t) {
   return t*t*t*(t*(t*6.0-15.0)+10.0);
 }
+#endif
 
 // Classic Perlin noise
 float cnoise(float3 P)
@@ -192,3 +212,5 @@ float pnoise(float3 P, float3 rep)
   float n_xyz = lerp(n_yz.x, n_yz.y, fade_xyz.x);
   return 2.2 * n_xyz;
 }
+
+#endif

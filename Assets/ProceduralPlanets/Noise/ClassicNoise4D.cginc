@@ -12,24 +12,39 @@
 // https://github.com/ashima/webgl-noise
 //
 
+#ifndef NOISE_CLASSIC_4D
+#define NOISE_CLASSIC_4D
+
+#ifndef NOISE_4_MOD289_4
+#define NOISE_4_MOD289_4
 float4 mod289(float4 x)
 {
 	return x - floor(x * (1.0 / 289.0)) * 289.0;
 }
+#endif
 
+#ifndef NOISE_4_PERMUTE_4
+#define NOISE_4_PERMUTE_4
 float4 permute(float4 x)
 {
 	return mod289(((x*34.0) + 1.0)*x);
 }
+#endif
 
+#ifndef NOISE_4_TAYLORINVSQRT_4
+#define NOISE_4_TAYLORINVSQRT_4
 float4 taylorInvSqrt(float4 r)
 {
 	return 1.79284291400159 - 0.85373472095314 * r;
 }
+#endif
 
+#ifndef NOISE_4_FADE_4
+#define NOISE_4_FADE_4
 float4 fade(float4 t) {
 	return t*t*t*(t*(t*6.0 - 15.0) + 10.0);
 }
+#endif
 
 // Classic Perlin noise
 float cnoise(float4 P)
@@ -300,3 +315,5 @@ float pnoise(float4 P, float4 rep)
 	float n_xyzw = lerp(n_yzw.x, n_yzw.y, fade_xyzw.x);
 	return 2.2 * n_xyzw;
 }
+
+#endif
