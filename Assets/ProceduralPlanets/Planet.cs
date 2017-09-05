@@ -60,7 +60,7 @@ public partial class Planet : MonoBehaviour
 
 	public Vector3 Center { get { return transform.position; } }
 
-	void Start()
+	void Awake()
 	{
 		allPlanets.Add(this);
 		GeneratePlanetData();

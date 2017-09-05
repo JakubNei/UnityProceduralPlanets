@@ -223,12 +223,12 @@ MonoBehaviour:
   mouseSensitivty: 100
   speedBasedOnDistanceToPlanet: 1
   distanceToClosestPlanet: 0
-  cameraSpeedModifier: 50
+  cameraSpeedModifier: 30
   currentVelocity: {x: 0, y: 0, z: 0}
-  walkOnPlanet: 0
+  walkOnPlanet: 1
   walkOnPlanet_lastUp: {x: 0, y: 0, z: 0}
   walkOnPlanet_lastForward: {x: 0, y: 0, z: 0}
-  walkOnPlanet_isFirstRun: 0
+  walkOnPlanet_isFirstRun: 1
   walkOnPlanet_clampUpDownRotation: 1
   walkOnPlanet_applyGravity: 1
   savedPosition1: {x: 0, y: 0, z: 0}
@@ -292,10 +292,10 @@ Light:
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Intensity: 1
   m_Range: 100
-  m_SpotAngle: 100
+  m_SpotAngle: 70
   m_CookieSize: 10
   m_Shadows:
-    m_Type: 2
+    m_Type: 0
     m_Resolution: -1
     m_CustomResolution: -1
     m_Strength: 1
