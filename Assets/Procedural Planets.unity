@@ -128,6 +128,7 @@ GameObject:
   - component: {fileID: 48616968}
   - component: {fileID: 48616969}
   - component: {fileID: 48616963}
+  - component: {fileID: 48616970}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -156,7 +157,7 @@ Skybox:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 48616960}
-  m_Enabled: 0
+  m_Enabled: 1
   m_CustomSkybox: {fileID: 2100000, guid: 8404d974f0217f14a93cd04abd1c70d5, type: 2}
 --- !u!20 &48616964
 Camera:
@@ -229,11 +230,12 @@ MonoBehaviour:
   walkOnPlanet_lastForward: {x: 0, y: 0, z: 0}
   walkOnPlanet_isFirstRun: 0
   walkOnPlanet_clampUpDownRotation: 1
-  walkOnPlanet_clampToPlanetSurface: 1
+  walkOnPlanet_applyGravity: 1
   savedPosition1: {x: 0, y: 0, z: 0}
   savedRotation1: {x: 0, y: 0, z: 0, w: 0}
   savedPosition2: {x: 0, y: 0, z: 0}
   savedRotation2: {x: 0, y: 0, z: 0, w: 0}
+  physicMaterial: {fileID: 0}
 --- !u!54 &48616967
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -241,8 +243,8 @@ Rigidbody:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 48616960}
   serializedVersion: 2
-  m_Mass: 1
-  m_Drag: 5
+  m_Mass: 60
+  m_Drag: 1
   m_AngularDrag: 0.05
   m_UseGravity: 0
   m_IsKinematic: 0
@@ -267,7 +269,7 @@ MonoBehaviour:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 48616960}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e1fb81e6b0840644abd06325990290de, type: 3}
   m_Name: 
@@ -278,6 +280,42 @@ MonoBehaviour:
   refreshKey: 98
   resolution: 2048
   closestSun: {fileID: 1926511766}
+--- !u!108 &48616970
+Light:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 48616960}
+  m_Enabled: 0
+  serializedVersion: 8
+  m_Type: 0
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Intensity: 1
+  m_Range: 100
+  m_SpotAngle: 100
+  m_CookieSize: 10
+  m_Shadows:
+    m_Type: 2
+    m_Resolution: -1
+    m_CustomResolution: -1
+    m_Strength: 1
+    m_Bias: 0.05
+    m_NormalBias: 0.4
+    m_NearPlane: 0.2
+  m_Cookie: {fileID: 0}
+  m_DrawHalo: 0
+  m_Flare: {fileID: 0}
+  m_RenderMode: 0
+  m_CullingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_Lightmapping: 4
+  m_AreaSize: {x: 1, y: 1}
+  m_BounceIntensity: 1
+  m_ColorTemperature: 6570
+  m_UseColorTemperature: 0
+  m_ShadowRadius: 0
+  m_ShadowAngle: 0
 --- !u!1 &1141529112
 GameObject:
   m_ObjectHideFlags: 0

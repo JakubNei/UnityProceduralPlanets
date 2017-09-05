@@ -20,7 +20,7 @@ public class PlanetAffectedCamera : MonoBehaviour
 	public Vector3 walkOnPlanet_lastForward;
 	public bool walkOnPlanet_isFirstRun;
 	public bool walkOnPlanet_clampUpDownRotation = true;
-	public bool walkOnPlanet_clampToPlanetSurface = true;
+	public bool walkOnPlanet_applyGravity = true;
 
 	Camera cam { get { return GetComponent<Camera>(); } }
 
@@ -43,6 +43,14 @@ public class PlanetAffectedCamera : MonoBehaviour
 
 	void Start()
 	{
+		physicMaterial = new PhysicMaterial()
+		{
+			frictionCombine = PhysicMaterialCombine.Minimum,
+			bounceCombine = PhysicMaterialCombine.Minimum,
+		};
+		foreach (var c in GetComponentsInChildren<Collider>())
+			c.sharedMaterial = physicMaterial;
+
 
 		var planet = GetClosestPlanet(transform.position);
 		if (planet != null)
@@ -51,7 +59,7 @@ public class PlanetAffectedCamera : MonoBehaviour
 			transform.position = new Vector3(-planet.planetConfig.radiusStart * 2, 0, 0) + planet.Center;
 		}
 
-		Update(0.1f); // spool up
+		UpdatePosition(0.1f); // spool up	
 	}
 
 	public Vector3 savedPosition1;
@@ -60,17 +68,27 @@ public class PlanetAffectedCamera : MonoBehaviour
 	public Vector3 savedPosition2;
 	public Quaternion savedRotation2;
 
+	public PhysicMaterial physicMaterial;
 
-	private void Update()
+
+	private void FixedUpdate()
 	{
-		Update(Time.deltaTime);
+		UpdatePosition(Time.fixedDeltaTime);
+		ApplyGravity();
 	}
-	void Update(float deltaTime)
+	void UpdatePosition(float deltaTime)
 	{
 		if (deltaTime > 1 / 30f) deltaTime = 1 / 30f;
 
 		var rotation = transform.rotation;
 		var position = transform.position;
+
+		var rb = GetComponent<Rigidbody>();
+		if (rb)
+		{
+			rotation = rb.rotation;
+			position = rb.position;
+		}
 
 
 		if (Input.GetKeyDown(KeyCode.F5))
@@ -119,7 +137,8 @@ public class PlanetAffectedCamera : MonoBehaviour
 			{
 				Scene.Engine.WindowState = WindowState.Normal;
 			}
-			else*/ if (!Cursor.visible)
+			else*/
+			if (!Cursor.visible)
 			{
 				Cursor.lockState = CursorLockMode.None;
 				Cursor.visible = true;
@@ -142,7 +161,7 @@ public class PlanetAffectedCamera : MonoBehaviour
 
 		float planetSpeedModifier = 1;
 
-		if (planet != null)
+		if (planet != null && !walkOnPlanet)
 		{
 			RaycastHit hit;
 			if (Physics.Raycast(position, planet.Center - position, out hit))
@@ -171,10 +190,11 @@ public class PlanetAffectedCamera : MonoBehaviour
 
 
 			var targetForce = Vector3.zero;
-			targetForce += currentSpeed * Vector3.forward * Input.GetAxis("Vertical");
-			targetForce += currentSpeed * Vector3.right * Input.GetAxis("Horizontal");
-			if (Input.GetKey(KeyCode.Space)) targetForce += currentSpeed * Vector3.up;
-			if (Input.GetKey(KeyCode.LeftControl)) targetForce -= currentSpeed * Vector3.up;
+			targetForce += Vector3.forward * Input.GetAxis("Vertical");
+			targetForce += Vector3.right * Input.GetAxis("Horizontal");
+			if (Input.GetKey(KeyCode.Space)) targetForce += Vector3.up;
+			if (Input.GetKey(KeyCode.LeftControl)) targetForce -= Vector3.up;
+			targetForce = targetForce.normalized * currentSpeed;
 
 			//var pos = Matrix4.CreateTranslation(targetVelocity);
 
@@ -263,24 +283,22 @@ public class PlanetAffectedCamera : MonoBehaviour
 			}
 
 
-			var rb = GetComponent<Rigidbody>();
-
-
 			targetForce = rotation * targetForce;
 
 
 			if (rb)
 			{
-				rb.AddForce(targetForce, ForceMode.Force);
+				// change fricton based on whether we want to move or not
+				var targetFriction = 1;
+				if (targetForce.sqrMagnitude > 0)
+					targetFriction = 0;
+				physicMaterial.dynamicFriction = targetFriction;
+				physicMaterial.staticFriction = targetFriction;
+
+				rb.AddForce(targetForce * rb.mass, ForceMode.Force);
 				rb.MoveRotation(rotation);
 
-				// make cam on top of the planet
-				if (planet != null && walkOnPlanet && walkOnPlanet_clampToPlanetSurface)
-				{
-					var gravityDir = (planet.Center - position).normalized;
-					rb.AddForce(gravityDir * 10, ForceMode.Force);
-				}
-
+				//rb.drag = Mathf.InverseLerp(100, 10, distanceToClosestPlanet);
 			}
 			/*else // UNTESTED
 			{
@@ -290,7 +308,30 @@ public class PlanetAffectedCamera : MonoBehaviour
 				transform.rotation = rotation;
 				transform.position = position; // += Entity.transform.position.Towards(position).ToVector3d() * deltaTime * 10;
 			}*/
+
+
+
+			// light toggle
+			if (Input.GetKeyDown(KeyCode.L))
+			{
+				foreach (var l in GetComponentsInChildren<Light>())
+					l.enabled = !l.enabled;
+			}
 		}
 
+	}
+
+	void ApplyGravity()
+	{
+		var pos = transform.position;
+		var rb = GetComponent<Rigidbody>();
+		var planet = GetClosestPlanet(pos);
+
+		// make cam on top of the planet
+		if (planet != null && rb && walkOnPlanet && walkOnPlanet_applyGravity)
+		{
+			var gravityDir = (planet.Center - pos).normalized;
+			rb.AddForce(gravityDir * 10 * rb.mass, ForceMode.Force);
+		}
 	}
 }

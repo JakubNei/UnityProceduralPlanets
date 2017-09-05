@@ -99,7 +99,7 @@ float3 star(float3 dir)
 
 	float starHue = abs(fnoise(dir * 1000)) * 2;
 
-	float whiteWeight = min(starProb, 1);
+	float whiteWeight = min(starProb, 1); 
 
 	float inShadow = 1 - (0.3 * sin(_time * (starProb * 5.0) + starProb) + 0.7) * 1.5;
 
@@ -117,8 +117,14 @@ float3 getColor(float3 dir)
 	finalColor += float3(0.23, 0.34, 0.56) * nebula(dir * 2 + 3);
 	finalColor += star(dir) * max(0, 1 - length(finalColor) * 3);
 
-	float sunWeight = 1 - smoothstep(0, 0.2, distance(_sunDir, dir));
-	finalColor = lerp(finalColor, float3(1, 1, 1), sunWeight);
+	// sun
+	const float sunSize = 0.1; // 0...1 range
+	float sunWeight = smoothstep(1 - sunSize, 1, saturate(dot(_sunDir, dir))) * 2; // 0..1 is sun corona, 1..2 is the actual sun
+	float3 sunColor = lerp(float3(1, 0.9, 0.3) * fnoise(normalize(dir-_sunDir)*10), float3(1, 0.9, 0.2 + fnoise(dir * 100) / 3), smoothstep(1, 1.5, sunWeight));
+	const float sunCoronaFallOffSpeed = 2;
+	finalColor = lerp(finalColor, sunColor, saturate(pow(saturate(sunWeight - 0.2), sunCoronaFallOffSpeed)));
+
+
 
 	return finalColor;
 }
