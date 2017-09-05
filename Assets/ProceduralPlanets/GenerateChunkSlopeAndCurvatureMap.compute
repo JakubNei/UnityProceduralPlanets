@@ -12,9 +12,9 @@ float _slopeModifier;
 
 Texture2D<float4> _parentChunkSlopeAndCurvatureMap;
 SamplerState sampler_parentChunkSlopeAndCurvatureMap;
-float2 _uvOffsetInParent;
+float2 _parentUvStart;
 int _generation;
-
+int _numberOfVerticesOnEdge;
 
 RWTexture2D<float4> _chunkSlopeAndCurvatureMap;
 
@@ -26,6 +26,12 @@ float2 getSlope(int2 idXy, int w, int h)
 	int2 s11pos = idXy;
 
 	int size = (_generation + 1) * 4;
+
+	size = min(size, w / (_numberOfVerticesOnEdge - 1));
+
+	//DEBUG
+	//size = 5;
+
 	s11pos = max(s11pos, int2(size, size));
 	s11pos = min(s11pos, int2(w - 1 - size, h - 1 - size));
 
@@ -54,11 +60,11 @@ void parentExists(uint3 id : SV_DispatchThreadID)
 	float2 childSlope = getSlope(id.xy, w, h);
 	childSlope *= _slopeModifier;
 
-	float2 parentSlope = _parentChunkSlopeAndCurvatureMap.SampleLevel(sampler_parentChunkSlopeAndCurvatureMap, uv / 2.0 + _uvOffsetInParent, 0).xy;
-	
+	float2 parentSlope = _parentChunkSlopeAndCurvatureMap.SampleLevel(sampler_parentChunkSlopeAndCurvatureMap, uv / 2.0 + _parentUvStart, 0).xy;
 
-	float2 slope = lerp(parentSlope, childSlope, 0.5);
-	//float2 slope = childSlope; 
+
+	//float2 slope = lerp(parentSlope, childSlope, 0.5);
+	float2 slope = childSlope;
 
 	//DEBUG
 	//slope = parentSlope;

@@ -286,6 +286,27 @@ public class Chunk
 		if (chunkSlopeAndCurvatureMap != null) c.SetTexture(kernelIndex, "_chunkSlopeAndCurvatureMap", chunkSlopeAndCurvatureMap);
 
 		c.SetFloat("_slopeModifier", SlopeModifier);
+
+
+
+		var parentUvStart = Vector2.zero;
+		if (childPosition == ChildPosition.TopLeft) parentUvStart = new Vector2(0, 0);
+		else if (childPosition == ChildPosition.TopRight) parentUvStart = new Vector2(0.5f, 0);
+		else if (childPosition == ChildPosition.BottomLeft) parentUvStart = new Vector2(0, 0.5f);
+		else if (childPosition == ChildPosition.BottomRight) parentUvStart = parentUvStart = new Vector2(0.5f, 0.5f);
+
+
+		if (chunkConfig.useSkirts)
+		{
+			var off = 1.0f / (chunkConfig.numberOfVerticesOnEdge - 1) / 2.0f;
+			if (childPosition == ChildPosition.TopLeft) parentUvStart += new Vector2(off, off);
+			else if (childPosition == ChildPosition.TopRight) parentUvStart += new Vector2(-off, off);
+			else if (childPosition == ChildPosition.BottomLeft) parentUvStart += new Vector2(off, -off);
+			else if (childPosition == ChildPosition.BottomRight) parentUvStart += new Vector2(-off, -off);
+		}
+
+		c.SetVector("_parentUvStart", parentUvStart);
+
 	}
 
 
@@ -390,13 +411,6 @@ public class Chunk
 			chunkSlopeAndCurvatureMap.Create();
 		}
 
-		var off = Vector2.zero;
-		if (childPosition == ChildPosition.TopLeft) off = new Vector2(0, 0);
-		else if (childPosition == ChildPosition.TopRight) off = new Vector2(0.5f, 0);
-		else if (childPosition == ChildPosition.BottomLeft) off = new Vector2(0, 0.5f);
-		else if (childPosition == ChildPosition.BottomRight) off = off = new Vector2(0.5f, 0.5f);
-
-		// uvInParentMap = myUv / 2.0 + off;
 
 		var c = chunkConfig.generateSlopeAndCurvatureMap;
 
@@ -405,7 +419,6 @@ public class Chunk
 		else kernelIndex = c.FindKernel("parentDoesNotExist");
 
 		SetAll(c, kernelIndex);
-		c.SetVector("_uvOffsetInParent", off);
 		if (parent != null)
 			c.SetTexture(kernelIndex, "_parentChunkSlopeAndCurvatureMap", parent.chunkSlopeAndCurvatureMap);
 		c.SetTexture(kernelIndex, "_chunkHeightMap", heightMap);
@@ -488,7 +501,7 @@ public class Chunk
 			var v = vertexCPUBuffer;
 			var verticesOnEdge = chunkConfig.numberOfVerticesOnEdge;
 
-			var decreaseSkirtsBy = -offsetFromPlanetCenter.ToVector3() / 10.0f;
+			var decreaseSkirtsBy = -offsetFromPlanetCenter.ToVector3().normalized * chunkRadius / 2.0f;
 			for (int i = 0; i < verticesOnEdge; i++)
 			{
 				v[i] += decreaseSkirtsBy; // top line
