@@ -8,8 +8,10 @@ public partial class Planet : MonoBehaviour
 	[System.Serializable]
 	public class PlanetConfig
 	{
-		public RenderTexture planetHeightMap;
+		public Texture planetHeightMap;
+
 		public ComputeShader generatePlanetHeightMap;
+		public int generatedPlanetHeightMapResolution = 2048;
 
 		public Texture2D biomesControlMap;
 		public ComputeShader generatePlanetBiomesData;
@@ -65,24 +67,29 @@ public partial class Planet : MonoBehaviour
 		allPlanets.Add(this);
 		GeneratePlanetData();
 		InitializeRootChildren();
-
-
 	}
 
 
 	void GeneratePlanetData()
 	{
+		if (planetConfig.planetHeightMap != null && !(planetConfig.planetHeightMap is RenderTexture))
+			return;
+
 		MyProfiler.BeginSample("Procedural Planet / Initialize planet & generate base height map");
 
-		const int resolution = 2048;
-		var height = planetConfig.planetHeightMap = new RenderTexture(resolution, resolution, 0, RenderTextureFormat.R8, RenderTextureReadWrite.Linear);
-		height.filterMode = FilterMode.Trilinear;
-		height.wrapMode = TextureWrapMode.Repeat;
-		height.enableRandomWrite = true;
-		height.Create();
+		if (planetConfig.planetHeightMap == null)
+		{
+			var heightMap = new RenderTexture(planetConfig.generatedPlanetHeightMapResolution, planetConfig.generatedPlanetHeightMapResolution, 0, RenderTextureFormat.R8, RenderTextureReadWrite.Linear);
+			heightMap.filterMode = FilterMode.Trilinear;
+			heightMap.wrapMode = TextureWrapMode.Repeat;
+			heightMap.enableRandomWrite = true;
+			heightMap.Create();
 
-		planetConfig.generatePlanetHeightMap.SetTexture(0, "_planetHeightMap", height);
-		planetConfig.generatePlanetHeightMap.Dispatch(0, height.width / 16, height.height / 16, 1);
+			planetConfig.planetHeightMap = heightMap;
+		}
+
+		planetConfig.generatePlanetHeightMap.SetTexture(0, "_planetHeightMap", planetConfig.planetHeightMap);
+		planetConfig.generatePlanetHeightMap.Dispatch(0, planetConfig.planetHeightMap.width / 16, planetConfig.planetHeightMap.height / 16, 1);
 
 		chunkVertexGPUBuffer = new ComputeBuffer(NumberOfVerticesNeededTotal, 3 * sizeof(float));
 		chunkVertexCPUBuffer = new Vector3[NumberOfVerticesNeededTotal];
@@ -94,6 +101,7 @@ public partial class Planet : MonoBehaviour
 	{
 		if (Input.GetKeyDown(KeyCode.R))
 		{
+			GeneratePlanetData();
 			MarkForRegeneration(rootChildren);
 		}
 	}
