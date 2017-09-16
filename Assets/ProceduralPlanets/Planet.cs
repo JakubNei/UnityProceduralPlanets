@@ -11,7 +11,7 @@ public partial class Planet : MonoBehaviour
 		public Texture planetHeightMap;
 
 		public ComputeShader generatePlanetHeightMap;
-		public int generatedPlanetHeightMapResolution = 2048;
+		public int generatedPlanetHeightMapResolution = 2048; // must be multiplier of 16
 
 		public Texture2D biomesControlMap;
 		public ComputeShader generatePlanetBiomesData;
@@ -28,7 +28,7 @@ public partial class Planet : MonoBehaviour
 		public int numberOfVerticesOnEdge = 20;
 		public float weightNeededToSubdivide = 0.70f;
 		public float stopSegmentRecursionAtWorldSize = 10;
-		public float destroyGameObjectIfNotVisibleForSeconds = 5;
+		public float cleanupChunkIfNotVisibleForSeconds = 30;
 		public bool createColliders = true;
 		public int textureResolution = 256; // must be multiplier of 16
 		public bool rescaleToMinMax = true;

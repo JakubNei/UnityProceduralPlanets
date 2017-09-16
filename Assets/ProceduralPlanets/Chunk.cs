@@ -11,11 +11,8 @@ public class Chunk
 
 	public ulong id;
 	public Chunk parent;
-	public ulong generation;
+	public ulong treeDepth;
 
-	//public Range rangePosRealSubdivided;
-	//public Range rangePosToGenerateInto;
-	//public Range rangeLocalPosToGenerateInto;
 	public Range rangeUnitCubePosRealSubdivided;
 	public Range rangeUnitCubePosToGenerateInto;
 	public Range rangePosToCalculateScreenSizeOn;
@@ -33,7 +30,7 @@ public class Chunk
 	public bool GenerateUsingPlanetGlobalPos { get { return true; } }
 	//public int SlopeModifier { get { return (int)Mathf.Pow(2, generation); } }
 	//public float SlopeModifier { get { return (float)((planetConfig.radiusStart / chunkRadius / 4 * (heightMapResolution / 1024.0)) / 44.0 * HeightRange); } }
-	public float SlopeModifier { get { return (float)(Mathf.Pow(2, generation) * (HeightMapResolution / 1024.0) * HeightRange); } }
+	public float SlopeModifier { get { return (float)(Mathf.Pow(2, treeDepth) * (HeightMapResolution / 1024.0) * HeightRange); } }
 	public float HeightRange { get { return heightMax - heightMin; } }
 
 	public Planet.PlanetConfig planetConfig { get { return planet.planetConfig; } }
@@ -90,7 +87,7 @@ public class Chunk
 		chunk.planet = planet;
 		chunk.id = id;
 		chunk.parent = parent;
-		chunk.generation = generation;
+		chunk.treeDepth = generation;
 		chunk.childPosition = childPosition;
 		chunk.rangeUnitCubePosRealSubdivided = range;
 
@@ -180,7 +177,7 @@ public class Chunk
 			parent: this,
 			range: range,
 			id: id << 2 | index,
-			generation: generation + 1,
+			generation: treeDepth + 1,
 			childPosition: cp
 		);
 
@@ -278,7 +275,7 @@ public class Chunk
 		c.SetFloat("_planetRadiusHeightMapMultiplier", planetConfig.radiusHeightMapMultiplier);
 
 		c.SetFloat("_chunkRadius", chunkRadius);
-		c.SetInt("_generation", (int)generation);
+		c.SetInt("_generation", (int)treeDepth);
 
 		c.SetTexture(kernelIndex, "_planetHeightMap", planetConfig.planetHeightMap);
 		if (chunkHeightMap != null) c.SetTexture(kernelIndex, "_chunkHeightMap", chunkHeightMap);
@@ -489,7 +486,7 @@ public class Chunk
 		mesh.name = this.ToString();
 		mesh.vertices = vertexCPUBuffer;
 		mesh.triangles = planet.GetSegmentIndicies();
-		mesh.uv = planet.GetSefgmentUVs();
+		mesh.uv = planet.GetChunkUVs();
 		mesh.RecalculateNormals();
 		mesh.RecalculateTangents();
 	}
@@ -633,21 +630,25 @@ public class Chunk
 		}
 	}
 
+	public void DestroyAllChildren()
+	{
+		foreach (var child in children)
+		{
+			child.Destroy();
+			child.DestroyAllChildren();
+		}
+		children.Clear();
+	}
+
 	public void MarkForRegeneration()
 	{
 		generationBegan = false;
 		isGenerationDone = false;
-		if (gameObject) GameObject.Destroy(gameObject);
-		lastVisible = false;
-	}
 
-	void DestroyData()
-	{
 		if (gameObject) GameObject.Destroy(gameObject);
-		if (mesh) Mesh.Destroy(mesh);
-		if (chunkNormalMap) chunkNormalMap.Release();
-		if (chunkDiffuseMap) chunkDiffuseMap.Release();
-		if (chunkHeightMap) chunkHeightMap.Release();
+		gameObject = null;
+
+		lastVisible = false;
 	}
 
 	void TryCreateGameObject()
@@ -706,31 +707,33 @@ public class Chunk
 			{
 				if (gameObject.activeSelf)
 				{
-					notRenderedTimeStamp = DateTime.UtcNow;
 					gameObject.SetActive(false);
-
-					// TODO: schedule CleanUpChance(); for execution in chunkConfig.destroyGameObjectIfNotVisibleForSeconds
-				}
-				else
-				{
-					CleanUpChance();
 				}
 			}
 		}
 	}
 
-	void CleanUpChance()
+
+	public void Destroy()
 	{
-		if (!gameObject.activeSelf)
-		{
-			if ((DateTime.UtcNow - notRenderedTimeStamp).TotalSeconds > chunkConfig.destroyGameObjectIfNotVisibleForSeconds)
-			{
-				GameObject.Destroy(gameObject);
-				gameObject = null;
-			}
-		}
-	}
+		MarkForRegeneration();
 
+		if (gameObject) GameObject.Destroy(gameObject);
+		gameObject = null;
+		if (mesh) Mesh.Destroy(mesh);
+		mesh = null;
+
+		if (chunkHeightMap) chunkHeightMap.Release();
+		chunkHeightMap = null;
+		if (chunkNormalMap) chunkNormalMap.Release();
+		chunkNormalMap = null;
+		if (chunkDiffuseMap) chunkDiffuseMap.Release();
+		chunkDiffuseMap = null;
+		if (chunkSlopeAndCurvatureMap) chunkSlopeAndCurvatureMap.Release();
+		chunkSlopeAndCurvatureMap = null;
+		if (chunkMeshNormals) chunkMeshNormals.Release();
+		chunkMeshNormals = null;
+	}
 
 	private float GetSizeOnScreen(Planet.SubdivisionData data)
 	{
@@ -758,7 +761,7 @@ public class Chunk
 
 	public override string ToString()
 	{
-		return typeof(Chunk) + " id:#" + id + " generation:" + generation;
+		return typeof(Chunk) + " id:#" + id + " generation:" + treeDepth;
 	}
 
 

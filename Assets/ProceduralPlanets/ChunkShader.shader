@@ -2,7 +2,7 @@
 // modified to take normal in model space from _BumpMap and put it into world normal
 // Unity's normal Standart shader has normal in tangent space
 
-Shader "Custom/Procedural Planets/Node"
+Shader "Custom/Procedural Planets/Chunk"
 {
     Properties
     {

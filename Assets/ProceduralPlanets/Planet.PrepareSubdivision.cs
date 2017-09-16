@@ -6,7 +6,7 @@ public partial class Planet
 {
 	void GatherWeights(WeightedSegmentsList toGenerate, Chunk chunk, int recursionDepth)
 	{
-		if (toGenerate.Count > 10000) return; // SAFE
+		if (toGenerate.Count > 10000) return; // precaution
 
 
 		var weight = chunk.GetGenerationWeight(toGenerate.data);
@@ -16,35 +16,30 @@ public partial class Planet
 			toGenerate.Add(chunk, weight);
 		}
 
-		if (recursionDepth < SubdivisionMaxRecurisonDepth)
+		if (recursionDepth < SubdivisionMaxRecurisonDepth && weight > chunkConfig.weightNeededToSubdivide)
 		{
-			if (weight > chunkConfig.weightNeededToSubdivide)
+			chunk.EnsureChildrenInstancesAreCreated();
+
+			foreach (var child in chunk.children)
 			{
-				chunk.EnsureChildrenInstancesAreCreated();
+				GatherWeights(toGenerate, child, recursionDepth + 1);
+			}
 
-				foreach (var child in chunk.children)
-				{
-					GatherWeights(toGenerate, child, recursionDepth + 1);
-				}
-
-				if (chunk.children.All(c => c.isGenerationDone))
-				{
-					chunk.SetVisible(false);
-				}
-				else
-				{
-					chunk.SetVisible(true);
-					chunk.HideAllChildren();
-				}
-
-				return;
+			if (chunk.children.All(c => c.isGenerationDone))
+			{
+				chunk.SetVisible(false);
+			}
+			else
+			{
+				chunk.SetVisible(true);
+				chunk.HideAllChildren();
 			}
 		}
-
-		if (chunk.isGenerationDone)
+		else if (chunk.isGenerationDone)
 		{
 			chunk.SetVisible(true);
-			chunk.HideAllChildren();
+			//chunk.HideAllChildren();
+			chunk.DestroyAllChildren();
 		}
 	}
 
