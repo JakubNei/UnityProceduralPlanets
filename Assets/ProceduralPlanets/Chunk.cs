@@ -11,7 +11,7 @@ public class Chunk
 
 	public ulong id;
 	public Chunk parent;
-	public ulong treeDepth;
+	public int treeDepth;
 
 	public Range rangeUnitCubePosRealSubdivided;
 	public Range rangeUnitCubePosToGenerateInto;
@@ -41,7 +41,6 @@ public class Chunk
 	public RenderTexture chunkNormalMap;
 	public RenderTexture chunkDiffuseMap;
 	public RenderTexture chunkSlopeAndCurvatureMap;
-	public RenderTexture chunkMeshNormals;
 
 	public float heightMin = 0;
 	public float heightMax = 1;
@@ -57,16 +56,46 @@ public class Chunk
 		BottomRight = 4,
 	}
 
+	[SerializeField]
+	bool _generationBegan;
+	public bool generationBegan
+	{
+		get { return _generationBegan; }
+		set
+		{
+			if (value != _generationBegan)
+			{
+				_generationBegan = value;
+				if (value) planet.chunksGenerationBegan++;
+				else planet.chunksGenerationBegan--;
+			}
+		}
+	}
 
-	public bool generationBegan;
-	public bool isGenerationDone;
+	[SerializeField]
+	bool _isGenerationDone;
+	public bool isGenerationDone
+	{
+		get { return _isGenerationDone; }
+		set
+		{
+			if (value != _isGenerationDone)
+			{
+				_isGenerationDone = value;
+				if (value) planet.chunksGenerationDone++;
+				else planet.chunksGenerationDone--;
+			}
+		}
+	}
+
+	[NonSerialized]
 	public List<Chunk> children = new List<Chunk>(4);
 	public float chunkRadius;
 
 	int HeightMapResolution { get { return chunkConfig.textureResolution; } }
 	int NormalMapResolution { get { return HeightMapResolution; } }
+	int DiffuseMapResolution { get { return NormalMapResolution; } }
 	int ChunkSlopeMapResolution { get { return HeightMapResolution; } }
-	int DiffuseMapResolution { get { return ChunkSlopeMapResolution; } }
 
 	public class Behavior : MonoBehaviour
 	{
@@ -78,7 +107,7 @@ public class Chunk
 		}
 	}
 
-	public static Chunk Create(Planet planet, Range range, ulong id, Chunk parent = null, ulong generation = 0, ChildPosition childPosition = ChildPosition.NoneNoParent)
+	public static Chunk Create(Planet planet, Range range, ulong id, Chunk parent = null, int treeDepth = 0, ChildPosition childPosition = ChildPosition.NoneNoParent)
 	{
 		MyProfiler.BeginSample("Procedural Planet / Create chunk");
 
@@ -87,7 +116,7 @@ public class Chunk
 		chunk.planet = planet;
 		chunk.id = id;
 		chunk.parent = parent;
-		chunk.treeDepth = generation;
+		chunk.treeDepth = treeDepth;
 		chunk.childPosition = childPosition;
 		chunk.rangeUnitCubePosRealSubdivided = range;
 
@@ -177,7 +206,7 @@ public class Chunk
 			parent: this,
 			range: range,
 			id: id << 2 | index,
-			generation: treeDepth + 1,
+			treeDepth: treeDepth + 1,
 			childPosition: cp
 		);
 
@@ -253,6 +282,8 @@ public class Chunk
 		GenerateDiffuseMap();
 		MyProfiler.EndSample();
 
+		CleanupAfterGeneration();
+
 		MyProfiler.EndSample();
 
 		isGenerationDone = true;
@@ -312,7 +343,7 @@ public class Chunk
 		// pass 0
 		if (chunkConfig.rescaleToMinMax)
 		{
-			var heightRough = RenderTexture.GetTemporary(16, 16, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
+			var heightRough = new RenderTexture(16, 16, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
 			heightRough.wrapMode = TextureWrapMode.Clamp;
 			heightRough.filterMode = FilterMode.Bilinear;
 			heightRough.enableRandomWrite = true;
@@ -340,13 +371,13 @@ public class Chunk
 			//DEBUG
 			//heightMax = 1; heightMin = 0;
 
-			RenderTexture.ReleaseTemporary(heightRough);
+			heightRough.Release();
 		}
 
 		// pass 1
 		RenderTexture height1;
 		{
-			height1 = RenderTexture.GetTemporary(HeightMapResolution, HeightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
+			height1 = new RenderTexture(HeightMapResolution, HeightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
 			height1.wrapMode = TextureWrapMode.Clamp;
 			height1.filterMode = FilterMode.Bilinear;
 			height1.enableRandomWrite = true;
@@ -371,10 +402,6 @@ public class Chunk
 				chunkHeightMap = new RenderTexture(HeightMapResolution, HeightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
 				chunkHeightMap.wrapMode = TextureWrapMode.Clamp;
 				chunkHeightMap.filterMode = FilterMode.Bilinear;
-				/*chunkHeightMap.enableRandomWrite = true;
-				chunkHeightMap.useMipMap = true;
-				chunkHeightMap.autoGenerateMips = false;
-				chunkHeightMap.antiAliasing = 8;*/
 				chunkHeightMap.enableRandomWrite = true;
 				chunkHeightMap.Create();
 			}
@@ -391,7 +418,7 @@ public class Chunk
 			GenerateSlopeAndCurvatureMap(chunkHeightMap);
 		}
 
-		RenderTexture.ReleaseTemporary(height1);
+		height1.Release();
 
 
 	}
@@ -481,14 +508,14 @@ public class Chunk
 	void PrepareMesh()
 	{
 		if (mesh) Mesh.Destroy(mesh);
-		// TODO: optimize: fill mesh vertices on GPU instead of CPU, calculate UVs, normals and tangents on GPU instead of CPU, remember we still need vertices on CPU for mesh collider
+		// TODO: optimize: fill mesh vertices on GPU instead of CPU, remember we still need vertices on CPU for mesh collider
 		mesh = new Mesh();
 		mesh.name = this.ToString();
 		mesh.vertices = vertexCPUBuffer;
 		mesh.triangles = planet.GetSegmentIndicies();
 		mesh.uv = planet.GetChunkUVs();
-		mesh.RecalculateNormals();
-		mesh.RecalculateTangents();
+		mesh.tangents = new Vector4[] { };
+		mesh.normals = new Vector3[] { };
 	}
 
 	void MoveSkirtVertices()
@@ -533,6 +560,8 @@ public class Chunk
 		if (chunkNormalMap == null)
 		{
 			chunkNormalMap = new RenderTexture(NormalMapResolution, NormalMapResolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+			chunkNormalMap.wrapMode = TextureWrapMode.Clamp;
+			chunkNormalMap.filterMode = FilterMode.Bilinear;
 			chunkNormalMap.enableRandomWrite = true;
 			chunkNormalMap.Create();
 		}
@@ -563,9 +592,6 @@ public class Chunk
 			chunkDiffuseMap.wrapMode = TextureWrapMode.Clamp;
 			chunkDiffuseMap.filterMode = FilterMode.Trilinear;
 			chunkDiffuseMap.enableRandomWrite = true;
-			chunkDiffuseMap.useMipMap = true;
-			chunkDiffuseMap.autoGenerateMips = false;
-			chunkDiffuseMap.antiAliasing = 8;
 			chunkDiffuseMap.Create();
 		}
 
@@ -583,13 +609,19 @@ public class Chunk
 		if (material) material.mainTexture = chunkDiffuseMap;
 	}
 
+	void CleanupAfterGeneration()
+	{
+		if (chunkHeightMap) chunkHeightMap.Release();
+		chunkHeightMap = null;
+	}
+
 	private void OnDrawGizmosSelected()
 	{
 		if (gameObject && gameObject.activeSelf)
 		{
 			Gizmos.color = Color.cyan;
 			//rangePosRealSubdivided.DrawGizmos();
-			rangePosToCalculateScreenSizeOn.DrawGizmos();
+			rangePosToCalculateScreenSizeOn.DrawGizmos(planet.transform.position);
 		}
 	}
 
@@ -661,7 +693,9 @@ public class Chunk
 
 		var go = gameObject = new GameObject(name);
 		go.transform.parent = planet.transform;
-		if (!GenerateUsingPlanetGlobalPos)
+		if (GenerateUsingPlanetGlobalPos)
+			go.transform.localPosition = Vector3.zero;
+		else
 			go.transform.localPosition = offsetFromPlanetCenter;
 
 		var behavior = go.AddComponent<Behavior>();
@@ -731,8 +765,6 @@ public class Chunk
 		chunkDiffuseMap = null;
 		if (chunkSlopeAndCurvatureMap) chunkSlopeAndCurvatureMap.Release();
 		chunkSlopeAndCurvatureMap = null;
-		if (chunkMeshNormals) chunkMeshNormals.Release();
-		chunkMeshNormals = null;
 	}
 
 	private float GetSizeOnScreen(Planet.SubdivisionData data)
@@ -761,7 +793,7 @@ public class Chunk
 
 	public override string ToString()
 	{
-		return typeof(Chunk) + " id:#" + id + " generation:" + treeDepth;
+		return typeof(Chunk) + " treeDepth:" + treeDepth + " id:#" + id;
 	}
 
 

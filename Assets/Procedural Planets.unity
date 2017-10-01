@@ -127,8 +127,8 @@ GameObject:
   - component: {fileID: 48616967}
   - component: {fileID: 48616968}
   - component: {fileID: 48616969}
-  - component: {fileID: 48616963}
   - component: {fileID: 48616970}
+  - component: {fileID: 48616963}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -151,14 +151,22 @@ Behaviour:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 48616960}
   m_Enabled: 1
---- !u!45 &48616963
-Skybox:
+--- !u!114 &48616963
+MonoBehaviour:
   m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 48616960}
   m_Enabled: 1
-  m_CustomSkybox: {fileID: 2100000, guid: 8404d974f0217f14a93cd04abd1c70d5, type: 2}
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a68662e147cdd7468fe75f96b37ffa4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sceneCenterIsAt:
+    insideSectorPosition: {x: 0, y: 0, z: 0}
+    sectorX: 0
+    sectorY: 0
+    sectorZ: 0
 --- !u!20 &48616964
 Camera:
   m_ObjectHideFlags: 0
@@ -167,7 +175,7 @@ Camera:
   m_GameObject: {fileID: 48616960}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 1
+  m_ClearFlags: 3
   m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
   m_NormalizedViewPortRect:
     serializedVersion: 2
@@ -175,12 +183,12 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 1
-  far clip plane: 1000000
+  near clip plane: 0.1
+  far clip plane: 1000
   field of view: 60
   orthographic: 0
   orthographic size: 5
-  m_Depth: -1
+  m_Depth: 1
   m_CullingMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -189,7 +197,7 @@ Camera:
   m_TargetDisplay: 0
   m_TargetEye: 3
   m_HDR: 1
-  m_AllowMSAA: 1
+  m_AllowMSAA: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -204,7 +212,8 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 2000, z: -2000}
   m_LocalScale: {x: 1, y: 1, z: 1}
-  m_Children: []
+  m_Children:
+  - {fileID: 319332543}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -225,7 +234,7 @@ MonoBehaviour:
   distanceToClosestPlanet: 0
   cameraSpeedModifier: 30
   currentVelocity: {x: 0, y: 0, z: 0}
-  walkOnPlanet: 1
+  walkOnPlanet: 0
   walkOnPlanet_lastUp: {x: 0, y: 0, z: 0}
   walkOnPlanet_lastForward: {x: 0, y: 0, z: 0}
   walkOnPlanet_isFirstRun: 1
@@ -275,11 +284,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   shader: {fileID: 7200000, guid: 46cc0e9f8e0b2db4ea0ab167f25599cd, type: 3}
-  skybox:
-  - {fileID: 0}
+  skyboxTextures: []
   refreshKey: 98
   resolution: 2048
-  closestSun: {fileID: 1926511766}
+  targetComponents: []
+  closestSun: {fileID: 1926511767}
+  closestSunDirection: {x: 0, y: 0, z: 0}
 --- !u!108 &48616970
 Light:
   m_ObjectHideFlags: 0
@@ -316,6 +326,99 @@ Light:
   m_UseColorTemperature: 0
   m_ShadowRadius: 0
   m_ShadowAngle: 0
+--- !u!1 &319332542
+GameObject:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  serializedVersion: 5
+  m_Component:
+  - component: {fileID: 319332543}
+  - component: {fileID: 319332545}
+  - component: {fileID: 319332544}
+  - component: {fileID: 319332546}
+  m_Layer: 0
+  m_Name: Long distance Camera
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &319332543
+Transform:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 319332542}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 48616965}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!45 &319332544
+Skybox:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 319332542}
+  m_Enabled: 1
+  m_CustomSkybox: {fileID: 2100000, guid: 8404d974f0217f14a93cd04abd1c70d5, type: 2}
+--- !u!20 &319332545
+Camera:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 319332542}
+  m_Enabled: 1
+  serializedVersion: 2
+  m_ClearFlags: 1
+  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_NormalizedViewPortRect:
+    serializedVersion: 2
+    x: 0
+    y: 0
+    width: 1
+    height: 1
+  near clip plane: 1000
+  far clip plane: 100000000
+  field of view: 60
+  orthographic: 0
+  orthographic size: 5
+  m_Depth: 0
+  m_CullingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_RenderingPath: -1
+  m_TargetTexture: {fileID: 0}
+  m_TargetDisplay: 0
+  m_TargetEye: 3
+  m_HDR: 1
+  m_AllowMSAA: 0
+  m_ForceIntoRT: 0
+  m_OcclusionCulling: 1
+  m_StereoConvergence: 10
+  m_StereoSeparation: 0.022
+  m_StereoMirrorMode: 0
+--- !u!114 &319332546
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 319332542}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1fb81e6b0840644abd06325990290de, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  shader: {fileID: 7200000, guid: 46cc0e9f8e0b2db4ea0ab167f25599cd, type: 3}
+  skyboxTextures: []
+  refreshKey: 98
+  resolution: 2048
+  targetComponents: []
+  closestSun: {fileID: 1926511767}
+  closestSunDirection: {x: 0, y: 0, z: 0}
 --- !u!1 &1141529112
 GameObject:
   m_ObjectHideFlags: 0
@@ -325,6 +428,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1141529114}
   - component: {fileID: 1141529113}
+  - component: {fileID: 1141529115}
   m_Layer: 0
   m_Name: planet
   m_TagString: Untagged
@@ -345,19 +449,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   planetConfig:
     planetHeightMap: {fileID: 0}
-    generatePlanetHeightMap: {fileID: 7200000, guid: 108774357c687904b828542611b9b369,
+    generatePlanetHeightMapPass1: {fileID: 7200000, guid: 4460c1ed18c1e964ca44572337f395f0,
       type: 3}
+    generatePlanetHeightCalculateHumidity: {fileID: 0}
+    generatePlanetHeightMapPass2: {fileID: 7200000, guid: 8fb16aafadf706e4cb323b41650ec3fc,
+      type: 3}
+    generatedPlanetHeightMapResolution: 2048
     biomesControlMap: {fileID: 2800000, guid: f06b90865df33b64aa0f066aedce33cf, type: 3}
     generatePlanetBiomesData: {fileID: 0}
-    radiusStart: 1000
-    radiusHeightMapMultiplier: 30
+    radiusStart: 100000
+    radiusHeightMapMultiplier: 3000
     seaLevel01: 0.5
   chunkConfig:
     useSkirts: 1
     numberOfVerticesOnEdge: 10
     weightNeededToSubdivide: 0.6
-    stopSegmentRecursionAtWorldSize: 2
-    destroyGameObjectIfNotVisibleForSeconds: 5
+    stopSegmentRecursionAtWorldSize: 10
     createColliders: 1
     textureResolution: 256
     rescaleToMinMax: 0
@@ -380,6 +487,8 @@ MonoBehaviour:
   id: 0
   rootChildren: []
   chunkVertexCPUBuffer: []
+  chunksGenerationDone: 0
+  chunksGenerationBegan: 0
 --- !u!4 &1141529114
 Transform:
   m_ObjectHideFlags: 0
@@ -393,6 +502,17 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1141529115
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1141529112}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1132b45122624940b2ca5b1b1d5d550, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1926511765
 GameObject:
   m_ObjectHideFlags: 0
@@ -428,8 +548,8 @@ Light:
     m_Resolution: -1
     m_CustomResolution: -1
     m_Strength: 1
-    m_Bias: 0.05
-    m_NormalBias: 0.4
+    m_Bias: 2
+    m_NormalBias: 0
     m_NearPlane: 0.2
   m_Cookie: {fileID: 0}
   m_DrawHalo: 0
@@ -452,7 +572,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1926511765}
   m_LocalRotation: {x: 0.40821788, y: -0.23456968, z: 0.10938163, w: 0.8754261}
-  m_LocalPosition: {x: 0, y: 3, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}

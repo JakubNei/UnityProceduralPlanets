@@ -4,10 +4,93 @@
 
 
 
+float getProceduralHeight01(float3 dir)
+{
+	float result = 0;
+
+	float2 w;
+	float x;
+
+
+	result += snoise(dir * 2, 10, 2) * 0.7;
+
+	// big hills
+	w = worley(dir * 2);
+	result += (w.y - w.x) * 0.7;
+
+	// small hills
+	w = worley(dir * 15);
+	result += (w.y - w.x) * 0.1;
+
+	// big rivers
+	x = snoise(dir * 3, 10, 2);
+	result -= exp(-abs(x * 55)) * 0.2;
+
+	// big craters
+	w = worley(dir * 3);
+	result -= smoothstep(0.9, 1, 1 - w.x);
+
+	// small craters
+	w = worley(dir * 15);
+	result -= smoothstep(0.9, 1, 1 - w.x) * 0.3;
+
+	/*
+	{ // terraces
+	float3 pos = dir * 10;
+	int octaves = 2;
+	float freqModifier = 3;
+	float ampModifier = 1/freqModifier;
+	float amp = 1;
+	for (int i = 0; i < octaves; i++)
+	{
+	float p = snoise(pos, 4, 10);
+	result += terrace(p, 0.5) * amp;
+	pos *= freqModifier;
+	amp *= ampModifier;
+	}
+	}
+	*/
+	// small noise
+	
+	/*
+	{ //big detail
+	//continents
+	result += abs(snoise(dir*0.5, 5, 4));
+	//w = worleyNoise(dir * 2);
+	//result += (w.x - w.y) * 2;
+	//oceans
+	result -= abs(snoise(dir*2.2, 4, 4));
+	//big rivers
+	x = snoise(dir * 3, 3, 2);
+	result += -exp(-pow(x * 55, 2)) * 0.2;
+	//craters
+	//w = worleyNoise(dir);
+	//result += smoothstep(0.0, 0.1, w.x);
+	}
+	*/
+	/*
+
+	{ //small detail
+	float p = snoise(dir * 10, 5, 10) * 100;
+	float t = 0.3;
+	t = clamp(snoise(dir * 2), 0.1, 1.0);
+	result += terrace(p, 0.2)*0.005;
+	result += p*0.005;
+	//small rivers
+	x = snoise(dir * 3);
+	//result += -exp(-pow(x*55,2));
+	}
+
+	*/
+
+
+	return result;
+
+}
+
+
+
 RWTexture2D<float> _planetHeightMap;
-
-
-
 
 
 [numthreads(16, 16, 1)]

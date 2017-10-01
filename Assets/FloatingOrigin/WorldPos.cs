@@ -2,9 +2,12 @@
 using UnityEngine;
 
 // TODO: try to use BigInteger or BigRational once .Net 4.0 is available
+[System.Serializable]
 public struct WorldPos : IEquatable<WorldPos>
 {
+	[SerializeField]
 	Vector3 insideSectorPosition;
+	[SerializeField]
 	long sectorX, sectorY, sectorZ;
 
 	const int sectorCubeSideLength = 100;
@@ -44,7 +47,18 @@ public struct WorldPos : IEquatable<WorldPos>
 		MoveSectorIfNeeded();
 	}
 
-	public Vector3 Remainder()
+	public WorldPos KeepOnlySectorPos()
+	{
+		return new WorldPos()
+		{
+			sectorX = this.sectorX,
+			sectorY = this.sectorY,
+			sectorZ = this.sectorZ,
+		};
+	}
+
+
+	private Vector3 Remainder()
 	{
 		var x = Mathf.Floor(insideSectorPosition.x);
 		var y = Mathf.Floor(insideSectorPosition.y);
@@ -57,7 +71,7 @@ public struct WorldPos : IEquatable<WorldPos>
 		);
 	}
 
-	void MoveSectorIfNeeded()
+	private void MoveSectorIfNeeded()
 	{
 		long sector_add;
 
@@ -73,6 +87,7 @@ public struct WorldPos : IEquatable<WorldPos>
 		insideSectorPosition.z -= sectorCubeSideLength * sector_add;
 		sectorZ += sector_add;
 	}
+
 	public static double Distance(WorldPos a, WorldPos b)
 	{
 		return a.Distance(b);
@@ -163,7 +178,7 @@ public struct WorldPos : IEquatable<WorldPos>
 	public WorldPos MultiplyBy(double v)
 	{
 		var ret = new WorldPos();
-		
+
 		ret.insideSectorPosition = this.ToVector3() * (float)v;
 		ret.MoveSectorIfNeeded();
 		return ret;
@@ -171,6 +186,8 @@ public struct WorldPos : IEquatable<WorldPos>
 
 		// (s + i) * v = s*v + i*v;
 
+		/*
+		// maybe better way, but seemed to not work
 
 		ret.insideSectorPosition = this.insideSectorPosition * (float)v;
 		ret.MoveSectorIfNeeded();
@@ -192,6 +209,7 @@ public struct WorldPos : IEquatable<WorldPos>
 		ret.MoveSectorIfNeeded();
 
 		return ret;
+		*/
 	}
 
 

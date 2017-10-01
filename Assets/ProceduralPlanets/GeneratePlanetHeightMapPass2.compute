@@ -2,24 +2,64 @@
 
 #include "Planet.Compute.cginc"
 
+#define waterHeight 0.5
 
+Texture2D<float> _planetHeightMapIn;
+SamplerState sampler_planetHeightMapIn;
 
-RWTexture2D<float> _planetHeightMap;
+RWTexture2D<float> _planetHeightMapOut;
 
+float GetHumidity(float2 uvCenter)
+{
+	float2 uv = uvCenter;
+	if (_planetHeightMapIn.SampleLevel(sampler_planetHeightMapIn, uv, 0) < waterHeight) return 1;
 
+	const float maxDistanceToWater = 0.05;
+	const float distanceToWaterIncrease = 0.001;
+	float distanceToWater = 0;
 
+	float splits = 3;
+	while (distanceToWater < maxDistanceToWater) {
+
+		float angleDelta = 2 * M_PI / splits;
+		for (float angle = 0; angle < 2 * M_PI; angle += angleDelta)
+		{
+			uv = uvCenter + float2(
+				cos(angle) * distanceToWater,
+				sin(angle) * distanceToWater
+			);
+			if (_planetHeightMapIn.SampleLevel(sampler_planetHeightMapIn, uv, 0) < waterHeight) 
+				return 1 - distanceToWater / maxDistanceToWater;
+		}
+
+		distanceToWater += distanceToWaterIncrease;
+		splits += 1;
+	}
+
+	return 0;
+
+}
 
 
 [numthreads(16, 16, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
-	float2 uv = getUv(_planetHeightMap, id.xy);
+	float2 uv = getUv(_planetHeightMapOut, id.xy);
 
 	float3 dir = baseMapUvToDirFromCenter(uv);
+	
+	float height = _planetHeightMapIn.SampleLevel(sampler_planetHeightMapIn, uv, 0);
+	float altFromSea = saturate(height - waterHeight) * 2;
 
-	float height01 = getProceduralHeight01(dir);
+	float humidity = GetHumidity(uv); 
 
-	height01 = clamp(height01, 0, 1);
+	float distanceFromPoles = 1 - abs(dir.y);
+	float temperature = (1 - altFromSea) * distanceFromPoles;
 
-	_planetHeightMap[id.xy] = height01;
+	if (altFromSea <= 0) height = 0;
+
+	_planetHeightMapOut[id.xy] = height;
+
+	//DEBUG
+	_planetHeightMapOut[id.xy] = _planetHeightMapIn.SampleLevel(sampler_planetHeightMapIn, uv, 0);
 }

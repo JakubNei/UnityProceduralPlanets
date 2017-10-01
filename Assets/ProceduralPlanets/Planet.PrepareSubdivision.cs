@@ -4,14 +4,14 @@ using System.Collections.Generic;
 
 public partial class Planet
 {
+
 	void GatherWeights(WeightedSegmentsList toGenerate, Chunk chunk, int recursionDepth)
 	{
 		if (toGenerate.Count > 10000) return; // precaution
 
-
 		var weight = chunk.GetGenerationWeight(toGenerate.data);
 
-		if (chunk.generationBegan == false)
+		if (!chunk.generationBegan)
 		{
 			toGenerate.Add(chunk, weight);
 		}
@@ -112,7 +112,6 @@ public partial class Planet
 	{
 		toGenerate.Clear();
 		toGenerate.data = data;
-
 
 		foreach (var chunk in rootChildren)
 		{

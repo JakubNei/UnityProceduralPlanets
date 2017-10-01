@@ -240,85 +240,32 @@ float sampleCubicFloat(Texture2D<float> map, float2 uv)
 
 
 
+// BIOMES
 
-
-
-
-
-float getProceduralHeight01(float3 dir)
+int selectBiome(float3 dir, float2 slopeXY, float humidity, float altidute)
 {
-	float result = 0;
-
-	float2 w;
-	float x;
+	float slope = length(slopeXY);
 
 
-	result += 1 - abs(snoise(dir * 5, 5, 2));
+	float distanceToPoles = smoothstep(0.4, 1, abs(dir.z));
+	float snowWeight = altidute + distanceToPoles + snoise(dir * 100, 5, 2) * 0.1;
 
-	/*
-	{ // terraces
-	float3 pos = dir * 10;
-	int octaves = 2;
-	float freqModifier = 3;
-	float ampModifier = 1/freqModifier;
-	float amp = 1;
-	for (int i = 0; i < octaves; i++)
-	{
-	float p = snoise(pos, 4, 10);
-	result += terrace(p, 0.5) * amp;
-	pos *= freqModifier;
-	amp *= ampModifier;
+
+	if (slope > 0.3)
+		return 0; // rock
+	else {
+		if (snowWeight > 1.5)
+			return 1; // snow
+		else if (snowWeight > 1.2)
+			return 2; // tundra
+		else if (slope < 0.25)
+			return 3; // grass
+		else
+			return 4; // clay
 	}
-	}
-	*/
-	// small noise
-	/*
-
-
-	{ //big detail
-	//continents
-	result += abs(snoise(dir*0.5, 5, 4));
-	//w = worleyNoise(dir * 2);
-	//result += (w.x - w.y) * 2;
-	//oceans
-	result -= abs(snoise(dir*2.2, 4, 4));
-	//big rivers
-	x = snoise(dir * 3, 3, 2);
-	result += -exp(-pow(x * 55, 2)) * 0.2;
-	//craters
-	//w = worleyNoise(dir);
-	//result += smoothstep(0.0, 0.1, w.x);
-	}
-
-
-	{ //small detail
-	float p = snoise(dir * 10, 5, 10) * 100;
-	float t = 0.3;
-	t = clamp(snoise(dir * 2), 0.1, 1.0);
-	result += terrace(p, 0.2)*0.005;
-	result += p*0.005;
-	//small rivers
-	float x = snoise(dir * 3);
-	//result += -exp(-pow(x*55,2));
-	}
-
-
-	{
-	float p = snoise(dir * 10, 5, 10);
-	//result += terrace(p, 0.15)*10;
-	//result += p * 0.1;
-	}
-
-	{
-	//float p = snoise(dir*10, 5, 10);
-	//result += terrace(p, 0.1)/1;
-	}
-
-
-	*/
-
-	return result;
-
 }
+
+
+
 
 #endif

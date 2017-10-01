@@ -75,4 +75,12 @@ public struct Range
 		Gizmos.DrawLine(c, d);
 		Gizmos.DrawLine(d, a);
 	}
+
+	public void DrawGizmos(Vector3 offset)
+	{
+		Gizmos.DrawLine(a + offset, b + offset);
+		Gizmos.DrawLine(b + offset, c + offset);
+		Gizmos.DrawLine(c + offset, d + offset);
+		Gizmos.DrawLine(d + offset, a + offset);
+	}
 }

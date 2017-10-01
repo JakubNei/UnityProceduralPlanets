@@ -8,14 +8,16 @@ public class GenerateAndSetSpaceSkyBox : MonoBehaviour
 
 	public ComputeShader shader;
 
-	public RenderTexture[] skybox;
+	public RenderTexture[] skyboxTextures;
 
 	public KeyCode refreshKey = KeyCode.None;
 
 	public int resolution = 2048;
 
+	public Skybox[] targetComponents;
 
-	public Light closestSun;
+	public Transform closestSun;
+	public Vector3 closestSunDirection;
 
 	string[] textureNames =
 	{
@@ -32,7 +34,7 @@ public class GenerateAndSetSpaceSkyBox : MonoBehaviour
 		Prepare();
 		Generate();
 	}
-	
+
 
 	private void Update()
 	{
@@ -42,9 +44,9 @@ public class GenerateAndSetSpaceSkyBox : MonoBehaviour
 
 	void Prepare()
 	{
-		if (skybox == null || skybox.Length != 6)
+		if (skyboxTextures == null || skyboxTextures.Length != 6)
 		{
-			skybox = new RenderTexture[6];
+			skyboxTextures = new RenderTexture[6];
 			for (int i = 0; i < 6; i++)
 			{
 				var t = new RenderTexture(resolution, resolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
@@ -53,23 +55,33 @@ public class GenerateAndSetSpaceSkyBox : MonoBehaviour
 				t.enableRandomWrite = true;
 				t.Create();
 				t.name = textureNames[i];
-				skybox[i] = t;
+				skyboxTextures[i] = t;
 			}
 
 		}
 
-		var material = GetComponent<Skybox>().material;
-		for (int i = 0; i < 6; i++)
-			material.SetTexture(textureNames[i], skybox[i]);
+		if (targetComponents == null || targetComponents.Length == 0)
+			targetComponents = GetComponentsInChildren<Skybox>();
+
+		foreach (var target in targetComponents)
+		{
+			var material = target.material;
+			for (int i = 0; i < 6; i++)
+				material.SetTexture(textureNames[i], skyboxTextures[i]);
+		}
+
 	}
 
 	void Generate()
 	{
+		if (closestSun != null)
+			closestSunDirection = -closestSun.forward;
+
 		shader.SetFloat("_time", Time.realtimeSinceStartup);
-		shader.SetVector("_sunDir", -closestSun.transform.forward);
+		shader.SetVector("_sunDir", closestSunDirection);
 
 		for (int i = 0; i < 6; i++)
-			shader.SetTexture(0, textureNames[i], skybox[i]);
+			shader.SetTexture(0, textureNames[i], skyboxTextures[i]);
 		shader.Dispatch(0, resolution / 16, resolution / 16, 6);
 	}
 

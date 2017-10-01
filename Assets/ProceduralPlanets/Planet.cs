@@ -10,7 +10,9 @@ public partial class Planet : MonoBehaviour
 	{
 		public Texture planetHeightMap;
 
-		public ComputeShader generatePlanetHeightMap;
+		public ComputeShader generatePlanetHeightMapPass1;
+		public ComputeShader generatePlanetHeightCalculateHumidity;
+		public ComputeShader generatePlanetHeightMapPass2;
 		public int generatedPlanetHeightMapResolution = 2048; // must be multiplier of 16
 
 		public Texture2D biomesControlMap;
@@ -28,7 +30,6 @@ public partial class Planet : MonoBehaviour
 		public int numberOfVerticesOnEdge = 20;
 		public float weightNeededToSubdivide = 0.70f;
 		public float stopSegmentRecursionAtWorldSize = 10;
-		public float cleanupChunkIfNotVisibleForSeconds = 30;
 		public bool createColliders = true;
 		public int textureResolution = 256; // must be multiplier of 16
 		public bool rescaleToMinMax = true;
@@ -48,7 +49,6 @@ public partial class Planet : MonoBehaviour
 	public ChunkConfig chunkConfig;
 
 
-
 	public ulong id;
 
 	public List<Chunk> rootChildren;
@@ -65,34 +65,41 @@ public partial class Planet : MonoBehaviour
 	void Awake()
 	{
 		allPlanets.Add(this);
-		GeneratePlanetData();
+		InitializeOther();
 		InitializeRootChildren();
+		GeneratePlanetData();
 	}
-
+	void InitializeOther()
+	{
+		chunkVertexGPUBuffer = new ComputeBuffer(NumberOfVerticesNeededTotal, 3 * sizeof(float));
+		chunkVertexCPUBuffer = new Vector3[NumberOfVerticesNeededTotal];
+	}
 
 	void GeneratePlanetData()
 	{
-		if (planetConfig.planetHeightMap != null && !(planetConfig.planetHeightMap is RenderTexture))
-			return;
+		MyProfiler.BeginSample("Procedural Planet / generate base height map");
 
-		MyProfiler.BeginSample("Procedural Planet / Initialize planet & generate base height map");
+		var heightMap = new RenderTexture(planetConfig.generatedPlanetHeightMapResolution, planetConfig.generatedPlanetHeightMapResolution, 0, RenderTextureFormat.R8, RenderTextureReadWrite.Linear);
+		heightMap.filterMode = FilterMode.Trilinear;
+		heightMap.wrapMode = TextureWrapMode.Repeat;
+		heightMap.enableRandomWrite = true;
+		heightMap.Create();
+		planetConfig.planetHeightMap = heightMap;
 
-		if (planetConfig.planetHeightMap == null)
-		{
-			var heightMap = new RenderTexture(planetConfig.generatedPlanetHeightMapResolution, planetConfig.generatedPlanetHeightMapResolution, 0, RenderTextureFormat.R8, RenderTextureReadWrite.Linear);
-			heightMap.filterMode = FilterMode.Trilinear;
-			heightMap.wrapMode = TextureWrapMode.Repeat;
-			heightMap.enableRandomWrite = true;
-			heightMap.Create();
+		var heightMapTemp = RenderTexture.GetTemporary(heightMap.descriptor);
+		heightMapTemp.filterMode = FilterMode.Trilinear;
+		heightMapTemp.wrapMode = TextureWrapMode.Repeat;
+		heightMapTemp.enableRandomWrite = true;
+		heightMapTemp.Create();
 
-			planetConfig.planetHeightMap = heightMap;
-		}
+		planetConfig.generatePlanetHeightMapPass1.SetTexture(0, "_planetHeightMap", heightMapTemp);
+		planetConfig.generatePlanetHeightMapPass1.Dispatch(0, planetConfig.planetHeightMap.width / 16, planetConfig.planetHeightMap.height / 16, 1);
 
-		planetConfig.generatePlanetHeightMap.SetTexture(0, "_planetHeightMap", planetConfig.planetHeightMap);
-		planetConfig.generatePlanetHeightMap.Dispatch(0, planetConfig.planetHeightMap.width / 16, planetConfig.planetHeightMap.height / 16, 1);
+		planetConfig.generatePlanetHeightMapPass2.SetTexture(0, "_planetHeightMapIn", heightMapTemp);
+		planetConfig.generatePlanetHeightMapPass2.SetTexture(0, "_planetHeightMapOut", planetConfig.planetHeightMap);
+		planetConfig.generatePlanetHeightMapPass2.Dispatch(0, planetConfig.planetHeightMap.width / 16, planetConfig.planetHeightMap.height / 16, 1);
 
-		chunkVertexGPUBuffer = new ComputeBuffer(NumberOfVerticesNeededTotal, 3 * sizeof(float));
-		chunkVertexCPUBuffer = new Vector3[NumberOfVerticesNeededTotal];
+		RenderTexture.ReleaseTemporary(heightMapTemp);
 
 		MyProfiler.EndSample();
 	}
@@ -155,7 +162,7 @@ public partial class Planet : MonoBehaviour
 		var child = Chunk.Create(
 			planet: this,
 			parent: null,
-			generation: 0,
+			treeDepth: 0,
 			range: range,
 			id: id
 		);
@@ -211,4 +218,5 @@ public partial class Planet : MonoBehaviour
 			Gizmos.DrawSphere(this.transform.position, planetConfig.radiusStart);
 		}
 	}
+
 }
