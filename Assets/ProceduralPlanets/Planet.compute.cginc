@@ -236,36 +236,4 @@ float sampleCubicFloat(Texture2D<float> map, float2 uv)
 
 
 
-
-
-
-
-// BIOMES
-
-int selectBiome(float3 dir, float2 slopeXY, float humidity, float altidute)
-{
-	float slope = length(slopeXY);
-
-
-	float distanceToPoles = smoothstep(0.4, 1, abs(dir.z));
-	float snowWeight = altidute + distanceToPoles + snoise(dir * 100, 5, 2) * 0.1;
-
-
-	if (slope > 0.3)
-		return 0; // rock
-	else {
-		if (snowWeight > 1.5)
-			return 1; // snow
-		else if (snowWeight > 1.2)
-			return 2; // tundra
-		else if (slope < 0.25)
-			return 3; // grass
-		else
-			return 4; // clay
-	}
-}
-
-
-
-
 #endif

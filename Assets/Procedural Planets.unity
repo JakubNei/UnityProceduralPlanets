@@ -462,7 +462,7 @@ MonoBehaviour:
     seaLevel01: 0.5
   chunkConfig:
     useSkirts: 1
-    numberOfVerticesOnEdge: 10
+    numberOfVerticesOnEdge: 20
     weightNeededToSubdivide: 0.6
     stopSegmentRecursionAtWorldSize: 10
     createColliders: 1
@@ -481,6 +481,7 @@ MonoBehaviour:
       type: 3}
     generateSlopeAndCurvatureMap: {fileID: 7200000, guid: aa19f88d5397e0946892c5d96e017537,
       type: 3}
+    generateChunkBiomesMap: {fileID: 0}
     grass: {fileID: 2800000, guid: 0d1e02d044018cf4fbe9227c6defdcd6, type: 3}
     clay: {fileID: 2800000, guid: 0c955ca61f0ba394e93ddf126f707683, type: 3}
     rock: {fileID: 2800000, guid: a154fc0e63e470e499c9e038fa209573, type: 3}

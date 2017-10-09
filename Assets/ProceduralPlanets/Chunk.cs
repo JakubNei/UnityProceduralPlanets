@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using UnityEngine;
 
 [Serializable]
@@ -18,7 +19,7 @@ public class Chunk
 	public Range rangePosToCalculateScreenSizeOn;
 
 
-	public WorldPos offsetFromPlanetCenter;
+	public Vector3 offsetFromPlanetCenter;
 
 	public float chunkRangeMaxAngleDeg;
 
@@ -41,6 +42,7 @@ public class Chunk
 	public RenderTexture chunkNormalMap;
 	public RenderTexture chunkDiffuseMap;
 	public RenderTexture chunkSlopeAndCurvatureMap;
+	public RenderTexture chunkBiomesMap;
 
 	public float heightMin = 0;
 	public float heightMax = 1;
@@ -95,7 +97,8 @@ public class Chunk
 	int HeightMapResolution { get { return chunkConfig.textureResolution; } }
 	int NormalMapResolution { get { return HeightMapResolution; } }
 	int DiffuseMapResolution { get { return NormalMapResolution; } }
-	int ChunkSlopeMapResolution { get { return HeightMapResolution; } }
+	int SlopeMapResolution { get { return HeightMapResolution; } }
+	int BiomesMapResolution { get { return 16; } }
 
 	public class Behavior : MonoBehaviour
 	{
@@ -191,7 +194,7 @@ public class Chunk
 		return chunk;
 	}
 
-	private void AddChild(WorldPos a, WorldPos b, WorldPos c, WorldPos d, ChildPosition cp, ushort index)
+	private void AddChild(Vector3 a, Vector3 b, Vector3 c, Vector3 d, ChildPosition cp, ushort index)
 	{
 		var range = new Range()
 		{
@@ -243,48 +246,60 @@ public class Chunk
 	}
 
 
+	static float lastGetMeshDataTookSeconds;
 
-	public void Generate()
+	public IEnumerator Generate()
 	{
-		if (generationBegan) return;
+		if (generationBegan) yield break;
 		generationBegan = true;
 
-
-
-		MyProfiler.BeginSample("Procedural Planet / Generate chunk");
 
 		if (gameObject) GameObject.Destroy(gameObject);
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Height map");
 		GenerateHeightMap();
 		MyProfiler.EndSample();
+		//yield return null;
 
-		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh");
-		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Generate");
+		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Generate on GPU");
 		GenerateMesh();
-		MyProfiler.EndSample();
-		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Prepare");
-		PrepareMesh();
-		MyProfiler.EndSample();
-		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Skirts");
-		MoveSkirtVertices();
-		MyProfiler.EndSample();
-		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Upload");
-		UploadMesh();
-		MyProfiler.EndSample();
 		MyProfiler.EndSample();
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Normal map");
 		GenerateNormalMap();
 		MyProfiler.EndSample();
+		//yield return null;
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Diffuse map");
 		GenerateDiffuseMap();
 		MyProfiler.EndSample();
+		//yield return null;
+		
+		yield return new WaitForSecondsRealtime(lastGetMeshDataTookSeconds);
+		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Get data from GPU to CPU");
+		var getMeshDataSW = Stopwatch.StartNew();
+		GetMeshData();
+		lastGetMeshDataTookSeconds = getMeshDataSW.ElapsedMilliseconds / 1000f;
+		MyProfiler.EndSample();
+		//yield return null;
+
+		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Create on CPU");
+		CreateMesh();
+		MyProfiler.EndSample();
+		//yield return null;
+
+		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Move skirts on CPU");
+		MoveSkirtVertices();
+		MyProfiler.EndSample();
+		//yield return null;
+
+		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Upload to GPU");
+		UploadMesh();
+		MyProfiler.EndSample();
+		//yield return null;
 
 		CleanupAfterGeneration();
 
-		MyProfiler.EndSample();
 
 		isGenerationDone = true;
 	}
@@ -312,6 +327,7 @@ public class Chunk
 		if (chunkHeightMap != null) c.SetTexture(kernelIndex, "_chunkHeightMap", chunkHeightMap);
 		if (chunkNormalMap != null) c.SetTexture(kernelIndex, "_chunkNormalMap", chunkNormalMap);
 		if (chunkSlopeAndCurvatureMap != null) c.SetTexture(kernelIndex, "_chunkSlopeAndCurvatureMap", chunkSlopeAndCurvatureMap);
+		if (chunkBiomesMap != null) c.SetTexture(kernelIndex, "_chunkBiomesMap", chunkBiomesMap);
 
 		c.SetFloat("_slopeModifier", SlopeModifier);
 
@@ -415,7 +431,7 @@ public class Chunk
 
 			if (chunkHeightMap.useMipMap) chunkHeightMap.GenerateMips();
 
-			GenerateSlopeAndCurvatureMap(chunkHeightMap);
+			//GenerateSlopeAndCurvatureMap(chunkHeightMap);
 		}
 
 		height1.Release();
@@ -428,7 +444,7 @@ public class Chunk
 	{
 		if (chunkSlopeAndCurvatureMap == null)
 		{
-			chunkSlopeAndCurvatureMap = new RenderTexture(ChunkSlopeMapResolution, ChunkSlopeMapResolution, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+			chunkSlopeAndCurvatureMap = new RenderTexture(SlopeMapResolution, SlopeMapResolution, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
 			chunkSlopeAndCurvatureMap.wrapMode = TextureWrapMode.Clamp;
 			chunkSlopeAndCurvatureMap.filterMode = FilterMode.Bilinear;
 			chunkSlopeAndCurvatureMap.enableRandomWrite = true;
@@ -452,16 +468,34 @@ public class Chunk
 	}
 
 
+	void GenerateChunkBiomesMap()
+	{
 
-	ComputeBuffer vertexGPUBuffer { get { return planet.chunkVertexGPUBuffer; } }
+		if (chunkBiomesMap == null)
+		{
+			chunkBiomesMap = new RenderTexture(BiomesMapResolution, BiomesMapResolution, 0, RenderTextureFormat.R8, RenderTextureReadWrite.Linear);
+			chunkBiomesMap.wrapMode = TextureWrapMode.Clamp;
+			chunkBiomesMap.filterMode = FilterMode.Bilinear;
+			chunkBiomesMap.enableRandomWrite = true;
+			chunkBiomesMap.Create();
+		}
+
+		var c = chunkConfig.generateChunkBiomesMap;
+		SetAll(c, 0);
+
+		c.SetTexture(0, "_chunkBiomesMap", chunkBiomesMap);
+		c.Dispatch(0, chunkBiomesMap.width / 16, chunkBiomesMap.height / 16, 1);
+	}
+
+
+	//ComputeBuffer vertexGPUBuffer { get { return planet.chunkVertexGPUBuffer; } }
+	ComputeBuffer vertexGPUBuffer;
 	Vector3[] vertexCPUBuffer { get { return planet.chunkVertexCPUBuffer; } }
-
 	Mesh mesh;
 	void GenerateMesh()
 	{
-
+		vertexGPUBuffer = new ComputeBuffer(chunkConfig.NumberOfVerticesNeededTotal, 3 * sizeof(float));
 		var c = chunkConfig.generateChunkVertices;
-		var v = vertexCPUBuffer;
 		var verticesOnEdge = chunkConfig.numberOfVerticesOnEdge;
 
 		var kernelIndex = 0;
@@ -479,19 +513,26 @@ public class Chunk
 		c.SetBuffer(kernelIndex, "_vertices", vertexGPUBuffer);
 		c.Dispatch(kernelIndex, verticesOnEdge, verticesOnEdge, 1);
 
-		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Generate / Download data");
-		vertexGPUBuffer.GetData(v);
-		MyProfiler.EndSample();
+	}
+
+	void GetMeshData()
+	{
+		vertexGPUBuffer.GetData(vertexCPUBuffer);
+	}
+
+	void CreateMesh()
+	{
+		var verticesOnEdge = chunkConfig.numberOfVerticesOnEdge;
 
 		{
 			int aIndex = 0;
 			int bIndex = verticesOnEdge - 1;
 			int cIndex = verticesOnEdge * verticesOnEdge - 1;
 			int dIndex = cIndex - (verticesOnEdge - 1);
-			rangePosToCalculateScreenSizeOn.a = new WorldPos(v[aIndex]);
-			rangePosToCalculateScreenSizeOn.b = new WorldPos(v[bIndex]);
-			rangePosToCalculateScreenSizeOn.c = new WorldPos(v[cIndex]);
-			rangePosToCalculateScreenSizeOn.d = new WorldPos(v[dIndex]);
+			rangePosToCalculateScreenSizeOn.a = vertexCPUBuffer[aIndex];
+			rangePosToCalculateScreenSizeOn.b = vertexCPUBuffer[bIndex];
+			rangePosToCalculateScreenSizeOn.c = vertexCPUBuffer[cIndex];
+			rangePosToCalculateScreenSizeOn.d = vertexCPUBuffer[dIndex];
 
 			if (!GenerateUsingPlanetGlobalPos)
 			{
@@ -502,11 +543,6 @@ public class Chunk
 			}
 		}
 
-
-	}
-
-	void PrepareMesh()
-	{
 		if (mesh) Mesh.Destroy(mesh);
 		// TODO: optimize: fill mesh vertices on GPU instead of CPU, remember we still need vertices on CPU for mesh collider
 		mesh = new Mesh();
@@ -525,7 +561,7 @@ public class Chunk
 			var v = vertexCPUBuffer;
 			var verticesOnEdge = chunkConfig.numberOfVerticesOnEdge;
 
-			var decreaseSkirtsBy = -offsetFromPlanetCenter.ToVector3().normalized * chunkRadius / 2.0f;
+			var decreaseSkirtsBy = -offsetFromPlanetCenter.normalized * chunkRadius / 2.0f;
 			for (int i = 0; i < verticesOnEdge; i++)
 			{
 				v[i] += decreaseSkirtsBy; // top line
@@ -611,6 +647,9 @@ public class Chunk
 
 	void CleanupAfterGeneration()
 	{
+		if (Application.platform == RuntimePlatform.WindowsEditor)
+			return; // in editor we want to see and debug stuff
+
 		if (chunkHeightMap) chunkHeightMap.Release();
 		chunkHeightMap = null;
 	}

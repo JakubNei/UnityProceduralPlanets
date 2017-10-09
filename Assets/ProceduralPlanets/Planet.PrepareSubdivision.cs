@@ -7,7 +7,7 @@ public partial class Planet
 
 	void GatherWeights(WeightedSegmentsList toGenerate, Chunk chunk, int recursionDepth)
 	{
-		if (toGenerate.Count > 10000) return; // precaution
+		if (toGenerate.Count > 100) return; // precaution
 
 		var weight = chunk.GetGenerationWeight(toGenerate.data);
 
@@ -108,7 +108,7 @@ public partial class Planet
 
 	//Queue<Segment> toGenerateOrdered;
 	WeightedSegmentsList toGenerate = new WeightedSegmentsList();
-	public void TrySubdivideOver(SubdivisionData data)
+	public void CalculateWorkQueue(SubdivisionData data)
 	{
 		toGenerate.Clear();
 		toGenerate.data = data;

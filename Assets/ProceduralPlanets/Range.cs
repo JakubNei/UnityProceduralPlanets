@@ -1,15 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using UnityEngine;
 
 public struct Range
 {
-	public WorldPos a;
-	public WorldPos b;
-	public WorldPos c;
-	public WorldPos d;
+	public Vector3 a;
+	public Vector3 b;
+	public Vector3 c;
+	public Vector3 d;
 
 	/*
 	A -- B
@@ -20,7 +17,7 @@ public struct Range
 	*/
 
 
-	public WorldPos CenterPos
+	public Vector3 CenterPos
 	{
 		get
 		{
@@ -34,8 +31,8 @@ public struct Range
 		{
 			return Vector3.Normalize(
 				Vector3.Cross(
-					WorldPos.Normalize(b - a),
-					WorldPos.Normalize(d - a)
+					Vector3.Normalize(b - a),
+					Vector3.Normalize(d - a)
 				)
 			);
 		}
@@ -48,16 +45,33 @@ public struct Range
 		var radius =
 			Math.Max(
 				Math.Max(
-					WorldPos.Distance(center, a),
-					WorldPos.Distance(center, b)
+					Vector3.Distance(center, a),
+					Vector3.Distance(center, b)
 				),
 				Math.Max(
-					WorldPos.Distance(center, c),
-					WorldPos.Distance(center, d)
+					Vector3.Distance(center, c),
+					Vector3.Distance(center, d)
 				)
 			);
 
 		return new Sphere(center, (float)radius);
+	}
+
+
+	public Vector3 GetPosAt(Vector2 uv)
+	{
+		return Vector3.Lerp(
+			Vector3.Lerp(a, b, uv.x),
+			Vector3.Lerp(d, c, uv.x),
+			uv.y
+		);
+	}
+
+	public Vector3 GetUnityDirAt(Vector2 uv)
+	{
+		var unitCube = GetPosAt(uv);
+		var unitSphere = MyMath.UnitCubeToUnitSphere(unitCube);
+		return unitSphere;
 	}
 
 	public void SetParams(ComputeShader s, string prefix)

@@ -1,7 +1,7 @@
 ﻿#pragma kernel main
 
 #include "Planet.Compute.cginc"
-
+#include "ChunkBiomes.cginc"
 
 Texture2D<float> _planetHeightMap;
 
@@ -92,6 +92,8 @@ void main(uint3 id : SV_DispatchThreadID)
 	);
 	dir = unitCubeToUnitSphere(dir);
 	
+
+	/*
 	float height01 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r;
 	height01 = height01 * (_heightMax - _heightMin) + _heightMin;
 	float heightReal = height01 * _planetRadiusHeightMapMultiplier;
@@ -122,8 +124,22 @@ void main(uint3 id : SV_DispatchThreadID)
 			color = GetClay(pos, normal);
 	}
 
+	*/
 
-		
+	float2 slopeXY = _chunkSlopeAndCurvatureMap[id.xy];
+	float chunkMapHeight = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r;
+	float realPlanetHeight = chunkMapHeight * (_heightMax - _heightMin) + _heightMin;
+
+	BiomeData data;
+	data.dir = dir;
+	data.slopeXY = slopeXY;
+	data.humidity = 0.5;
+	data.altidute = realPlanetHeight;
+
+	int biome = selectBiome(data);
+
+	float3 color = getDiffuseColor(biome, data);
+
 
 
 	// DEBUG

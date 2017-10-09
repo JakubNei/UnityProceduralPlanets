@@ -2,10 +2,6 @@
 
 public partial class Planet
 {
-	public int NumberOfVerticesNeededTotal { get { return chunkConfig.numberOfVerticesOnEdge * chunkConfig.numberOfVerticesOnEdge; } }
-
-
-
 
 	int subdivisionMaxRecurisonDepthCached = -1;
 	public int SubdivisionMaxRecurisonDepth

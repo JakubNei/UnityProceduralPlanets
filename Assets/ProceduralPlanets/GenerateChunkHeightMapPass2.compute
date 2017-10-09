@@ -1,7 +1,7 @@
 ﻿#pragma kernel main
 
 #include "Planet.Compute.cginc"
-
+#include "ChunkBiomes.cginc"
 
 
 Texture2D<float> _chunkHeightMap;
@@ -39,16 +39,21 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	float3 dir = unitCubeToUnitSphere(unitCubePos);
 
-	float height = _chunkHeightMap[id.xy];
-	//float height = clamp(s0, 0, 1);
+	float chunkMapHeight = _chunkHeightMap[id.xy];
+	float realPlanetHeight = chunkMapHeight * (_heightMax - _heightMin) + _heightMin;
 
 	float2 slopeXY = _chunkSlopeAndCurvatureMap[id.xy].xy;
-	float slope = saturate(length(slopeXY));
 
+	
+	BiomeData data;
+	data.dir = dir;
+	data.slopeXY = slopeXY;
+	data.humidity = 0.5;
+	data.altidute = realPlanetHeight;
 
-	float r = _heightMax - _heightMin;
-	//slope = clamp(slope, 0, 1);
-	//height += (1 - abs(snoise(dir * 100, 30, 1.5))) * slope * 0.1 / r;
+	int biome = selectBiome(data);
+
+	chunkMapHeight += adjustHeight(biome, data) / (_heightMax - _heightMin);
 	
 	//DEBUG
 	//if(slope > 0.01) height += slope;
@@ -62,6 +67,6 @@ void main(uint3 id : SV_DispatchThreadID)
 	//height = slope;
 
 	//SAFE
-	height = clamp(height, 0, 1);
-	_chunkHeightMapNew[id.xy] = height;
+	chunkMapHeight = clamp(chunkMapHeight, 0, 1);
+	_chunkHeightMapNew[id.xy] = chunkMapHeight;
 }

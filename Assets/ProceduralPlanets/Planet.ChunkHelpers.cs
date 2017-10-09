@@ -10,7 +10,7 @@ public partial class Planet
 	{
 		if (chunkVertices != null) return chunkVertices;
 
-		chunkVertices = new Vector3[NumberOfVerticesNeededTotal];
+		chunkVertices = new Vector3[chunkConfig.NumberOfVerticesNeededTotal];
 
 		// DEBUG
 		for (int i = 0; i < chunkVertices.Length; i++)
@@ -38,7 +38,7 @@ public partial class Planet
 
 		if (segmentIndicies != null) return segmentIndicies;
 
-		var indicies = new List<int>(NumberOfVerticesNeededTotal);
+		var indicies = new List<int>(chunkConfig.NumberOfVerticesNeededTotal);
 
 		for (int line = 0; line < chunkConfig.numberOfVerticesOnEdge - 1; line++)
 		{
@@ -70,7 +70,7 @@ public partial class Planet
 	{
 		if (chunkUVs != null) return chunkUVs;
 
-		chunkUVs = new Vector2[NumberOfVerticesNeededTotal];
+		chunkUVs = new Vector2[chunkConfig.NumberOfVerticesNeededTotal];
 		int i = 0;
 
 		float max = chunkConfig.numberOfVerticesOnEdge - 1;

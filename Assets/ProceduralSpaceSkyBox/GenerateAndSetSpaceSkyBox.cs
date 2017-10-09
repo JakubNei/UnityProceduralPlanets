@@ -35,29 +35,60 @@ public class GenerateAndSetSpaceSkyBox : MonoBehaviour
 		Generate();
 	}
 
-
+	int delyedResolutionChangeRegenerate = 0;
 	private void Update()
 	{
+		if (resolution != GetIdealResolution())
+			delyedResolutionChangeRegenerate++;
+
+		if (delyedResolutionChangeRegenerate > 120)
+		{
+			delyedResolutionChangeRegenerate = 0;
+			Prepare();
+			Generate();
+		}
+
 		if (Input.GetKeyDown(refreshKey))
 			Generate();
 	}
 
+	int GetIdealResolution()
+	{
+		int r;
+		if (Screen.width > Screen.height) r = Screen.width;
+		else r = Screen.height;
+
+		var power = Mathf.Ceil(Mathf.Log(r) / Mathf.Log(2));
+		r = (int)Mathf.Pow(2.0f, power);
+
+		return r;
+	}
+
 	void Prepare()
 	{
-		if (skyboxTextures == null || skyboxTextures.Length != 6)
+		if (skyboxTextures != null)
 		{
-			skyboxTextures = new RenderTexture[6];
-			for (int i = 0; i < 6; i++)
+			foreach (var t in skyboxTextures)
 			{
-				var t = new RenderTexture(resolution, resolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
-				t.wrapMode = TextureWrapMode.Mirror;
-				t.filterMode = FilterMode.Trilinear;
-				t.enableRandomWrite = true;
-				t.Create();
-				t.name = textureNames[i];
-				skyboxTextures[i] = t;
+				t.Release();
+				RenderTexture.Destroy(t);
 			}
+			skyboxTextures = null;
+		}
 
+		resolution = GetIdealResolution();
+		skyboxTextures = new RenderTexture[6];
+		for (int i = 0; i < 6; i++)
+		{
+			var t = new RenderTexture(resolution, resolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+			t.wrapMode = TextureWrapMode.Mirror;
+			t.filterMode = FilterMode.Trilinear;
+			t.enableRandomWrite = true;
+			t.autoGenerateMips = false;
+			t.useMipMap = true;
+			t.Create();
+			t.name = textureNames[i];
+			skyboxTextures[i] = t;
 		}
 
 		if (targetComponents == null || targetComponents.Length == 0)
@@ -83,6 +114,9 @@ public class GenerateAndSetSpaceSkyBox : MonoBehaviour
 		for (int i = 0; i < 6; i++)
 			shader.SetTexture(0, textureNames[i], skyboxTextures[i]);
 		shader.Dispatch(0, resolution / 16, resolution / 16, 6);
+		for (int i = 0; i < 6; i++)
+			if (skyboxTextures[i].useMipMap && !skyboxTextures[i].autoGenerateMips)
+				skyboxTextures[i].GenerateMips();
 	}
 
 }

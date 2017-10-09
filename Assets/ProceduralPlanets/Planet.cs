@@ -33,6 +33,7 @@ public partial class Planet : MonoBehaviour
 		public bool createColliders = true;
 		public int textureResolution = 256; // must be multiplier of 16
 		public bool rescaleToMinMax = true;
+		public int NumberOfVerticesNeededTotal { get { return numberOfVerticesOnEdge * numberOfVerticesOnEdge; } }
 
 		public Material chunkMaterial;
 		public ComputeShader generateChunkVertices;
@@ -41,6 +42,7 @@ public partial class Planet : MonoBehaviour
 		public ComputeShader generateChunkDiffuseMap;
 		public ComputeShader generateChunkNormapMap;
 		public ComputeShader generateSlopeAndCurvatureMap;
+		public ComputeShader generateChunkBiomesMap;
 
 		public Texture2D grass;
 		public Texture2D clay;
@@ -71,8 +73,8 @@ public partial class Planet : MonoBehaviour
 	}
 	void InitializeOther()
 	{
-		chunkVertexGPUBuffer = new ComputeBuffer(NumberOfVerticesNeededTotal, 3 * sizeof(float));
-		chunkVertexCPUBuffer = new Vector3[NumberOfVerticesNeededTotal];
+		//chunkVertexGPUBuffer = new ComputeBuffer(chunkConfig.NumberOfVerticesNeededTotal, 3 * sizeof(float));
+		chunkVertexCPUBuffer = new Vector3[chunkConfig.NumberOfVerticesNeededTotal];
 	}
 
 	void GeneratePlanetData()
@@ -121,23 +123,28 @@ public partial class Planet : MonoBehaviour
 			MarkForRegeneration(c.children);
 		}
 	}
-
+	
 	void LateUpdate()
 	{
+		var milisecondsBudget = (int)(Time.deltaTime * 1000f - 1000f / 90f);
+
 		MyProfiler.BeginSample("Procedural Planet / Calculate desired subdivision");
-		TrySubdivideOver(new SubdivisionData()
+		CalculateWorkQueue(new SubdivisionData()
 		{
 			pos = Camera.main.transform.position,
 			fieldOfView = Camera.main.fieldOfView,
 		});
 		MyProfiler.EndSample();
-
-		var sw = Stopwatch.StartNew();
-		foreach (var s in toGenerate.GetWeighted())
+		if (toGenerate.Count > 0)
 		{
-			s.Generate();
-			//if (sw.Elapsed.TotalMilliseconds > 5f)
-			break;
+			var sw = Stopwatch.StartNew();
+			var q = toGenerate.GetWeighted();
+			foreach (var chunk in q)
+			{
+				if (chunk.generationBegan) continue;
+				StartCoroutine(chunk.Generate());
+				if (sw.ElapsedMilliseconds > milisecondsBudget) break;
+			}
 		}
 	}
 
