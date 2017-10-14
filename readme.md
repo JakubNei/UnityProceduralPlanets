@@ -88,3 +88,8 @@ float realPlanetHeight = chunkMapHeight * (_heightMax - _heightMin) + _heightMin
 
 [Screenshot: Chunk skirts in Elite Dangerous](https://image.prntscr.com/image/ftDCxkimQK6uRgKqs9WBdg.png)
 
+
+
+# Screenshots
+Tripply planet https://i.imgur.com/A5GUZCv.png
+Actually interesting concept made by mistake, triplanar pos is direction * height https://i.imgur.com/yQg9s90.png
