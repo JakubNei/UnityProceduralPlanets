@@ -1,9 +1,12 @@
+# About
+This is where I try to refine and improve on everything I've learned in my [Procedural planets generator](https://github.com/aeroson/procedural-planets-generator). The idea is that this will be license free Earth sized comprehensive Unity GPU-mostly procedural planets and procedural universe generator. So people can #MakeGamesNotProceduralPlanets
+
 
 # Key technological points
-a base (planetary) height map is provided or generated
-uses chunked LOD quad tree
-normal maps are in model space
-each chunk is located on planet inside are of 4 direction unit vectors
+- A base (planetary) height map is provided or generated, which defines the basic planet shape
+- Uses chunked LOD quad tree
+- Chunk normal maps are in model space
+- Each chunk is located on planet inside area of 4 direction unit vectors
 
 # Chunk generation steps
 1. GPU: generate chunk height map from base planetary height map using bicubic sampling
