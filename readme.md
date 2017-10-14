@@ -1,32 +1,32 @@
 
-#Key technological points
-first a base (planetary) height map is provided or generated
+# Key technological points
+a base (planetary) height map is provided or generated
 uses chunked LOD quad tree
 normal maps are in model space
 each chunk is located on planet inside are of 4 direction unit vectors
-mesh heights must be able to be generated on CPU only, so it can be used on dedicated servers
-things generated on GPU are only visual candy
 
-#Chunk generation steps
-CPU: generate height map from base planetary height map using bicubic sampling
-CPU: generate mesh vertices from bicubic sampling from planetary height map
-GPU: upscale CPU mesh height map, add very small high frequency noise to hide imprecision artefacts
-GPU: generate slope map from height map
-GPU: height map: add noise based on slope
-GPU: generate slope map from height map
-GPU: generate diffuse map based on slope map
-GPU: generate normal map based on height map
+# Chunk generation steps
+1. GPU: generate chunk height map from base planetary height map using bicubic sampling
+2. GPU: chunk height map: add very small high frequency noise to hide samping imprecision artefacts
+3. GPU: generate chunk slope map from chunk height map
+4. GPU: chunk height map: add noise based on chunk slope map
+5. GPU: get chunk mesh vertices from chunk height map
+6. GPU->CPU: download chunk mesh vertices from GPU to CPU
+7. GPU: generate chunk slope map from chunk height map
+8. GPU: generate chunk diffuse map based on chunk slope map
+9. GPU: generate chunk normal map based on chunk height map
+10. CPU: create chunk mesh from downloaded chunk mesh vertices
 
+Chunk mesh vertices could be generated on CPU only, so it can be used on dedicated servers. Things generated on GPU should be only to add eye candy. Currently everything is generated on GPU.
 
 # Planet detail subdivision (chunked LOD quad tree)
-You can use ether squares or triangles for chunks.
-Triangles appear to have better mesh, but it's finicky to figure out their texturing coordinates, plus you use only half of texture for each tringular chunk.
+You can use ether squares or triangles for chunks shape. Triangles appear to have better mesh, but it's finicky to figure out their texturing coordinates, plus you use only half of texture for each tringular chunk.
 
 Squares:
 Naive cube to sphere function is 
-
+```
 unitSphere = normalize(unitCube);
-
+```
 this however brings in distortions, better distortion-less unit cube to unit sphere is:
 ```
 // -1 <= unitCube.x && unitCube.x <= 1
@@ -65,8 +65,8 @@ public static Vector3 UnitCubeToUnitSphere(Vector3 unitCube)
 ```
 
 
-#Chunk height maps
-Chunk height maps can have adjusted min max, based on the range they need:
+# Chunk height maps
+Chunk height maps can have adjusted min max, based on the range they need. That is what the FindTextureMinMax is for.
 ```
 float chunkMapHeight = (realPlanetHeight - _heightMin) / (_heightMax - _heightMin);
 
@@ -74,54 +74,14 @@ float realPlanetHeight = chunkMapHeight * (_heightMax - _heightMin) + _heightMin
 ```
 
 
+# Links
+[Normal maps blending aproaches](http://blog.selfshadow.com/publications/blending-in-detail/)
 
+[fBM, Billowy turbulence, Ridged turbulence, IQ Noise](http://www.decarpentier.nl/scape-procedural-basics)
 
+[Introduction series to making procedural worlds](https://acko.net/blog/making-worlds-introduction/)
 
-#biomes
+[Outerra: Bicubic sampling, Slope depedent noise example](http://www.outerra.com/procedural/demo.html)
 
-
-## simple, beginner steps
-sea
-beach
-ice
-desert
-boreal
-
-## idea links
-https://planetaryannihilation.gamepedia.com/Biome
-https://starbounder.org/Biome
-
-## more complex
-https://en.wikipedia.org/wiki/Geographical_zone
-ice
-tundra
-boreal
-warm
-subtropical
-tropical
-lava?
-
-plain
-mountain
-forest
-water
-
-### combinations
-ice_plain
-ice_mountain
-tundra_plain
-tundra_mountain
-tundra_forest
-boreal_plain
-boreal_mountain
-boreal_forest
-warm_plain
-warm_mountain
-warm_forest
-subtropical_plain
-subtropical_mountain
-subtropical_forest
-tropical_plain
-tropical_mountain
-tropical_forest
+[Screenshot: Chunk skirts in Elite Dangerous](https://image.prntscr.com/image/ftDCxkimQK6uRgKqs9WBdg.png)
 
