@@ -91,5 +91,14 @@ float realPlanetHeight = chunkMapHeight * (_heightMax - _heightMin) + _heightMin
 
 
 # Screenshots
-Tripply planet https://i.imgur.com/A5GUZCv.png
-Actually interesting concept made by mistake, triplanar pos is direction * height https://i.imgur.com/yQg9s90.png
+![](https://image.prntscr.com/image/lv0pwbK-R0CGY1vul4sscQ.png)
+![](https://image.prntscr.com/image/Er1Jco2CQIWRK78frl0r_A.png)
+![](https://image.prntscr.com/image/70iHXoC0SRuWO9_dFqGeHQ.png)
+![](https://image.prntscr.com/image/KH_JAmfrTiqcKP1Nkud8wg.png)
+![](https://image.prntscr.com/image/phJL6VqzTFCSYSSzSg4Fww.png)
+
+Trippy planet, broken triplanar mapping
+![](https://i.imgur.com/A5GUZCv.png)
+
+Actually interesting concept made by mistake, triplanar pos = direction * height 
+![](https://i.imgur.com/yQg9s90.png)
