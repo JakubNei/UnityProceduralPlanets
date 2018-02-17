@@ -21,9 +21,9 @@ public class FindTextureMinMax
 		}
 	}
 
-	static RenderTexture GetRenderTexture(int w, int h)
+	static RenderTexture GetRenderTexture(int w, int h, RenderTextureFormat format)
 	{
-		var t = RenderTexture.GetTemporary(w, h, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+		var t = RenderTexture.GetTemporary(w, h, 0, format, RenderTextureReadWrite.Linear);
 		t.enableRandomWrite = true;
 		t.Create();
 		return t;
@@ -35,9 +35,9 @@ public class FindTextureMinMax
 	}
 
 
-	const int NUM_THREADS = 1;
+	const int NUM_THREADS = 16;
 
-	public static Result Find(Texture source)
+	public static Result Find(Texture source, RenderTextureFormat format = RenderTextureFormat.ARGB32)
 	{
 		var s = Shader;
 
@@ -53,19 +53,24 @@ public class FindTextureMinMax
 
 		int kernel = 0;
 		RenderTexture minIn, maxIn, minOut, maxOut;
+		int tgy, tgx;
 
 		kernel = s.FindKernel("firstStep");
 
-		minOut = GetRenderTexture(w, h);
-		maxOut = GetRenderTexture(w, h);
+		minOut = GetRenderTexture(w, h, format);
+		maxOut = GetRenderTexture(w, h, format);
 
 		s.SetTexture(kernel, "_initialTextureIn", source);
 		s.SetTexture(kernel, "_textureMinOut", minOut);
 		s.SetTexture(kernel, "_textureMaxOut", maxOut);
 
-		s.Dispatch(kernel, w / NUM_THREADS, h / NUM_THREADS, 1);
+		tgx = Mathf.Max(1, Mathf.CeilToInt(w / NUM_THREADS));
+		tgy = Mathf.Max(1, Mathf.CeilToInt(h / NUM_THREADS));
+		s.Dispatch(kernel, tgx, tgy, 1);
 
 
+
+		kernel = s.FindKernel("otherSteps");
 
 		while (true)
 		{
@@ -75,17 +80,17 @@ public class FindTextureMinMax
 			minIn = minOut;
 			maxIn = maxOut;
 
-			kernel = s.FindKernel("otherSteps");
-
-			minOut = GetRenderTexture(w, h);
-			maxOut = GetRenderTexture(w, h);
+			minOut = GetRenderTexture(w, h, format);
+			maxOut = GetRenderTexture(w, h, format);
 
 			s.SetTexture(kernel, "_textureMinIn", minIn);
 			s.SetTexture(kernel, "_textureMaxIn", maxIn);
 			s.SetTexture(kernel, "_textureMinOut", minOut);
 			s.SetTexture(kernel, "_textureMaxOut", maxOut);
 
-			s.Dispatch(kernel, w / NUM_THREADS, h / NUM_THREADS, 1);
+			w = Mathf.Max(1, Mathf.CeilToInt(w / NUM_THREADS));
+			tgy = Mathf.Max(1, Mathf.CeilToInt(h / NUM_THREADS));
+			s.Dispatch(kernel, tgx, tgy, 1);
 
 			ReleaseRenderTexture(minIn);
 			ReleaseRenderTexture(maxIn);

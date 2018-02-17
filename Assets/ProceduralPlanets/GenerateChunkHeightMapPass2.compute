@@ -51,7 +51,7 @@ void main(uint3 id : SV_DispatchThreadID)
 	data.humidity = 0.5;
 	data.altidute = realPlanetHeight;
 
-	int biome = selectBiome(data);
+	BiomeResult biome = selectBiome(data);
 
 	chunkMapHeight += adjustHeight(biome, data) / (_heightMax - _heightMin);
 	
@@ -61,12 +61,11 @@ void main(uint3 id : SV_DispatchThreadID)
 	//height = distToEdge * 0.5;
 	//height += 0.001;
 	//height += slope * 0.001;
-
-	//DEBUG
 	//height = uv.x;
 	//height = slope;
 
-	//SAFE
+	//SAFETY
 	chunkMapHeight = clamp(chunkMapHeight, 0, 1);
+
 	_chunkHeightMapNew[id.xy] = chunkMapHeight;
 }

@@ -21,7 +21,6 @@ float _chunkRadius;
 
 
 
-float _radiusHeightMapMultiplier;
 float _normalLength;
 
 
@@ -42,15 +41,15 @@ float2 getSlope(int2 idXy, int w, int h)
 	// s02 __ s12 __ s22
 	float s00 = _chunkHeightMap[s11pos + off.xx].r;
 	float s10 = _chunkHeightMap[s11pos + off.yx].r;
-	float s20 = _chunkHeightMap[s11pos + off.zx].r;
+	//float s20 = _chunkHeightMap[s11pos + off.zx].r;
 
 	float s01 = _chunkHeightMap[s11pos + off.xy].r;
-	float s11 = _chunkHeightMap[s11pos].r;
-	float s21 = _chunkHeightMap[s11pos + off.zy].r;
+	//float s11 = _chunkHeightMap[s11pos].r;
+	//float s21 = _chunkHeightMap[s11pos + off.zy].r;
 
-	float s02 = _chunkHeightMap[s11pos + off.xz].r;
-	float s12 = _chunkHeightMap[s11pos + off.yz].r;
-	float s22 = _chunkHeightMap[s11pos + off.zz].r;
+	//float s02 = _chunkHeightMap[s11pos + off.xz].r;
+	//float s12 = _chunkHeightMap[s11pos + off.yz].r;
+	//float s22 = _chunkHeightMap[s11pos + off.zz].r;
 
 	// modified https://en.wikipedia.org/wiki/Sobel_operator
 	//-1 __ 0 __ 1
@@ -79,12 +78,17 @@ void main(uint3 id : SV_DispatchThreadID)
 	_chunkHeightMap.GetDimensions(w, h);
 	float2 uv = id.xy / float2(w - 1, h - 1);
 
-	float2 slope = getSlope(id.xy, w, h) * _radiusHeightMapMultiplier;
+	float2 slope = getSlope(id.xy, w, h);
 	float3 flatPlanetNormal = cross(
 		normalize(float3(_normalLength, 0, slope.x)),
 		normalize(float3(0, _normalLength, slope.y))
 	);
 	flatPlanetNormal = normalize(flatPlanetNormal);
+
+
+	//DEBUG
+	//flatPlanetNormal = float3(0,0,1);
+
 
 	float3 dir, dir2;
 
@@ -97,25 +101,25 @@ void main(uint3 id : SV_DispatchThreadID)
 	float3 normal = dir;
 
 
-	float d = 0.01;
+	float theta = 0.01;
 
 
 	dir2 = lerp(
-		lerp(_rangeUnitCubePosA, _rangeUnitCubePosB, uv.x + d),
-		lerp(_rangeUnitCubePosD, _rangeUnitCubePosC, uv.x + d),
+		lerp(_rangeUnitCubePosA, _rangeUnitCubePosB, uv.x + theta),
+		lerp(_rangeUnitCubePosD, _rangeUnitCubePosC, uv.x + theta),
 		uv.y
 	);
 	dir2 = unitCubeToUnitSphere(dir2);
-	float3 tangent = normalize(dir2 - dir);
+	float3 tangent = normalize(dir2 - dir); // towards x + theta
 	
 
 	dir2 = lerp(
 		lerp(_rangeUnitCubePosA, _rangeUnitCubePosB, uv.x),
 		lerp(_rangeUnitCubePosD, _rangeUnitCubePosC, uv.x),
-		uv.y + d
+		uv.y + theta
 	);
 	dir2 = unitCubeToUnitSphere(dir2);
-	float3 binormal = normalize(dir2 - dir);
+	float3 binormal = normalize(dir2 - dir); // towards y + theta
 
 	/*
 	tangent = normalize(tangent - normal * dot(tangent, normal));

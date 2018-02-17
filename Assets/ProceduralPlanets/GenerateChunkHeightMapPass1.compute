@@ -39,7 +39,7 @@ void main(uint3 id : SV_DispatchThreadID)
 	//double height = _planetHeightMap.SampleLevel(sampler_planetHeightMap, heightMapUv, 0);
 	//double height = getProceduralHeight01(dir);
 
-	realPlanetHeight += snoise(dir * 1000, 20, 1.2) * 0.0001; // high frequency small amplitude noise, to hide planet height map sampling artefacts
+	//realPlanetHeight += snoise(dir * 1000, 20, 1.2) * 0.0001; // high frequency small amplitude noise, to hide planet height map sampling artefacts
 
 	float chunkMapHeight = (realPlanetHeight - _heightMin) / (_heightMax - _heightMin);
 
@@ -54,10 +54,12 @@ void main(uint3 id : SV_DispatchThreadID)
 		amp /= 1.2;
 	}*/
 
-	// DEBUG
+	//DEBUG
 	//height = uv.x;
 	//height = 0;
 
+	//SAFETY
 	chunkMapHeight = clamp(chunkMapHeight, 0, 1);
+
 	_chunkHeightMap[id.xy] = chunkMapHeight;
 }

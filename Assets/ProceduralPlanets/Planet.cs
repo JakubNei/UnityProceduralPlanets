@@ -17,7 +17,7 @@ public partial class Planet : MonoBehaviour
 
 		public Texture2D biomesControlMap;
 		public ComputeShader generatePlanetBiomesData;
-		public float radiusStart = 1000;
+		public float radiusStart = 1000; // earth is 6 371 000 m
 		public float radiusHeightMapMultiplier = 30;
 		public float seaLevel01 = 0.5f;
 	}
@@ -123,10 +123,28 @@ public partial class Planet : MonoBehaviour
 			MarkForRegeneration(c.children);
 		}
 	}
+
 	
+	IEnumerator toContinue;
 	void LateUpdate()
 	{
 		var milisecondsBudget = (int)(Time.deltaTime * 1000f - 1000f / 90f);
+
+		var sw = Stopwatch.StartNew();
+
+		if (toContinue != null)
+		{
+			while (true)
+			{
+				if (!toContinue.MoveNext())
+				{
+					toContinue = null;
+					break;
+				}
+				if (sw.ElapsedMilliseconds > milisecondsBudget) break;
+			}
+
+		}
 
 		MyProfiler.BeginSample("Procedural Planet / Calculate desired subdivision");
 		CalculateWorkQueue(new SubdivisionData()
@@ -135,15 +153,30 @@ public partial class Planet : MonoBehaviour
 			fieldOfView = Camera.main.fieldOfView,
 		});
 		MyProfiler.EndSample();
+
 		if (toGenerate.Count > 0)
 		{
-			var sw = Stopwatch.StartNew();
 			var q = toGenerate.GetWeighted();
 			foreach (var chunk in q)
 			{
 				if (chunk.generationBegan) continue;
-				StartCoroutine(chunk.Generate());
-				if (sw.ElapsedMilliseconds > milisecondsBudget) break;
+				toContinue = chunk.Generate();
+				var abort = false;
+				while (true)
+				{
+					if (!toContinue.MoveNext())
+					{
+						toContinue = null;
+						abort = true;
+						break;
+					}
+					if (sw.ElapsedMilliseconds > milisecondsBudget)
+					{
+						abort = true;
+						break;
+					}
+				}
+				if (abort) break;
 			}
 		}
 	}

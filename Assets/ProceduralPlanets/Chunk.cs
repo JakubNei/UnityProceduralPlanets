@@ -259,7 +259,7 @@ public class Chunk
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Height map");
 		GenerateHeightMap();
 		MyProfiler.EndSample();
-		//yield return null;
+		yield return null;
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Generate on GPU");
 		GenerateMesh();
@@ -268,35 +268,35 @@ public class Chunk
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Normal map");
 		GenerateNormalMap();
 		MyProfiler.EndSample();
-		//yield return null;
+		yield return null;
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Diffuse map");
 		GenerateDiffuseMap();
 		MyProfiler.EndSample();
-		//yield return null;
-		
+		yield return null;
+
 		yield return new WaitForSecondsRealtime(lastGetMeshDataTookSeconds);
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Get data from GPU to CPU");
 		var getMeshDataSW = Stopwatch.StartNew();
 		GetMeshData();
 		lastGetMeshDataTookSeconds = getMeshDataSW.ElapsedMilliseconds / 1000f;
 		MyProfiler.EndSample();
-		//yield return null;
+		yield return null;
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Create on CPU");
 		CreateMesh();
 		MyProfiler.EndSample();
-		//yield return null;
+		yield return null;
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Move skirts on CPU");
 		MoveSkirtVertices();
 		MyProfiler.EndSample();
-		//yield return null;
+		yield return null;
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Upload to GPU");
 		UploadMesh();
 		MyProfiler.EndSample();
-		//yield return null;
+		yield return null;
 
 		CleanupAfterGeneration();
 
@@ -359,7 +359,7 @@ public class Chunk
 		// pass 0
 		if (chunkConfig.rescaleToMinMax)
 		{
-			var heightRough = new RenderTexture(16, 16, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
+			var heightRough = new RenderTexture(HeightMapResolution/2, HeightMapResolution/2, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
 			heightRough.wrapMode = TextureWrapMode.Clamp;
 			heightRough.filterMode = FilterMode.Bilinear;
 			heightRough.enableRandomWrite = true;
@@ -375,12 +375,13 @@ public class Chunk
 			c.Dispatch(0, heightRough.width / 16, heightRough.height / 16, 1);
 
 			MyProfiler.BeginSample("find texture min max");
-			var result = FindTextureMinMax.Find(heightRough);
+			var result = FindTextureMinMax.Find(heightRough, RenderTextureFormat.RInt);
 			MyProfiler.EndSample();
 			heightMax = result.max.x;
 			heightMin = result.min.x;
 
-			var r = 0.1f;//HeightRange / 10.0f;
+			var r = 0.1f;
+			if (parent != null) r = parent.HeightRange / 5.0f;
 			heightMax += r;
 			heightMin -= r;
 
@@ -603,8 +604,10 @@ public class Chunk
 		}
 
 		SetAll(c, 0);
-		c.SetFloat("_heightMapRealRange", planetConfig.radiusHeightMapMultiplier);
-		c.SetFloat("_normalLength", chunkRadius / chunkNormalMap.width);
+
+		var _normalLength = chunkRadius / chunkNormalMap.width / (planetConfig.radiusHeightMapMultiplier * HeightRange);
+		//UnityEngine.Debug.Log(_normalLength);
+		c.SetFloat("_normalLength", _normalLength);
 
 		c.SetTexture(0, "_chunkNormalMap", chunkNormalMap);
 		c.Dispatch(0, chunkNormalMap.width / 16, chunkNormalMap.height / 16, 1);

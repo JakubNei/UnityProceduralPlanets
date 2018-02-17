@@ -20,7 +20,7 @@ public class FloatingOriginController : MonoBehaviour
 		fs.Add(f);
 	}
 
-	private void Update()
+	private void FixedUpdate()
 	{
 		if (this.transform.position.sqrMagnitude > 1000 * 1000)
 		{

@@ -13,7 +13,7 @@ OcclusionCullingSettings:
 --- !u!104 &2
 RenderSettings:
   m_ObjectHideFlags: 0
-  serializedVersion: 8
+  serializedVersion: 9
   m_Fog: 0
   m_FogColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
   m_FogMode: 3
@@ -39,6 +39,7 @@ RenderSettings:
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
   m_IndirectSpecularColor: {r: 0, g: 0, b: 0, a: 0}
+  m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
   m_ObjectHideFlags: 0
@@ -51,14 +52,13 @@ LightmapSettings:
     m_AlbedoBoost: 1
     m_TemporalCoherenceThreshold: 1
     m_EnvironmentLightingMode: 0
-    m_EnableBakedLightmaps: 1
-    m_EnableRealtimeLightmaps: 1
+    m_EnableBakedLightmaps: 0
+    m_EnableRealtimeLightmaps: 0
   m_LightmapEditorSettings:
-    serializedVersion: 9
+    serializedVersion: 10
     m_Resolution: 2
     m_BakeResolution: 40
-    m_TextureWidth: 1024
-    m_TextureHeight: 1024
+    m_AtlasSize: 1024
     m_AO: 0
     m_AOMaxDistance: 1
     m_CompAOExponent: 1
@@ -88,6 +88,7 @@ LightmapSettings:
     m_PVRFilteringAtrousPositionSigmaDirect: 0.5
     m_PVRFilteringAtrousPositionSigmaIndirect: 2
     m_PVRFilteringAtrousPositionSigmaAO: 1
+    m_ShowResolutionOverlay: 1
   m_LightingDataAsset: {fileID: 0}
   m_UseShadowmask: 1
 --- !u!196 &4
@@ -143,7 +144,6 @@ AudioListener:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 48616960}
   m_Enabled: 1
-  m_ExtensionPropertyValues: []
 --- !u!124 &48616962
 Behaviour:
   m_ObjectHideFlags: 0
@@ -198,11 +198,11 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 0
+  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
-  m_StereoMirrorMode: 0
 --- !u!4 &48616965
 Transform:
   m_ObjectHideFlags: 0
@@ -396,11 +396,11 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 0
+  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
-  m_StereoMirrorMode: 0
 --- !u!114 &319332546
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -454,11 +454,11 @@ MonoBehaviour:
     generatePlanetHeightCalculateHumidity: {fileID: 0}
     generatePlanetHeightMapPass2: {fileID: 7200000, guid: 8fb16aafadf706e4cb323b41650ec3fc,
       type: 3}
-    generatedPlanetHeightMapResolution: 2048
+    generatedPlanetHeightMapResolution: 4096
     biomesControlMap: {fileID: 2800000, guid: f06b90865df33b64aa0f066aedce33cf, type: 3}
     generatePlanetBiomesData: {fileID: 0}
-    radiusStart: 100000
-    radiusHeightMapMultiplier: 3000
+    radiusStart: 10000
+    radiusHeightMapMultiplier: 300
     seaLevel01: 0.5
   chunkConfig:
     useSkirts: 1
@@ -579,3 +579,50 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
+--- !u!1 &2000855546
+GameObject:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  serializedVersion: 5
+  m_Component:
+  - component: {fileID: 2000855548}
+  - component: {fileID: 2000855547}
+  m_Layer: 0
+  m_Name: other
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2000855547
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 2000855546}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c02fd937b747e6489324cffd2007e84, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  text: "G - toggle walk on planet mode\r\nL - toggle light\r\nC - look towards planet\r\n\r\nW,S,A,D
+    - move front, back, left, right\r\nspace, left control - move up, down\r\n\r\nleft
+    shift - move faster\r\nmouse wheel - change move speed\r\n\r\nQ, E - rotate roll\r\nmouse
+    - rotate yaw, pitch\r\n\r\nR - regenerate planet\r\nF3 - toggle profiler\r\n\r\nF5
+    - save position 1\r\nF6 - load position 1\r\nF7 - save position 2\r\nF8 - load
+    position 2\r\n\r\nescape - exit"
+  keyNotPressedForSeconds: 0
+--- !u!4 &2000855548
+Transform:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 2000855546}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.9318676, y: -0.37238932, z: 1.4343181}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 3
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

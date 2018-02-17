@@ -136,7 +136,7 @@ void main(uint3 id : SV_DispatchThreadID)
 	data.humidity = 0.5;
 	data.altidute = realPlanetHeight;
 
-	int biome = selectBiome(data);
+	BiomeResult biome = selectBiome(data);
 
 	float3 color = getDiffuseColor(biome, data);
 

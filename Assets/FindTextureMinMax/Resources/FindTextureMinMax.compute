@@ -23,12 +23,16 @@ struct MinMax
 };
 RWStructuredBuffer<MinMax> _finalDataOut;
 
-#define NUM_THREADS 1
+#define NUM_THREADS 16
 
 [numthreads(NUM_THREADS, NUM_THREADS, 1)]
 void firstStep(uint3 id : SV_DispatchThreadID)
 {
+	int w, h;
+	_initialTextureIn.GetDimensions(w, h);
+
 	uint2 i = id.xy * 2;
+	if (i.x >= w || i.y >= h) return;
 
 	float4 v0 = _initialTextureIn[i];
 	float4 v1 = _initialTextureIn[i + int2(1, 0)];
@@ -43,7 +47,11 @@ void firstStep(uint3 id : SV_DispatchThreadID)
 [numthreads(NUM_THREADS, NUM_THREADS, 1)]
 void otherSteps(uint3 id : SV_DispatchThreadID)
 {
+	int w, h;
+	_textureMinIn.GetDimensions(w, h);
+
 	uint2 i = id.xy * 2;
+	if (i.x >= w || i.y >= h) return;
 
 	float4 v0 = _textureMinIn[i];
 	float4 v1 = _textureMinIn[i + int2(1, 0)];
@@ -51,7 +59,6 @@ void otherSteps(uint3 id : SV_DispatchThreadID)
 	float4 v3 = _textureMinIn[i + int2(1, 1)];
 
 	_textureMinOut[id.xy] = min(min(v0, v1), min(v2, v3));
-
 
 	v0 = _textureMaxIn[i];
 	v1 = _textureMaxIn[i + int2(1, 0)];

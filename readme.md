@@ -1,5 +1,7 @@
 # About
-This is where I try to refine and improve on everything I've learned in my [Procedural planets generator](https://github.com/aeroson/procedural-planets-generator). The idea is that this will be license free Earth sized comprehensive Unity GPU-mostly procedural planets and procedural universe generator. So people can #MakeGamesNotProceduralPlanets
+This is where I try to refine and improve on everything I've learned in my [Procedural planets generator](https://github.com/aeroson/procedural-planets-generator). The idea is that someday this will be license free Earth sized comprehensive Unity GPU-mostly procedural planets and procedural universe generator. So people can #MakeGamesNotProceduralPlanets
+
+It's not production ready !
 
 # Key technological points
 - A base (planetary) height map is provided or generated, which defines the basic planet shape
@@ -25,6 +27,12 @@ This is where I try to refine and improve on everything I've learned in my [Proc
 11. CPU: create chunk mesh from downloaded chunk mesh vertices
 
 Chunk mesh vertices could be generated on CPU only, so it can be used on dedicated servers. Things generated on GPU should be only to add eye candy. Currently everything is generated on GPU.
+
+
+# Todo
+ - Fix normal map artefacts if planet has radius over 10k.
+ - Better biomes, per biome compute shader, that outputs: weight, color and adjusts height.
+ - Noise channels (Outerra), that adds octaves as chunk depth increases, so we wont't need to calculate 30 octaves every time.
 
 # Planet detail subdivision (chunked LOD quad tree)
 You can use either squares or triangles for chunks shape. Triangles appear to have better mesh, but it's finicky to figure out their texturing coordinates, plus you use only half of texture for each tringular chunk.
