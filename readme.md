@@ -108,5 +108,5 @@ float realPlanetHeight = chunkMapHeight * (_heightMax - _heightMin) + _heightMin
 Trippy planet, broken triplanar mapping
 ![](https://i.imgur.com/A5GUZCv.png)
 
-Actually interesting concept made by mistake, triplanar weights = direction * height (normally triplanar weights are calculated from normal)
+Actually interesting concept made by mistake, triplanar pos = direction from planet center * height
 ![](https://i.imgur.com/yQg9s90.png)
