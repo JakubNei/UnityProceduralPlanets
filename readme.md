@@ -97,9 +97,6 @@ float realPlanetHeight = chunkMapHeight * (_heightMax - _heightMin) + _heightMin
 
 [Outerra: Bicubic sampling, Slope depedent noise example](http://www.outerra.com/procedural/demo.html)
 
-[Screenshot: Chunk skirts in Elite Dangerous](https://image.prntscr.com/image/ftDCxkimQK6uRgKqs9WBdg.png)
-
-
 
 # Screenshots
 ![](https://image.prntscr.com/image/lv0pwbK-R0CGY1vul4sscQ.png)
@@ -111,5 +108,5 @@ float realPlanetHeight = chunkMapHeight * (_heightMax - _heightMin) + _heightMin
 Trippy planet, broken triplanar mapping
 ![](https://i.imgur.com/A5GUZCv.png)
 
-Actually interesting concept made by mistake, triplanar pos = direction * height 
+Actually interesting concept made by mistake, triplanar weights = direction * height (normally triplanar weights are calculated from normal)
 ![](https://i.imgur.com/yQg9s90.png)
