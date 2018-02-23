@@ -15,16 +15,15 @@ It's not production ready !
 
 # Chunk generation steps
 1. GPU: generate chunk height map from base planetary height map using bicubic sampling
-2. GPU: chunk height map: add very small high frequency noise to hide samping imprecision artefacts
-3. GPU: generate chunk slope map from chunk height map
-4. GPU: chunk height map: add noise based on chunk slope map
-5. GPU: get chunk mesh vertices from chunk height map
-6. GPU: generate chunk slope map from chunk height map
-7. GPU: generate chunk diffuse map based on chunk slope map
-8. GPU: generate chunk normal map based on chunk height map
-9. GPU->CPU: download chunk mesh vertices from GPU to CPU
-10. CPU: move edge vertices down to create skirt to hide cracks on differend LODs boundary
-11. CPU: create chunk mesh from downloaded chunk mesh vertices
+2. GPU: generate chunk slope map from chunk height map
+3. GPU: chunk height map: add noise based on chunk slope map
+4. GPU: fill array of chunk mesh vertices from chunk height map
+5. GPU: generate chunk slope map from chunk height map
+6. GPU: generate chunk diffuse map based on chunk slope map
+7. GPU: generate chunk normal map based on chunk height map
+8. GPU->CPU: download chunk mesh vertices from GPU to CPU
+9. CPU: move edge vertices down to create skirt to hide cracks on differend LODs boundary (optional)
+10. CPU: create chunk mesh (and mesh collider) from downloaded chunk mesh vertices
 
 Chunk mesh vertices could be generated on CPU only, so it can be used on dedicated servers. Things generated on GPU should be only to add eye candy. Currently everything is generated on GPU.
 
