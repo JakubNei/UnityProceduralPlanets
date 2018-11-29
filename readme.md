@@ -1,3 +1,6 @@
+# NOT MAINTAINED
+Feel free to fix and create pull request.
+
 # About
 This is where I try to refine and improve on everything I've learned in my [Procedural planets generator](https://github.com/aeroson/procedural-planets-generator). The idea is that someday this will be license free Earth sized comprehensive Unity GPU-mostly procedural planets and procedural universe generator. So people can #MakeGamesNotProceduralPlanets
 
