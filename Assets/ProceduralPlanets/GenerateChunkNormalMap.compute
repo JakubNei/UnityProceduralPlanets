@@ -8,6 +8,10 @@ SamplerState sampler_chunkSlopeAndCurvatureMap;
 Texture2D<float> _chunkHeightMap;
 SamplerState sampler_chunkHeightMap;
 
+int _numberOfVerticesOnEdge;
+float _planetRadiusStart;
+float _planetRadiusHeightMapMultiplier;
+
 float3 _rangeUnitCubePosA;
 float3 _rangeUnitCubePosB;
 float3 _rangeUnitCubePosC;
@@ -15,14 +19,6 @@ float3 _rangeUnitCubePosD;
 
 float _heightMin;
 float _heightMax;
-int _numberOfVerticesOnEdge;
-float _radiusStart;
-float _chunkRadius;
-
-
-
-float _normalLength;
-
 
 RWTexture2D<float4> _chunkNormalMap;
 
@@ -71,6 +67,25 @@ float2 getSlope(int2 idXy, int w, int h)
 
 
 
+double3 positionAt(float2 uv)
+{
+	float3 unitCubePos = lerp(
+		lerp(_rangeUnitCubePosA, _rangeUnitCubePosB, uv.x),
+		lerp(_rangeUnitCubePosD, _rangeUnitCubePosC, uv.x),
+		uv.y
+	);
+
+	double3 dir = unitCubeToUnitSphere(unitCubePos);
+
+	double height = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r;
+	height = height * (_heightMax - _heightMin) + _heightMin;
+	height *= _planetRadiusHeightMapMultiplier;
+	height += _planetRadiusStart;
+
+	return dir * height;
+}
+
+
 [numthreads(16, 16, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
@@ -78,62 +93,16 @@ void main(uint3 id : SV_DispatchThreadID)
 	_chunkHeightMap.GetDimensions(w, h);
 	float2 uv = id.xy / float2(w - 1, h - 1);
 
-	float2 slope = getSlope(id.xy, w, h);
-	float3 flatPlanetNormal = cross(
-		normalize(float3(_normalLength, 0, slope.x)),
-		normalize(float3(0, _normalLength, slope.y))
-	);
-	flatPlanetNormal = normalize(flatPlanetNormal);
+	float offset = 0.05;
+	double3 c00 = positionAt(uv);
+	double3 c10 = positionAt(uv + float2(offset, 0));
+	double3 c01 = positionAt(uv + float2(0, offset));
+
+	double3 tangent = normalize(c10 - c00);
+	double3 bitangent = normalize(c01 - c00);
 
 
-	//DEBUG
-	//flatPlanetNormal = float3(0,0,1);
-
-
-	float3 dir, dir2;
-
-	dir = lerp(
-		lerp(_rangeUnitCubePosA, _rangeUnitCubePosB, uv.x),
-		lerp(_rangeUnitCubePosD, _rangeUnitCubePosC, uv.x),
-		uv.y
-	);
-	dir = unitCubeToUnitSphere(dir);
-	float3 normal = dir;
-
-
-	float theta = 0.01;
-
-
-	dir2 = lerp(
-		lerp(_rangeUnitCubePosA, _rangeUnitCubePosB, uv.x + theta),
-		lerp(_rangeUnitCubePosD, _rangeUnitCubePosC, uv.x + theta),
-		uv.y
-	);
-	dir2 = unitCubeToUnitSphere(dir2);
-	float3 tangent = normalize(dir2 - dir); // towards x + theta
-	
-
-	dir2 = lerp(
-		lerp(_rangeUnitCubePosA, _rangeUnitCubePosB, uv.x),
-		lerp(_rangeUnitCubePosD, _rangeUnitCubePosC, uv.x),
-		uv.y + theta
-	);
-	dir2 = unitCubeToUnitSphere(dir2);
-	float3 binormal = normalize(dir2 - dir); // towards y + theta
-
-	/*
-	tangent = normalize(tangent - normal * dot(tangent, normal));
-	tangent = cross(normal, tangent);
-	// recalculate Binormal
-	half3 newB = cross(normal, tangent);
-	binormal = newB * sign(dot(newB, binormal));
-	*/
-	
-
-	float3 modelNormal =
-		flatPlanetNormal.x * tangent +
-		flatPlanetNormal.y * binormal +
-		flatPlanetNormal.z * normal;
+	double3 modelNormal = cross(tangent, bitangent);
 
 
 	//DEBUG

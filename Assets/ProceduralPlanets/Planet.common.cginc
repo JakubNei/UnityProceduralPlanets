@@ -7,6 +7,7 @@
 
 
 #include "Noise/All.cginc"
+#include "Math.cginc"
 
 #define MAX_INT 2147483647
 
@@ -169,6 +170,13 @@ float3 unitCubeToUnitSphere(float3 unitCube)
 	float3 unitCubePow2Div2 = unitCubePow2 / 2;
 	float3 unitCubePow2Div3 = unitCubePow2 / 3;
 	return unitCube * sqrt(1 - unitCubePow2Div2.yzx - unitCubePow2Div2.zxy + unitCubePow2.yzx * unitCubePow2Div3.zxy);
+}
+double3 unitCubeToUnitSphere(double3 unitCube)
+{
+	double3 unitCubePow2 = unitCube * unitCube;
+	double3 unitCubePow2Div2 = unitCubePow2 / 2;
+	double3 unitCubePow2Div3 = unitCubePow2 / 3;
+	return unitCube * d_sqrt(1 - unitCubePow2Div2.yzx - unitCubePow2Div2.zxy + unitCubePow2.yzx * unitCubePow2Div3.zxy);
 }
 
 
