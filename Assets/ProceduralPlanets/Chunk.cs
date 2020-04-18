@@ -275,7 +275,7 @@ public class Chunk
 		MyProfiler.EndSample();
 		yield return null;
 
-		yield return new WaitForSecondsRealtime(lastGetMeshDataTookSeconds);
+		//yield return new WaitForSecondsRealtime(lastGetMeshDataTookSeconds);
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Get data from GPU to CPU");
 		var getMeshDataSW = Stopwatch.StartNew();
 		GetMeshData();
@@ -809,7 +809,7 @@ public class Chunk
 		chunkSlopeAndCurvatureMap = null;
 	}
 
-	private float GetSizeOnScreen(Planet.SubdivisionData data)
+	private float GetSizeOnScreen(Planet.PointOfInterest data)
 	{
 		var myPos = rangePosToCalculateScreenSizeOn.CenterPos + planet.transform.position;
 		var distanceToCamera = Vector3.Distance(myPos, data.pos);
@@ -826,7 +826,7 @@ public class Chunk
 	}
 
 	public float lastGenerationWeight;
-	public float GetGenerationWeight(Planet.SubdivisionData data)
+	public float GetGenerationWeight(Planet.PointOfInterest data)
 	{
 		var weight = GetSizeOnScreen(data);
 		lastGenerationWeight = weight;

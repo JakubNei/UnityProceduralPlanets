@@ -51,18 +51,9 @@ public class PlanetAffectedCamera : MonoBehaviour
 		foreach (var c in GetComponentsInChildren<Collider>())
 			c.sharedMaterial = physicMaterial;
 
+		MoveToClosestPlanetSurface();
 
-		var planet = GetClosestPlanet(transform.position);
-		if (planet != null)
-		{
-			SetPosRot(
-				new Vector3(planet.planetConfig.radiusStart * 1.1f, 0, 0) + planet.Center,
-				Quaternion.LookRotation(planet.Center - transform.position)
-			);
-
-		}
-
-		UpdatePosition(0.1f); // spool up	
+		UpdatePosition(0.1f); // spool up
 	}
 
 	public Vector3 savedPosition1;
@@ -82,6 +73,20 @@ public class PlanetAffectedCamera : MonoBehaviour
 	{
 		ApplyGravity();
 	}
+
+	void MoveToClosestPlanetSurface()
+	{	
+		var planet = GetClosestPlanet(transform.position);
+		if (planet != null)
+		{
+			SetPosRot(
+				new Vector3(planet.planetConfig.radiusStart * 1.1f, 0, 0) + planet.Center,
+				Quaternion.LookRotation(planet.Center - transform.position)
+			);
+
+		}
+	}
+
 	void UpdatePosition(float deltaTime)
 	{
 		var rotation = transform.rotation;
@@ -123,6 +128,10 @@ public class PlanetAffectedCamera : MonoBehaviour
 			walkOnPlanet = !walkOnPlanet;
 		}
 
+		if (Input.GetKeyDown(KeyCode.T))
+		{
+			MoveToClosestPlanetSurface();
+		}
 
 
 		var mouseDelta = Vector2.zero;

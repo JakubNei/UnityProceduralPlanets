@@ -132,6 +132,16 @@ public partial class Planet : MonoBehaviour
 
 		var sw = Stopwatch.StartNew();
 
+	
+
+		MyProfiler.BeginSample("Procedural Planet / Calculate desired subdivision");
+		CalculateChunksToGenerate(new PointOfInterest()
+		{
+			pos = Camera.main.transform.position,
+			fieldOfView = Camera.main.fieldOfView,
+		});
+		MyProfiler.EndSample();
+
 		if (toContinue != null)
 		{
 			while (true)
@@ -141,23 +151,16 @@ public partial class Planet : MonoBehaviour
 					toContinue = null;
 					break;
 				}
-				if (sw.ElapsedMilliseconds > milisecondsBudget) break;
+				if (sw.ElapsedMilliseconds > milisecondsBudget) 
+				{
+					break;
+				}
 			}
-
 		}
-
-		MyProfiler.BeginSample("Procedural Planet / Calculate desired subdivision");
-		CalculateWorkQueue(new SubdivisionData()
+		else if (toGenerate.Count > 0)
 		{
-			pos = Camera.main.transform.position,
-			fieldOfView = Camera.main.fieldOfView,
-		});
-		MyProfiler.EndSample();
-
-		if (toGenerate.Count > 0)
-		{
-			var q = toGenerate.GetWeighted();
-			foreach (var chunk in q)
+			var chunks = toGenerate.GetWeighted();
+			foreach (var chunk in chunks)
 			{
 				if (chunk.generationBegan) continue;
 				toContinue = chunk.Generate();

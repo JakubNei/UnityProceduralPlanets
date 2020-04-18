@@ -46,7 +46,7 @@ public partial class Planet
 
 	class WeightedSegmentsList : Dictionary<Chunk, float>
 	{
-		public SubdivisionData data;
+		public PointOfInterest data;
 
 		public new void Add(Chunk chunk, float weight)
 		{
@@ -100,7 +100,7 @@ public partial class Planet
 	}
 
 
-	public struct SubdivisionData
+	public struct PointOfInterest
 	{
 		public Vector3 pos;
 		public float fieldOfView;
@@ -108,7 +108,7 @@ public partial class Planet
 
 	//Queue<Segment> toGenerateOrdered;
 	WeightedSegmentsList toGenerate = new WeightedSegmentsList();
-	public void CalculateWorkQueue(SubdivisionData data)
+	public void CalculateChunksToGenerate(PointOfInterest data)
 	{
 		toGenerate.Clear();
 		toGenerate.data = data;
