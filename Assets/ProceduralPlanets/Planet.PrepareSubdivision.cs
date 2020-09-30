@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Linq;
 using System.Collections.Generic;
+using System.Runtime.InteropServices.WindowsRuntime;
 
 public partial class Planet
 {
@@ -9,7 +10,7 @@ public partial class Planet
 	{
 		if (toGenerate.Count > 100) return; // precaution
 
-		var weight = chunk.GetGenerationWeight(toGenerate.data);
+		var weight = chunk.GetRelevanceWeight(toGenerate.data);
 
 		if (!chunk.generationBegan)
 		{
@@ -25,21 +26,21 @@ public partial class Planet
 				GatherWeights(toGenerate, child, recursionDepth + 1);
 			}
 
-			if (chunk.children.All(c => c.isGenerationDone))
-			{
-				chunk.SetVisible(false);
-			}
-			else
-			{
-				chunk.SetVisible(true);
-				chunk.HideAllChildren();
-			}
+			//if (chunk.children.All(c => c.isGenerationDone))
+			//{
+			//	chunk.SetVisible(false);
+			//}
+			//else
+			//{
+			//	chunk.SetVisible(true);
+			//	chunk.HideAllChildren();
+			//}
 		}
 		else if (chunk.isGenerationDone)
 		{
-			chunk.SetVisible(true);
-			//chunk.HideAllChildren();
-			chunk.DestroyAllChildren();
+			//chunk.SetVisible(true);
+			////chunk.HideAllChildren();
+			//chunk.DestroyAllChildren();
 		}
 	}
 
@@ -56,7 +57,7 @@ public partial class Planet
 			while (chunk.parent != null && chunk.parent.generationBegan == false)
 			{
 				chunk = chunk.parent;
-				var w = chunk.GetGenerationWeight(data);
+				var w = chunk.GetRelevanceWeight(data);
 				PrivateAdd1(chunk, Mathf.Max(w, weight));
 			}
 		}
@@ -71,7 +72,7 @@ public partial class Planet
 				{
 					if (neighbour.generationBegan == false)
 					{
-						var w = neighbour.GetGenerationWeight(data);
+						var w = neighbour.GetRelevanceWeight(data);
 						PrivateAdd2(neighbour, Mathf.Max(w, weight));
 					}
 				}
@@ -106,19 +107,73 @@ public partial class Planet
 		public float fieldOfView;
 	}
 
-	//Queue<Segment> toGenerateOrdered;
-	WeightedSegmentsList toGenerate = new WeightedSegmentsList();
-	public void CalculateChunksToGenerate(PointOfInterest data)
-	{
-		toGenerate.Clear();
-		toGenerate.data = data;
+	List<Chunk> toGenerateChunks = new List<Chunk>();
+	List<Chunk> toRenderChunks = new List<Chunk>();
 
-		foreach (var chunk in rootChildren)
+	List<Chunk> toConsiderForSubdivision = new List<Chunk>();
+
+	public void CalculateChunksToGenerate(PointOfInterest fromPosition)
+	{
+		// start
 		{
-			GatherWeights(toGenerate, chunk, 0);
+			toGenerateChunks.Clear();
+			toRenderChunks.Clear();
+			toConsiderForSubdivision.Clear();
+
+			toConsiderForSubdivision.AddRange(rootChildren);
 		}
 
-		//toGenerateOrdered = new Queue<Segment>(toGenerate.GetWeighted());
+		// loop
+		for (int i = toConsiderForSubdivision.Count - 1; i >= 0; --i)
+		{
+			var chunk = toConsiderForSubdivision[i];
+			toConsiderForSubdivision.RemoveAt(i);
+
+			float weight = chunk.GetRelevanceWeight(fromPosition);
+			if (weight > chunkConfig.weightNeededToSubdivide && chunk.treeDepth < SubdivisionMaxRecurisonDepth) // want subdivide ?
+			{
+				if (chunk.isGenerationDone) // children require generated data from parent
+				{ 
+					chunk.EnsureChildrenInstancesAreCreated();
+					
+					//toConsiderForSubdivision.AddRange(chunk.children);
+					//i += chunk.children.Count;
+					//continue;
+
+					bool areAllChildrenGenerated = true;
+					for (int j = 0; j < chunk.children.Count; ++j)
+					{
+						if (!chunk.children[j].isGenerationDone) 
+						{
+							areAllChildrenGenerated = false;
+							break;
+						}
+					}
+
+					if (areAllChildrenGenerated) // must show all children at once
+					{
+						toConsiderForSubdivision.AddRange(chunk.children);
+						i += chunk.children.Count;
+					}
+					else
+					{
+						toRenderChunks.Add(chunk);
+						toGenerateChunks.AddRange(chunk.children);
+					}
+				}
+				else
+				{
+					toGenerateChunks.Add(chunk);
+				}
+			}
+			else
+			{
+				if (chunk.isGenerationDone) toRenderChunks.Add(chunk);
+				else toGenerateChunks.Add(chunk);
+			}
+		}
+
+
 	}
 
 

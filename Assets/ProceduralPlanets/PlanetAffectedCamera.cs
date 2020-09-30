@@ -67,10 +67,12 @@ public class PlanetAffectedCamera : MonoBehaviour
 
 	private void Update()
 	{
-		UpdatePosition(Time.smoothDeltaTime);
+		
 	}
+
 	private void FixedUpdate()
 	{
+		UpdatePosition(Time.fixedDeltaTime);
 		ApplyGravity();
 	}
 
@@ -301,7 +303,7 @@ public class PlanetAffectedCamera : MonoBehaviour
 				physicMaterial.dynamicFriction = targetFriction;
 				physicMaterial.staticFriction = targetFriction;
 
-				rb.AddForce(targetForce * rb.mass, ForceMode.Force);
+				rb.AddForce(targetForce * deltaTime, ForceMode.VelocityChange);
 				rb.MoveRotation(rotation);
 
 				//rb.drag = Mathf.InverseLerp(100, 10, distanceToClosestPlanet); // change "air density" based on distance to planet
@@ -351,7 +353,7 @@ public class PlanetAffectedCamera : MonoBehaviour
 		if (planet != null && rb && walkOnPlanet && walkOnPlanet_applyGravity)
 		{
 			var gravityDir = (planet.Center - pos).normalized;
-			rb.AddForce(gravityDir * 10 * rb.mass, ForceMode.Force);
+			rb.AddForce(gravityDir * 9.81f * Time.fixedDeltaTime, ForceMode.VelocityChange);
 		}
 	}
 }

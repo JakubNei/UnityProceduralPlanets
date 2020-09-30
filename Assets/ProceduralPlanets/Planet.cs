@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using UnityEngine;
+using UnityEngine.Events;
 
 public partial class Planet : MonoBehaviour
 {
@@ -124,7 +125,27 @@ public partial class Planet : MonoBehaviour
 		}
 	}
 
-	
+	Queue<ChunkRenderer> chunkRenderersToReuse = new Queue<ChunkRenderer>();
+
+	ChunkRenderer GetFreeChunkRenderer()
+	{
+		if (chunkRenderersToReuse.Count > 0)
+		{
+			return chunkRenderersToReuse.Dequeue();
+		}
+
+		return ChunkRenderer.CreateFor(this);
+	}
+	void ReturnChunkRendererToPool(ChunkRenderer chunkRenderer)
+	{
+		chunkRenderer.Hide();
+		chunkRenderersToReuse.Enqueue(chunkRenderer);
+	}
+
+	Dictionary<Chunk, ChunkRenderer> chunksBeingRendered = new Dictionary<Chunk, ChunkRenderer>();
+	List<Chunk> toStopRendering = new List<Chunk>();
+	List<Chunk> toStartRendering = new List<Chunk>();
+
 	IEnumerator toContinue;
 	void LateUpdate()
 	{
@@ -132,7 +153,6 @@ public partial class Planet : MonoBehaviour
 
 		var sw = Stopwatch.StartNew();
 
-	
 
 		MyProfiler.BeginSample("Procedural Planet / Calculate desired subdivision");
 		CalculateChunksToGenerate(new PointOfInterest()
@@ -151,19 +171,18 @@ public partial class Planet : MonoBehaviour
 					toContinue = null;
 					break;
 				}
-				if (sw.ElapsedMilliseconds > milisecondsBudget) 
+				if (sw.ElapsedMilliseconds > milisecondsBudget)
 				{
 					break;
 				}
 			}
 		}
-		else if (toGenerate.Count > 0)
+		else if (toGenerateChunks.Count > 0)
 		{
-			var chunks = toGenerate.GetWeighted();
-			foreach (var chunk in chunks)
+			foreach (var chunk in toGenerateChunks)
 			{
 				if (chunk.generationBegan) continue;
-				toContinue = chunk.Generate();
+				toContinue = chunk.StartGenerateCoroutine();
 				var abort = false;
 				while (true)
 				{
@@ -182,36 +201,43 @@ public partial class Planet : MonoBehaviour
 				if (abort) break;
 			}
 		}
+
+
+
+
+		toStopRendering.Clear();
+		foreach (var kvp in chunksBeingRendered)
+		{
+			if (!toRenderChunks.Contains(kvp.Key)) toStopRendering.Add(kvp.Key);
+		}
+
+		foreach (var chunk in toStopRendering)
+		{
+			ReturnChunkRendererToPool(chunksBeingRendered[chunk]);
+			chunksBeingRendered.Remove(chunk);
+		}
+
+		toStartRendering.Clear();
+		foreach (var chunk in toRenderChunks)
+		{
+			if (!chunksBeingRendered.ContainsKey(chunk)) toStartRendering.Add(chunk);
+		}
+
+		foreach (var chunk in toStartRendering)
+		{
+			var renderer = GetFreeChunkRenderer();
+			renderer.RenderChunk(chunk);
+			chunksBeingRendered.Add(chunk, renderer);
+		}
+
 	}
 
 	private void OnGUI()
 	{
-		GUILayout.Button("chunks to generate: " + toGenerate.Count);
+		GUILayout.Button("chunks to generate: " + toGenerateChunks.Count);
+		GUILayout.Button("chunks to render: " + toRenderChunks.Count);
 	}
 
-
-
-
-	void AddRootChunk(ulong id, WorldPos[] corners, int a, int b, int c, int d)
-	{
-		var range = new Range()
-		{
-			a = corners[a],
-			b = corners[b],
-			c = corners[c],
-			d = corners[d],
-		};
-
-		var child = Chunk.Create(
-			planet: this,
-			parent: null,
-			treeDepth: 0,
-			range: range,
-			id: id
-		);
-
-		rootChildren.Add(child);
-	}
 
 	private void InitializeRootChildren()
 	{
@@ -251,7 +277,26 @@ public partial class Planet : MonoBehaviour
 		AddRootChunk(4, corners, 0, 4, 5, 1); // right
 		AddRootChunk(5, corners, 2, 6, 7, 3); // left
 	}
+	void AddRootChunk(ulong id, WorldPos[] corners, int a, int b, int c, int d)
+	{
+		var range = new Range()
+		{
+			a = corners[a],
+			b = corners[b],
+			c = corners[c],
+			d = corners[d],
+		};
 
+		var child = Chunk.Create(
+			planet: this,
+			parent: null,
+			treeDepth: 0,
+			range: range,
+			id: id
+		);
+
+		rootChildren.Add(child);
+	}
 
 	private void OnDrawGizmos()
 	{
