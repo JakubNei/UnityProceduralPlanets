@@ -36,7 +36,8 @@ public static class MyProfiler
 
 	public static void BeginSample(string name)
 	{
-		//Profiler.BeginSample(name);
+		Profiler.BeginSample(name);
+
 		samplesStack.Push(new Sample(name));
 	}
 
@@ -55,7 +56,7 @@ public static class MyProfiler
 		d.timesExecuted++;
 		d.timeTaken += s.watch.Elapsed;
 
-		//Profiler.EndSample();
+		Profiler.EndSample();
 
 		Behavior.MakeSureExists();
 	}

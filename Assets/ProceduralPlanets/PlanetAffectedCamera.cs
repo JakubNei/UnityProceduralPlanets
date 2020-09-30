@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class PlanetAffectedCamera : MonoBehaviour
 {
+	public int targetFrameRate = 60;
 
 	public float velocityChangeSpeed = 10.0f;
 	public float mouseSensitivty = 100f;
@@ -67,7 +68,7 @@ public class PlanetAffectedCamera : MonoBehaviour
 
 	private void Update()
 	{
-		
+		Application.targetFrameRate = targetFrameRate;
 	}
 
 	private void FixedUpdate()

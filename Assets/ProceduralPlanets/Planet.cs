@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using UnityEditorInternal;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -146,65 +147,70 @@ public partial class Planet : MonoBehaviour
 	List<Chunk> toStopRendering = new List<Chunk>();
 	List<Chunk> toStartRendering = new List<Chunk>();
 
-	IEnumerator toContinue;
+	ChunkDivisionCalculation subdivisonCalculationInProgress = new ChunkDivisionCalculation();
+	ChunkDivisionCalculation subdivisonCalculationLast = new ChunkDivisionCalculation();
+
+	IEnumerator chunkGenerationCoroutine;
+	IEnumerator subdivisonCalculationCoroutine;
+
 	void LateUpdate()
 	{
 		var milisecondsBudget = (int)(Time.deltaTime * 1000f - 1000f / 90f);
 
 		var sw = Stopwatch.StartNew();
 
+		MyProfiler.BeginSample("Procedural Planet / Generate chunks coroutine execution");
+
+		do
+		{
+			if (chunkGenerationCoroutine == null)
+			{
+				Chunk chunk = subdivisonCalculationLast.GetNextChunkToGenerate();
+				if (chunk == null) break;
+				if (!chunk.generationBegan) chunkGenerationCoroutine = chunk.StartGenerateCoroutine();
+			}
+
+			if (chunkGenerationCoroutine != null)
+			{
+				if (!chunkGenerationCoroutine.MoveNext())
+				{
+					chunkGenerationCoroutine = null;
+				}
+			}
+		} while (sw.ElapsedMilliseconds < milisecondsBudget);
+
+		MyProfiler.EndSample();
+
+
 
 		MyProfiler.BeginSample("Procedural Planet / Calculate desired subdivision");
-		CalculateChunksToGenerate(new PointOfInterest()
+
+		var pointOfInterest = new PointOfInterest()
 		{
 			pos = Camera.main.transform.position,
 			fieldOfView = Camera.main.fieldOfView,
-		});
+		};
+
+		if (subdivisonCalculationCoroutine == null)
+		{
+			subdivisonCalculationCoroutine = subdivisonCalculationInProgress.StartCoroutine(this, pointOfInterest);
+		}
+		else if (!subdivisonCalculationCoroutine.MoveNext())
+		{
+			subdivisonCalculationCoroutine = null;
+			var temp = subdivisonCalculationInProgress;
+			subdivisonCalculationInProgress = subdivisonCalculationLast;
+			subdivisonCalculationLast = temp;
+		}
+
 		MyProfiler.EndSample();
 
-		if (toContinue != null)
-		{
-			while (true)
-			{
-				if (!toContinue.MoveNext())
-				{
-					toContinue = null;
-					break;
-				}
-				if (sw.ElapsedMilliseconds > milisecondsBudget)
-				{
-					break;
-				}
-			}
-		}
-		else if (toGenerateChunks.Count > 0)
-		{
-			foreach (var chunk in toGenerateChunks)
-			{
-				if (chunk.generationBegan) continue;
-				toContinue = chunk.StartGenerateCoroutine();
-				var abort = false;
-				while (true)
-				{
-					if (!toContinue.MoveNext())
-					{
-						toContinue = null;
-						abort = true;
-						break;
-					}
-					if (sw.ElapsedMilliseconds > milisecondsBudget)
-					{
-						abort = true;
-						break;
-					}
-				}
-				if (abort) break;
-			}
-		}
 
 
 
+		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers");
 
+		var toRenderChunks = subdivisonCalculationLast.GetChunksToRender();
 		toStopRendering.Clear();
 		foreach (var kvp in chunksBeingRendered)
 		{
@@ -230,12 +236,14 @@ public partial class Planet : MonoBehaviour
 			chunksBeingRendered.Add(chunk, renderer);
 		}
 
+		MyProfiler.EndSample();
+
 	}
 
 	private void OnGUI()
 	{
-		GUILayout.Button("chunks to generate: " + toGenerateChunks.Count);
-		GUILayout.Button("chunks to render: " + toRenderChunks.Count);
+		//GUILayout.Button("chunks to generate: " + toGenerateChunks.Count);
+		//GUILayout.Button("chunks to render: " + toRenderChunks.Count);
 	}
 
 
