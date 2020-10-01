@@ -172,7 +172,14 @@ public partial class Planet : MonoBehaviour
 
 			if (chunkGenerationCoroutine != null)
 			{
-				if (!chunkGenerationCoroutine.MoveNext())
+				if (chunkGenerationCoroutine.MoveNext())
+				{
+					if (chunkGenerationCoroutine.Current is WaitForEndOfFrame)
+					{
+						break;
+					}
+				}
+				else
 				{
 					chunkGenerationCoroutine = null;
 				}

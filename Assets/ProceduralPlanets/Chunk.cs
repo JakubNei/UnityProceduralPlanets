@@ -276,7 +276,7 @@ public class Chunk
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Get data from GPU to CPU / Request");
 		RequestMeshData();
 		MyProfiler.EndSample();
-		while (!getMeshDataReadbackRequest.done) yield return null;
+		while (!getMeshDataReadbackRequest.done) yield return new WaitForEndOfFrame();
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Create on CPU");
 		CreateMesh();

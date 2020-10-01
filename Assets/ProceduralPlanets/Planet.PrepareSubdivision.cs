@@ -47,7 +47,7 @@ public partial class Planet
 		{
 			Phase_1_Start (planet, fromPosition);
 			yield return null;
-			while (Phase_2_Loop(20))
+			while (Phase_2_Loop(100))
 			{
 				yield return null;
 			}
@@ -68,9 +68,9 @@ public partial class Planet
 			subdivisionMaxRecurisonDepth = planet.SubdivisionMaxRecurisonDepth;
 		}
 
-		bool Phase_2_Loop(int stride)
+		bool Phase_2_Loop(int step)
 		{
-			for (int i = toConsiderForSubdivision.Count - 1; i >= 0 && --stride > 0; --i)
+			for (int i = toConsiderForSubdivision.Count - 1; i >= 0 && --step > 0; --i)
 			{
 				var chunk = toConsiderForSubdivision[i];
 				toConsiderForSubdivision.RemoveAt(i);
