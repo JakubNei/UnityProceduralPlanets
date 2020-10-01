@@ -5,24 +5,24 @@ using System.Collections.Generic;
 public partial class Planet
 {
 
-	Vector3[] chunkVertices;
-	public Vector3[] GetChunkVertices()
+	Vector3[] chunkMeshVertices;
+	public Vector3[] GetChunkMeshVertices()
 	{
-		if (chunkVertices != null) return chunkVertices;
+		if (chunkMeshVertices != null) return chunkMeshVertices;
 
-		chunkVertices = new Vector3[chunkConfig.NumberOfVerticesNeededTotal];
+		chunkMeshVertices = new Vector3[chunkConfig.NumberOfVerticesNeededTotal];
 
 		// DEBUG
-		for (int i = 0; i < chunkVertices.Length; i++)
-			chunkVertices[i] = new Vector3(i % 5, i, 0);
+		for (int i = 0; i < chunkMeshVertices.Length; i++)
+			chunkMeshVertices[i] = new Vector3(i % 5, i, 0);
 
 
-		return chunkVertices;
+		return chunkMeshVertices;
 	}
 
 
-	int[] segmentIndicies;
-	public int[] GetSegmentIndicies()
+	int[] chunkMeshTriangles;
+	public int[] GetChunkMeshTriangles()
 	{
 		/*
 		A_____B
@@ -36,7 +36,7 @@ public partial class Planet
 
 		*/
 
-		if (segmentIndicies != null) return segmentIndicies;
+		if (chunkMeshTriangles != null) return chunkMeshTriangles;
 
 		var indicies = new List<int>(chunkConfig.NumberOfVerticesNeededTotal);
 
@@ -60,17 +60,17 @@ public partial class Planet
 		}
 
 
-		segmentIndicies = indicies.ToArray();
-		return segmentIndicies;
+		chunkMeshTriangles = indicies.ToArray();
+		return chunkMeshTriangles;
 	}
 
 
-	Vector2[] chunkUVs;
-	public Vector2[] GetChunkUVs()
+	Vector2[] chunkMeshUVs;
+	public Vector2[] GetChunkMeshUVs()
 	{
-		if (chunkUVs != null) return chunkUVs;
+		if (chunkMeshUVs != null) return chunkMeshUVs;
 
-		chunkUVs = new Vector2[chunkConfig.NumberOfVerticesNeededTotal];
+		chunkMeshUVs = new Vector2[chunkConfig.NumberOfVerticesNeededTotal];
 		int i = 0;
 
 		float max = chunkConfig.numberOfVerticesOnEdge - 1;
@@ -83,9 +83,9 @@ public partial class Planet
 					x / max,
 					y / max
 				);
-				chunkUVs[i++] = uv;
+				chunkMeshUVs[i++] = uv;
 			}
 		}
-		return chunkUVs;
+		return chunkMeshUVs;
 	}
 }

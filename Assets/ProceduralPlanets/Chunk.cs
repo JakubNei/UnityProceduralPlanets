@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 [Serializable]
 public class Chunk
@@ -246,7 +247,7 @@ public class Chunk
 	}
 
 
-	static float lastGetMeshDataTookSeconds;
+	AsyncGPUReadbackRequest getMeshDataReadbackRequest;
 
 	public IEnumerator StartGenerateCoroutine()
 	{
@@ -272,13 +273,10 @@ public class Chunk
 		MyProfiler.EndSample();
 		yield return null;
 
-		//yield return new WaitForSecondsRealtime(lastGetMeshDataTookSeconds);
-		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Get data from GPU to CPU");
-		var getMeshDataSW = Stopwatch.StartNew();
-		GetMeshData();
-		lastGetMeshDataTookSeconds = getMeshDataSW.ElapsedMilliseconds / 1000f;
+		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Get data from GPU to CPU / Request");
+		RequestMeshData();
 		MyProfiler.EndSample();
-		yield return null;
+		while (!getMeshDataReadbackRequest.done) yield return null;
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Create on CPU");
 		CreateMesh();
@@ -513,9 +511,13 @@ public class Chunk
 
 	}
 
-	void GetMeshData()
+	void RequestMeshData()
 	{
-		vertexGPUBuffer.GetData(vertexCPUBuffer);
+		getMeshDataReadbackRequest = AsyncGPUReadback.Request(vertexGPUBuffer, (AsyncGPUReadbackRequest request) => {
+			MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Get data from GPU to CPU / Callback");
+			vertexGPUBuffer.GetData(vertexCPUBuffer);
+			MyProfiler.EndSample();
+		});
 	}
 
 	void CreateMesh()
@@ -546,8 +548,8 @@ public class Chunk
 		generatedData.mesh = new Mesh();
 		generatedData.mesh.name = this.ToString();
 		generatedData.mesh.vertices = vertexCPUBuffer;
-		generatedData.mesh.triangles = planet.GetSegmentIndicies();
-		generatedData.mesh.uv = planet.GetChunkUVs();
+		generatedData.mesh.triangles = planet.GetChunkMeshTriangles();
+		generatedData.mesh.uv = planet.GetChunkMeshUVs();
 		generatedData.mesh.tangents = new Vector4[] { };
 		generatedData.mesh.normals = new Vector3[] { };
 	}
