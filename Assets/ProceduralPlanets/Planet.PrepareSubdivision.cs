@@ -29,6 +29,9 @@ public partial class Planet
 		float weightNeededToSubdivide;
 		int subdivisionMaxRecurisonDepth;
 
+		public int NumChunksToGenerate => toGenerateChunks.Count;
+		public int NumChunksToRender => toRenderChunks.Count;
+
 		public Chunk GetNextChunkToGenerate()
 		{
 			if (toGenerateChunks.Count == 0) return null;

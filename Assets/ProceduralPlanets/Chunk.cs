@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -354,7 +355,7 @@ public class Chunk
 		// pass 0
 		if (chunkConfig.rescaleToMinMax)
 		{
-			var heightRough = new RenderTexture(HeightMapResolution/2, HeightMapResolution/2, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
+			var heightRough = new RenderTexture(HeightMapResolution / 2, HeightMapResolution / 2, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
 			heightRough.wrapMode = TextureWrapMode.Clamp;
 			heightRough.filterMode = FilterMode.Bilinear;
 			heightRough.enableRandomWrite = true;
@@ -486,7 +487,6 @@ public class Chunk
 
 	//ComputeBuffer vertexGPUBuffer { get { return planet.chunkVertexGPUBuffer; } }
 	ComputeBuffer vertexGPUBuffer;
-	Vector3[] vertexCPUBuffer { get { return planet.chunkVertexCPUBuffer; } }
 
 	void GenerateMesh()
 	{
@@ -511,13 +511,22 @@ public class Chunk
 
 	}
 
+	NativeArray<Vector3> vertexCPUBuffer;
+
+	~Chunk()
+	{
+		vertexCPUBuffer.Dispose();
+	}
+
 	void RequestMeshData()
 	{
-		getMeshDataReadbackRequest = AsyncGPUReadback.Request(vertexGPUBuffer, (AsyncGPUReadbackRequest request) => {
-			MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Get data from GPU to CPU / Callback");
-			vertexGPUBuffer.GetData(vertexCPUBuffer);
-			MyProfiler.EndSample();
-		});
+		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Get data from GPU to CPU / Request / new NativeArray");
+		vertexCPUBuffer = new NativeArray<Vector3>(chunkConfig.NumberOfVerticesNeededTotal, Allocator.Persistent);
+		MyProfiler.EndSample();
+
+		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Get data from GPU to CPU / Request / RequestIntoNativeArray");
+		getMeshDataReadbackRequest = AsyncGPUReadback.RequestIntoNativeArray(ref vertexCPUBuffer, vertexGPUBuffer);
+		MyProfiler.EndSample();
 	}
 
 	void CreateMesh()
@@ -547,11 +556,19 @@ public class Chunk
 		// TODO: optimize: fill mesh vertices on GPU instead of CPU, remember we still need vertices on CPU for mesh collider
 		generatedData.mesh = new Mesh();
 		generatedData.mesh.name = this.ToString();
-		generatedData.mesh.vertices = vertexCPUBuffer;
+		generatedData.mesh.SetVertexBufferParams(
+			vertexCPUBuffer.Length,
+			new[]
+			{
+				new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
+			}
+		);
+		generatedData.mesh.SetVertexBufferData(vertexCPUBuffer, 0, 0, vertexCPUBuffer.Length);
 		generatedData.mesh.triangles = planet.GetChunkMeshTriangles();
 		generatedData.mesh.uv = planet.GetChunkMeshUVs();
-		generatedData.mesh.tangents = new Vector4[] { };
-		generatedData.mesh.normals = new Vector3[] { };
+		generatedData.mesh.RecalculateBounds();
+		//generatedData.mesh.tangents = new Vector4[] { };
+		//generatedData.mesh.normals = new Vector3[] { };
 	}
 
 	void MoveSkirtVertices()
@@ -572,7 +589,7 @@ public class Chunk
 				v[verticesOnEdge * i] += decreaseSkirtsBy; // left line
 				v[verticesOnEdge * i + verticesOnEdge - 1] += decreaseSkirtsBy; // right line
 			}
-			generatedData.mesh.vertices = vertexCPUBuffer;
+			generatedData.mesh.SetVertexBufferData(vertexCPUBuffer, 0, 0, vertexCPUBuffer.Length);
 		}
 	}
 

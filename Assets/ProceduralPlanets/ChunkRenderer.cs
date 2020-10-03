@@ -57,12 +57,12 @@ public class ChunkRenderer : MonoBehaviour
 		if (material && chunk.generatedData.chunkDiffuseMap) material.mainTexture = chunk.generatedData.chunkDiffuseMap;
 		if (material && chunk.generatedData.chunkNormalMap) material.SetTexture("_BumpMap", chunk.generatedData.chunkNormalMap);
 	
-		gameObject.SetActive(true);
 	}
 
 	public void Hide()
 	{
-		gameObject.SetActive(false);
+		meshFilter.sharedMesh = null;
+		if (meshCollider) meshCollider.sharedMesh = null;
 	}
 
 

@@ -5,56 +5,107 @@ using System.Linq;
 using System.Text;
 using System.Diagnostics;
 using UnityEngine.Profiling;
+using System.Collections;
 
 public static class MyProfiler
 {
 
 
 
-	class Sample
+	class TimingSample
 	{
 		public string name;
 		public Stopwatch watch;
-		public Sample(string name)
+		public TimingSample(string name)
 		{
 			this.name = name;
 			this.watch = Stopwatch.StartNew();
 		}
 	}
 
-	static Stack<Sample> samplesStack = new Stack<Sample>();
+	static Stack<TimingSample> timingSamplesStack = new Stack<TimingSample>();
 
 
-	class NameData
+	class SlidingWindowAverageLong
 	{
-		public string name;
-		public ulong timesExecuted;
-		public TimeSpan timeTaken;
-	}
-	static Dictionary<string, NameData> nameToNameData = new Dictionary<string, NameData>();
+		public double AverageValue => SumValue / (double)Samples.Count;
+		long SumValue = 0;
+		int MaxSamples = 500;
+		Queue<long> Samples = new Queue<long>();
+		public void AddSample(long sample)
+		{
+			while (Samples.Count > MaxSamples)
+			{
+				SumValue -= Samples.Dequeue();
+			}
 
+			Samples.Enqueue(sample);
+			SumValue += sample;
+		}
+	}
+
+	class SlidingWindowAverageDouble
+	{
+		public double AverageValue => SumValue / (double)Samples.Count;
+		double SumValue = 0;
+		int MaxSamples = 500;
+		Queue<double> Samples = new Queue<double>();
+		public void AddSample(double sample)
+		{
+			while (Samples.Count > MaxSamples)
+			{
+				SumValue -= Samples.Dequeue();
+			}
+
+			Samples.Enqueue(sample);
+			SumValue += sample;
+		}
+	}
+
+
+	static Dictionary<string, SlidingWindowAverageLong> sampleNameToAverageNumber = new Dictionary<string, SlidingWindowAverageLong>();
+	
+	static Dictionary<string, SlidingWindowAverageDouble> sampleNameToAverageTiming = new Dictionary<string, SlidingWindowAverageDouble>();
+
+
+	static Dictionary<string, string> sampleNameToGUIText = new Dictionary<string, string>();
+
+
+	public static void AddAvergaNumberSample(string name, int number)
+	{
+		SlidingWindowAverageLong w;
+		if (!sampleNameToAverageNumber.TryGetValue(name, out w))
+		{
+			w = sampleNameToAverageNumber[name] = new SlidingWindowAverageLong();
+		}
+
+		w.AddSample(number);
+	
+		sampleNameToGUIText[name] = w.AverageValue.ToString();
+
+		Behavior.MakeSureExists();
+	}
 
 	public static void BeginSample(string name)
 	{
 		Profiler.BeginSample(name);
 
-		samplesStack.Push(new Sample(name));
+		timingSamplesStack.Push(new TimingSample(name));
 	}
 
 	public static void EndSample()
 	{
-		var s = samplesStack.Pop();
+		var s = timingSamplesStack.Pop();
 
-		NameData d;
-		if (!nameToNameData.TryGetValue(s.name, out d))
+		SlidingWindowAverageDouble w;
+		if (!sampleNameToAverageTiming.TryGetValue(s.name, out w))
 		{
-			d = new NameData();
-			d.name = s.name;
-			nameToNameData[d.name] = d;
+			w = sampleNameToAverageTiming[s.name] = new SlidingWindowAverageDouble();
 		}
 
-		d.timesExecuted++;
-		d.timeTaken += s.watch.Elapsed;
+		w.AddSample(s.watch.Elapsed.TotalMilliseconds);
+
+		sampleNameToGUIText[s.name] = w.AverageValue + "ms";
 
 		Profiler.EndSample();
 
@@ -80,14 +131,15 @@ public static class MyProfiler
 			if (Input.GetKeyDown(KeyCode.F3))
 				show = !show;
 		}
+
 		private void OnGUI()
 		{
 			if (!show)
 				return;
-			foreach (var d in nameToNameData.Values)
+
+			foreach (var pair in sampleNameToGUIText.OrderBy((pair) => pair.Key))
 			{
-				if (d.timesExecuted > 0)
-					GUILayout.Label(d.name + " " + d.timeTaken.TotalMilliseconds / d.timesExecuted + "ms");
+				GUILayout.Label(pair.Key + " " + pair.Value);
 			}
 		}
 	}

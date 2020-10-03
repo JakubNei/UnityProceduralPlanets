@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using UnityEditorInternal;
 using UnityEngine;
 using UnityEngine.Events;
@@ -61,23 +62,16 @@ public partial class Planet : MonoBehaviour
 	public static HashSet<Planet> allPlanets = new HashSet<Planet>();
 
 
-	public ComputeBuffer chunkVertexGPUBuffer;
-	public Vector3[] chunkVertexCPUBuffer;
 
 	public Vector3 Center { get { return transform.position; } }
 
 	void Awake()
 	{
 		allPlanets.Add(this);
-		InitializeOther();
 		InitializeRootChildren();
 		GeneratePlanetData();
 	}
-	void InitializeOther()
-	{
-		//chunkVertexGPUBuffer = new ComputeBuffer(chunkConfig.NumberOfVerticesNeededTotal, 3 * sizeof(float));
-		chunkVertexCPUBuffer = new Vector3[chunkConfig.NumberOfVerticesNeededTotal];
-	}
+	
 
 	void GeneratePlanetData()
 	{
@@ -119,14 +113,24 @@ public partial class Planet : MonoBehaviour
 
 	static void MarkForRegeneration(IEnumerable<Chunk> chunks)
 	{
-		foreach (var c in chunks)
+		foreach (var chunk in chunks)
 		{
-			c.MarkForRegeneration();
-			MarkForRegeneration(c.children);
+			chunk.MarkForRegeneration();
+			MarkForRegeneration(chunk.children);
 		}
 	}
 
 	Queue<ChunkRenderer> chunkRenderersToReuse = new Queue<ChunkRenderer>();
+
+	void ResetChunkRenderers()
+	{
+		foreach(var kvp in chunksBeingRendered)
+		{
+			ReturnChunkRendererToPool(kvp.Value);
+		}
+
+		chunksBeingRendered.Clear();
+	}
 
 	ChunkRenderer GetFreeChunkRenderer()
 	{
@@ -134,8 +138,9 @@ public partial class Planet : MonoBehaviour
 		{
 			return chunkRenderersToReuse.Dequeue();
 		}
-
-		return ChunkRenderer.CreateFor(this);
+		
+		var r = ChunkRenderer.CreateFor(this);
+		return r;
 	}
 	void ReturnChunkRendererToPool(ChunkRenderer chunkRenderer)
 	{
@@ -150,47 +155,15 @@ public partial class Planet : MonoBehaviour
 	ChunkDivisionCalculation subdivisonCalculationInProgress = new ChunkDivisionCalculation();
 	ChunkDivisionCalculation subdivisonCalculationLast = new ChunkDivisionCalculation();
 
-	IEnumerator chunkGenerationCoroutine;
 	IEnumerator subdivisonCalculationCoroutine;
 
 	void LateUpdate()
 	{
+		var frameStart = Stopwatch.StartNew();
+
 		var milisecondsBudget = (int)(Time.deltaTime * 1000f - 1000f / 90f);
+		milisecondsBudget = 2;
 
-		var sw = Stopwatch.StartNew();
-
-		MyProfiler.BeginSample("Procedural Planet / Generate chunks coroutine execution");
-
-		do
-		{
-			if (chunkGenerationCoroutine == null)
-			{
-				Chunk chunk = subdivisonCalculationLast.GetNextChunkToGenerate();
-				if (chunk == null) break;
-				if (!chunk.generationBegan) chunkGenerationCoroutine = chunk.StartGenerateCoroutine();
-			}
-
-			if (chunkGenerationCoroutine != null)
-			{
-				if (chunkGenerationCoroutine.MoveNext())
-				{
-					if (chunkGenerationCoroutine.Current is WaitForEndOfFrame)
-					{
-						break;
-					}
-				}
-				else
-				{
-					chunkGenerationCoroutine = null;
-				}
-			}
-		} while (sw.ElapsedMilliseconds < milisecondsBudget);
-
-		MyProfiler.EndSample();
-
-
-
-		MyProfiler.BeginSample("Procedural Planet / Calculate desired subdivision");
 
 		var pointOfInterest = new PointOfInterest()
 		{
@@ -198,6 +171,9 @@ public partial class Planet : MonoBehaviour
 			fieldOfView = Camera.main.fieldOfView,
 		};
 
+		bool shouldUpdateRenderers = false;
+
+		MyProfiler.BeginSample("Procedural Planet / Calculate desired subdivision");
 		if (subdivisonCalculationCoroutine == null)
 		{
 			subdivisonCalculationCoroutine = subdivisonCalculationInProgress.StartCoroutine(this, pointOfInterest);
@@ -208,49 +184,141 @@ public partial class Planet : MonoBehaviour
 			var temp = subdivisonCalculationInProgress;
 			subdivisonCalculationInProgress = subdivisonCalculationLast;
 			subdivisonCalculationLast = temp;
+			shouldUpdateRenderers = true;
 		}
+		MyProfiler.EndSample();
+
+		if (shouldUpdateRenderers)
+		{ 
+			UpdateChunkRenderers(frameStart, milisecondsBudget);
+		}
+
+
+		GenerateChunks(frameStart, milisecondsBudget);
+	}
+
+
+	
+	List<IEnumerator> chunkGenerationCoroutines = new List<IEnumerator>();
+	private void GenerateChunks(Stopwatch frameStart, int milisecondsBudget)
+	{
+		MyProfiler.BeginSample("Procedural Planet / Generate chunks / coroutines execution");
+
+		int couroutinesExecuted = 0;
+
+		bool shouldStartNext = chunkGenerationCoroutines.Count == 0;
+		do
+		{
+			if (shouldStartNext)
+			{
+				while (subdivisonCalculationLast.NumChunksToGenerate > 0)
+				{
+					Chunk chunk = subdivisonCalculationLast.GetNextChunkToGenerate();
+					if (chunk == null) continue;
+					if (chunk.generationBegan) continue;
+					chunkGenerationCoroutines.Add(chunk.StartGenerateCoroutine());
+				};
+			}
+
+			if (chunkGenerationCoroutines.Count == 0) break;
+
+			int numWaitingForEndOfFrame = 0;
+			for (int i = chunkGenerationCoroutines.Count - 1; i >= 0; --i)
+			{
+				var c = chunkGenerationCoroutines[i];
+				if (c.MoveNext()) // coroutine execution
+				{
+					if (c.Current is WaitForEndOfFrame)
+					{
+						++numWaitingForEndOfFrame;
+					}
+					else
+					{
+						++couroutinesExecuted;
+					}
+				}
+				else
+				{
+					// finished
+					chunkGenerationCoroutines.RemoveAt(i);
+				}
+
+				if (frameStart.ElapsedMilliseconds > milisecondsBudget) break;
+			}
+
+			shouldStartNext = numWaitingForEndOfFrame >= chunkGenerationCoroutines.Count;
+
+			shouldStartNext = shouldStartNext && chunkGenerationCoroutines.Count < 5;
+
+		} while (frameStart.ElapsedMilliseconds < milisecondsBudget);
 
 		MyProfiler.EndSample();
 
+		MyProfiler.AddAvergaNumberSample("Procedural Planet / Generate chunks / coroutines executed", couroutinesExecuted);
+		MyProfiler.AddAvergaNumberSample("Procedural Planet / Generate chunks / concurent coroutines", chunkGenerationCoroutines.Count);
+	}
 
 
+	HashSet<Chunk> toRenderChunks = new HashSet<Chunk>();
 
+	private void UpdateChunkRenderers(Stopwatch frameStart, int milisecondsBudget)
+	{
 		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers");
 
-		var toRenderChunks = subdivisonCalculationLast.GetChunksToRender();
+		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers / Calculations 1");
+		toRenderChunks.Clear();
+		toRenderChunks.UnionWith(subdivisonCalculationLast.GetChunksToRender());
 		toStopRendering.Clear();
 		foreach (var kvp in chunksBeingRendered)
 		{
 			if (!toRenderChunks.Contains(kvp.Key)) toStopRendering.Add(kvp.Key);
 		}
+		MyProfiler.EndSample();
 
+		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers / Return to pool");
 		foreach (var chunk in toStopRendering)
 		{
 			ReturnChunkRendererToPool(chunksBeingRendered[chunk]);
 			chunksBeingRendered.Remove(chunk);
 		}
+		MyProfiler.EndSample();
 
+		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers / Calculations 2");
 		toStartRendering.Clear();
 		foreach (var chunk in toRenderChunks)
 		{
 			if (!chunksBeingRendered.ContainsKey(chunk)) toStartRendering.Add(chunk);
 		}
+		MyProfiler.EndSample();
 
+		MyProfiler.AddAvergaNumberSample("Procedural Planet / Update ChunkRenderers / toStartRendering", toStartRendering.Count);
+
+		var freeRenderers = new Stack<ChunkRenderer>();
+		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers / toStartRendering / freeRenderers");
 		foreach (var chunk in toStartRendering)
 		{
 			var renderer = GetFreeChunkRenderer();
-			renderer.RenderChunk(chunk);
-			chunksBeingRendered.Add(chunk, renderer);
-		}
-
+			freeRenderers.Push(renderer);
+		}		
 		MyProfiler.EndSample();
 
+		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers / toStartRendering / RenderChunk");
+		foreach (var chunk in toStartRendering)
+		{
+			var renderer = freeRenderers.Pop();
+			renderer.RenderChunk(chunk);
+			chunksBeingRendered.Add(chunk, renderer);
+			//if (frameStart.ElapsedMilliseconds > milisecondsBudget) break;
+		}
+		MyProfiler.EndSample();
+
+		MyProfiler.EndSample();
 	}
 
 	private void OnGUI()
 	{
-		//GUILayout.Button("chunks to generate: " + toGenerateChunks.Count);
-		//GUILayout.Button("chunks to render: " + toRenderChunks.Count);
+		GUILayout.Button("chunks to generate: " + subdivisonCalculationLast.NumChunksToGenerate);
+		GUILayout.Button("chunks to render: " + subdivisonCalculationLast.NumChunksToRender);
 	}
 
 
