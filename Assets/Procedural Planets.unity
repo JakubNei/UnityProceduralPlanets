@@ -251,6 +251,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5a12bc52b72d67b4ca43fd6c7910f397, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  targetFrameRate: 60
   velocityChangeSpeed: 10
   mouseSensitivty: 100
   speedBasedOnDistanceToPlanet: 1
@@ -588,12 +589,12 @@ MonoBehaviour:
     radiusHeightMapMultiplier: 3000
     seaLevel01: 0.5
   chunkConfig:
-    useSkirts: 1
+    useSkirts: 0
     numberOfVerticesOnEdge: 20
     weightNeededToSubdivide: 0.6
-    stopSegmentRecursionAtWorldSize: 10
-    createColliders: 1
-    textureResolution: 256
+    stopSegmentRecursionAtWorldSize: 50
+    createColliders: 0
+    textureResolution: 512
     rescaleToMinMax: 0
     chunkMaterial: {fileID: 2100000, guid: c1ef8c7ce330c5347a701bc512336e1f, type: 2}
     generateChunkVertices: {fileID: 7200000, guid: 651301ac22831ad45b2814adffcc8488,
@@ -614,7 +615,6 @@ MonoBehaviour:
     rock: {fileID: 2800000, guid: a154fc0e63e470e499c9e038fa209573, type: 3}
   id: 0
   rootChildren: []
-  chunkVertexCPUBuffer: []
 --- !u!4 &1141529114
 Transform:
   m_ObjectHideFlags: 0
@@ -769,46 +769,45 @@ MonoBehaviour:
     C - look towards
     planet
 
-    
+
 
     W,S,A,D - move front, back, left, right
 
-    space, left
-    control - move up, down
+    space, left control
+    - move up, down
 
-    
+
 
     left shift - move faster
 
-    mouse wheel
-    - change move speed
+    mouse wheel - change move
+    speed
 
-    
+
 
     Q, E - rotate roll
 
-    mouse - rotate yaw,
-    pitch
+    mouse - rotate yaw, pitch
 
-    
 
-    R - regenerate planet
+
+    R - regenerate
+    planet
 
     F3 - toggle profiler
 
-    
 
-    F5
-    - save position 1
 
-    F6 - load position 1
+    F5 - save position 1
+
+    F6 - load position
+    1
 
     F7 - save position 2
 
-    F8
-    - load position 2
+    F8 - load position 2
 
-    
+
 
     escape - exit'
   keyNotPressedForSeconds: 0

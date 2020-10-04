@@ -23,7 +23,7 @@ public class ChunkRenderer : MonoBehaviour
 
 	void CreateComponents()
 	{
-		MyProfiler.BeginSample("Procedural Planet / Create Components");
+		MyProfiler.BeginSample("Procedural Planet / ChunkRenderer / CreateComponents");
 
 		meshFilter = gameObject.AddComponent<MeshFilter>();
 
@@ -33,9 +33,8 @@ public class ChunkRenderer : MonoBehaviour
 
 		if (planet.chunkConfig.createColliders)
 		{
-			MyProfiler.BeginSample("Procedural Planet / Create GameObject / Collider");
-			meshCollider = gameObject.AddComponent<MeshCollider>();
-	
+			MyProfiler.BeginSample("Procedural Planet / ChunkRenderer / CreateComponents / Collider");
+			meshCollider = gameObject.AddComponent<MeshCollider>();	
 			MyProfiler.EndSample();
 		}
 

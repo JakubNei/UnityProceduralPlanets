@@ -7,7 +7,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 
 [Serializable]
-public class Chunk
+public class Chunk : IDisposable
 {
 
 	public Planet planet;
@@ -513,10 +513,6 @@ public class Chunk
 
 	NativeArray<Vector3> vertexCPUBuffer;
 
-	~Chunk()
-	{
-		vertexCPUBuffer.Dispose();
-	}
 
 	void RequestMeshData()
 	{
@@ -531,6 +527,9 @@ public class Chunk
 
 	void CreateMesh()
 	{
+		vertexGPUBuffer.Dispose();
+		vertexGPUBuffer = null;
+
 		var verticesOnEdge = chunkConfig.numberOfVerticesOnEdge;
 
 		{
@@ -567,6 +566,12 @@ public class Chunk
 		generatedData.mesh.triangles = planet.GetChunkMeshTriangles();
 		generatedData.mesh.uv = planet.GetChunkMeshUVs();
 		generatedData.mesh.RecalculateBounds();
+
+		if (!chunkConfig.generateChunkNormapMap) 
+		{
+			generatedData.mesh.RecalculateNormals();
+			generatedData.mesh.RecalculateTangents();
+		}
 		//generatedData.mesh.tangents = new Vector4[] { };
 		//generatedData.mesh.normals = new Vector3[] { };
 	}
@@ -596,6 +601,7 @@ public class Chunk
 	void UploadMesh()
 	{
 		generatedData.mesh.UploadMeshData(false);
+		vertexCPUBuffer.Dispose();
 	}
 
 
@@ -625,7 +631,6 @@ public class Chunk
 		//UnityEngine.Debug.Log(_normalLength);
 		c.SetFloat("_normalLength", _normalLength);
 
-		c.SetTexture(0, "_chunkNormalMap", generatedData.chunkNormalMap);
 		c.Dispatch(0, generatedData.chunkNormalMap.width / 16, generatedData.chunkNormalMap.height / 16, 1);
 	}
 
@@ -671,29 +676,13 @@ public class Chunk
 	}
 
 
-	public void MarkForRegeneration()
+	public void MarkForReGeneration()
 	{
 		generationBegan = false;
 		isGenerationDone = false;
+		DestroyGeneratedData();
 	}
 
-
-	public void Destroy()
-	{
-		MarkForRegeneration();
-
-		if (generatedData.mesh) Mesh.Destroy(generatedData.mesh);
-		generatedData.mesh = null;
-
-		if (generatedData.chunkHeightMap) generatedData.chunkHeightMap.Release();
-		generatedData.chunkHeightMap = null;
-		if (generatedData.chunkNormalMap) generatedData.chunkNormalMap.Release();
-		generatedData.chunkNormalMap = null;
-		if (generatedData.chunkDiffuseMap) generatedData.chunkDiffuseMap.Release();
-		generatedData.chunkDiffuseMap = null;
-		if (generatedData.chunkSlopeAndCurvatureMap) generatedData.chunkSlopeAndCurvatureMap.Release();
-		generatedData.chunkSlopeAndCurvatureMap = null;
-	}
 
 	private float GetSizeOnScreen(Planet.PointOfInterest data)
 	{
@@ -724,5 +713,25 @@ public class Chunk
 		return typeof(Chunk) + " treeDepth:" + treeDepth + " id:#" + id;
 	}
 
+	public void Dispose()
+	{
+		if (generatedData.mesh) Mesh.Destroy(generatedData.mesh);
+		generatedData.mesh = null;
+
+		if (generatedData.chunkHeightMap) generatedData.chunkHeightMap.Release();
+		generatedData.chunkHeightMap = null;
+		if (generatedData.chunkNormalMap) generatedData.chunkNormalMap.Release();
+		generatedData.chunkNormalMap = null;
+		if (generatedData.chunkDiffuseMap) generatedData.chunkDiffuseMap.Release();
+		generatedData.chunkDiffuseMap = null;
+		if (generatedData.chunkSlopeAndCurvatureMap) generatedData.chunkSlopeAndCurvatureMap.Release();
+		generatedData.chunkSlopeAndCurvatureMap = null;
+		if (generatedData.chunkBiomesMap) generatedData.chunkBiomesMap.Release();
+		generatedData.chunkBiomesMap = null;
+	}
+	void DestroyGeneratedData()
+	{
+		Dispose();
+	}
 
 }

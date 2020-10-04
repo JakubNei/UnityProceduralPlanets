@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -6,7 +7,7 @@ using UnityEditorInternal;
 using UnityEngine;
 using UnityEngine.Events;
 
-public partial class Planet : MonoBehaviour
+public partial class Planet : MonoBehaviour, IDisposable
 {
 	[System.Serializable]
 	public class PlanetConfig
@@ -71,7 +72,7 @@ public partial class Planet : MonoBehaviour
 		InitializeRootChildren();
 		GeneratePlanetData();
 	}
-	
+
 
 	void GeneratePlanetData()
 	{
@@ -106,25 +107,28 @@ public partial class Planet : MonoBehaviour
 	{
 		if (Input.GetKeyDown(KeyCode.R))
 		{
-			GeneratePlanetData();
-			MarkForRegeneration(rootChildren);
+			ReGeneratePlanet();
 		}
 	}
 
-	static void MarkForRegeneration(IEnumerable<Chunk> chunks)
+	void ReGeneratePlanet()
 	{
-		foreach (var chunk in chunks)
+		GeneratePlanetData();
+		ResetChunkRenderers();
+
+		var allChunks = CollectAllChunks();
+		foreach (var chunk in allChunks)
 		{
-			chunk.MarkForRegeneration();
-			MarkForRegeneration(chunk.children);
+			chunk.MarkForReGeneration();
 		}
 	}
+
 
 	Queue<ChunkRenderer> chunkRenderersToReuse = new Queue<ChunkRenderer>();
 
 	void ResetChunkRenderers()
 	{
-		foreach(var kvp in chunksBeingRendered)
+		foreach (var kvp in chunksBeingRendered)
 		{
 			ReturnChunkRendererToPool(kvp.Value);
 		}
@@ -138,7 +142,7 @@ public partial class Planet : MonoBehaviour
 		{
 			return chunkRenderersToReuse.Dequeue();
 		}
-		
+
 		var r = ChunkRenderer.CreateFor(this);
 		return r;
 	}
@@ -189,7 +193,7 @@ public partial class Planet : MonoBehaviour
 		MyProfiler.EndSample();
 
 		if (shouldUpdateRenderers)
-		{ 
+		{
 			UpdateChunkRenderers(frameStart, milisecondsBudget);
 		}
 
@@ -198,7 +202,7 @@ public partial class Planet : MonoBehaviour
 	}
 
 
-	
+
 	List<IEnumerator> chunkGenerationCoroutines = new List<IEnumerator>();
 	private void GenerateChunks(Stopwatch frameStart, int milisecondsBudget)
 	{
@@ -294,12 +298,12 @@ public partial class Planet : MonoBehaviour
 		MyProfiler.AddAvergaNumberSample("Procedural Planet / Update ChunkRenderers / toStartRendering", toStartRendering.Count);
 
 		var freeRenderers = new Stack<ChunkRenderer>();
-		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers / toStartRendering / freeRenderers");
+		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers / toStartRendering / get free renderers");
 		foreach (var chunk in toStartRendering)
 		{
 			var renderer = GetFreeChunkRenderer();
 			freeRenderers.Push(renderer);
-		}		
+		}
 		MyProfiler.EndSample();
 
 		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers / toStartRendering / RenderChunk");
@@ -390,4 +394,35 @@ public partial class Planet : MonoBehaviour
 		}
 	}
 
+	void OnDestroy()
+	{
+		Dispose();
+	}
+
+	List<Chunk> CollectAllChunks()
+	{
+		var allChunks = new List<Chunk>();
+
+		var toProcess = new List<Chunk>(rootChildren);
+		for (int i = toProcess.Count - 1; i >= 0; --i)
+		{
+			var c = toProcess[i];
+			toProcess.RemoveAt(i);
+			allChunks.Add(c);
+
+			toProcess.AddRange(c.children);
+			i += c.children.Count;
+		}
+
+		return allChunks;
+	}
+
+	public void Dispose()
+	{
+		var allChunks = CollectAllChunks();
+		foreach (var chunk in allChunks)
+		{
+			chunk.Dispose();
+		}
+	}
 }

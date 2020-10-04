@@ -62,10 +62,55 @@ public static class MyProfiler
 		}
 	}
 
+	class TimingStat
+	{
+		TimeSpan Min = TimeSpan.MaxValue;
+		TimeSpan Max = TimeSpan.MinValue;
+
+		TimeSpan SumValue;
+		int MaxSamples = 500; 
+		Queue<TimeSpan> Samples = new Queue<TimeSpan>();
+
+		public void AddSample(TimeSpan sample)
+		{
+			while (Samples.Count > MaxSamples)
+			{
+				SumValue -= Samples.Dequeue();
+			}
+
+			Samples.Enqueue(sample);
+			SumValue += sample;
+
+			if (sample > Max) Max = sample;
+			if (sample < Min) Min = sample;
+		}
+
+
+		static string TimeSpanToString(TimeSpan timeSpan)
+		{
+			return timeSpan.TotalMilliseconds + "ms";
+
+			if (timeSpan.TotalMinutes > 1) return timeSpan.TotalMinutes.ToString("0.##") + "m";
+			if (timeSpan.TotalSeconds > 1) return timeSpan.TotalSeconds.ToString("0.##") + "s";
+			double ms = timeSpan.TotalMilliseconds;
+			if (ms > 1) return ms.ToString("0.##") + "ms";
+			ms *= 1000.0;
+			if (ms > 1) return ms.ToString("0.##") + "μs";
+			ms *= 1000.0;
+			return ms.ToString("0.##") + "ns";
+		}
+
+		public override string ToString()
+		{
+			var averageTimeSpan = new TimeSpan(SumValue.Ticks / Samples.Count);
+			return TimeSpanToString(averageTimeSpan) + " (min " + TimeSpanToString(Min) + ", max " + TimeSpanToString(Max) + ")";
+		}
+	}
+
 
 	static Dictionary<string, SlidingWindowAverageLong> sampleNameToAverageNumber = new Dictionary<string, SlidingWindowAverageLong>();
 	
-	static Dictionary<string, SlidingWindowAverageDouble> sampleNameToAverageTiming = new Dictionary<string, SlidingWindowAverageDouble>();
+	static Dictionary<string, TimingStat> sampleNameToAverageTiming = new Dictionary<string, TimingStat>();
 
 
 	static Dictionary<string, string> sampleNameToGUIText = new Dictionary<string, string>();
@@ -97,15 +142,15 @@ public static class MyProfiler
 	{
 		var s = timingSamplesStack.Pop();
 
-		SlidingWindowAverageDouble w;
+		TimingStat w;
 		if (!sampleNameToAverageTiming.TryGetValue(s.name, out w))
 		{
-			w = sampleNameToAverageTiming[s.name] = new SlidingWindowAverageDouble();
+			w = sampleNameToAverageTiming[s.name] = new TimingStat();
 		}
 
-		w.AddSample(s.watch.Elapsed.TotalMilliseconds);
+		w.AddSample(s.watch.Elapsed);
 
-		sampleNameToGUIText[s.name] = w.AverageValue + "ms";
+		sampleNameToGUIText[s.name] = w.ToString();
 
 		Profiler.EndSample();
 
