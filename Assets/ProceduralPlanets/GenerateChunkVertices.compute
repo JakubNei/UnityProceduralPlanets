@@ -20,6 +20,7 @@ float3 _rangeUnitCubePosD;
 float _heightMin;
 float _heightMax;
 
+float _moveEdgeVerticesDown;
 
 
 RWStructuredBuffer<float3> _vertices;
@@ -74,6 +75,12 @@ void generateUsingChunkLocalPos(uint3 id : SV_DispatchThreadID)
 	float height = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r;
 	height = height * (_heightMax - _heightMin) + _heightMin;
 	height *= _planetRadiusHeightMapMultiplier;
+
+	
+	if (_moveEdgeVerticesDown > 0 && id.x == 0 || id.x == max || id.y == 0 || id.y == max)
+	{
+		height -= _moveEdgeVerticesDown;
+	}
 
 	float3 offset = dir * height;
 	float3 basePos = dir * _planetRadiusStart;

@@ -13,6 +13,7 @@ float _slopeModifier;
 Texture2D<float4> _parentChunkSlopeAndCurvatureMap;
 SamplerState sampler_parentChunkSlopeAndCurvatureMap;
 float2 _parentUvStart;
+
 int _generation;
 int _numberOfVerticesOnEdge;
 

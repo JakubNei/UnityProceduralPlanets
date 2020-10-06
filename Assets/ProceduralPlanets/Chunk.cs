@@ -143,6 +143,7 @@ public class Chunk : IDisposable
 			var b = chunk.rangeUnitCubePosRealSubdivided.b - center;
 			var c = chunk.rangeUnitCubePosRealSubdivided.c - center;
 			var d = chunk.rangeUnitCubePosRealSubdivided.d - center;
+
 			chunk.rangeUnitCubePosToGenerateInto.a = a * ratio + center;
 			chunk.rangeUnitCubePosToGenerateInto.b = b * ratio + center;
 			chunk.rangeUnitCubePosToGenerateInto.c = c * ratio + center;
@@ -266,6 +267,10 @@ public class Chunk : IDisposable
 		GenerateMesh();
 		MyProfiler.EndSample();
 
+		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Get data from GPU to CPU / Request");
+		RequestMeshData();
+		MyProfiler.EndSample();
+
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Normal map");
 		GenerateNormalMap();
 		MyProfiler.EndSample();
@@ -276,18 +281,10 @@ public class Chunk : IDisposable
 		MyProfiler.EndSample();
 		yield return null;
 
-		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Get data from GPU to CPU / Request");
-		RequestMeshData();
-		MyProfiler.EndSample();
 		while (!getMeshDataReadbackRequest.done) yield return new WaitForEndOfFrame();
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Create on CPU");
 		CreateMesh();
-		MyProfiler.EndSample();
-		yield return null;
-
-		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Move skirts on CPU");
-		MoveSkirtVertices();
 		MyProfiler.EndSample();
 		yield return null;
 
@@ -512,6 +509,7 @@ public class Chunk : IDisposable
 		c.SetTexture(kernelIndex, "_chunkHeightMap", generatedData.chunkHeightMap);
 		c.SetFloat("_heightMin", heightMin);
 		c.SetFloat("_heightMax", heightMax);
+		c.SetFloat("_moveEdgeVerticesDown", chunkConfig.useSkirts ? chunkRadius / 20.0f : 0);
 
 		c.SetBuffer(kernelIndex, "_vertices", vertexGPUBuffer);
 		c.Dispatch(kernelIndex, verticesOnEdge, verticesOnEdge, 1);
@@ -581,29 +579,6 @@ public class Chunk : IDisposable
 		}
 		//generatedData.mesh.tangents = new Vector4[] { };
 		//generatedData.mesh.normals = new Vector3[] { };
-	}
-
-	void MoveSkirtVertices()
-	{
-		return;
-		if (chunkConfig.useSkirts)
-		{
-			var v = vertexCPUBuffer;
-			var verticesOnEdge = chunkConfig.numberOfVerticesOnEdge;
-
-			var decreaseSkirtsBy = -offsetFromPlanetCenter.normalized * chunkRadius / 2.0f;
-			for (int i = 0; i < verticesOnEdge; i++)
-			{
-				v[i] += decreaseSkirtsBy; // top line
-				v[verticesOnEdge * (verticesOnEdge - 1) + i] += decreaseSkirtsBy; // bottom line
-			}
-			for (int i = 1; i < verticesOnEdge - 1; i++)
-			{
-				v[verticesOnEdge * i] += decreaseSkirtsBy; // left line
-				v[verticesOnEdge * i + verticesOnEdge - 1] += decreaseSkirtsBy; // right line
-			}
-			generatedData.mesh.SetVertexBufferData(vertexCPUBuffer, 0, 0, vertexCPUBuffer.Length);
-		}
 	}
 
 	void UploadMesh()

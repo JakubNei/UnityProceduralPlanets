@@ -1,7 +1,7 @@
 ﻿#pragma kernel main
 
 #include "Planet.Compute.cginc"
-#include "ChunkBiomes.cginc"
+
 
 Texture2D<float> _planetHeightMap;
 
@@ -41,6 +41,13 @@ float _mipMapLevel;
 
 RWTexture2D<float4> _chunkDiffuseMap;
 
+
+
+struct MyBindingStruct
+{
+	float3 pos;
+	int3 region;
+};
 
 float3 triPlanar(Texture2D tex, SamplerState samp, float3 pos, float3 normal, float scale)
 {
@@ -92,57 +99,48 @@ void main(uint3 id : SV_DispatchThreadID)
 	);
 	dir = unitCubeToUnitSphere(dir);
 	
-
-	/*
-	float height01 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r;
+	double height01 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r;
 	height01 = height01 * (_heightMax - _heightMin) + _heightMin;
-	float heightReal = height01 * _planetRadiusHeightMapMultiplier;
+	double heightReal = height01 * _planetRadiusHeightMapMultiplier;
 	heightReal += _planetRadiusStart;
+	heightReal /= 10;
+	double3 pos = dir * heightReal;
 
-	float3 pos = dir * heightReal;
+	float3 triplanarPos = fmod(pos, 10);
+
 	float3 normal = UNPACK_NORMAL(_chunkNormalMap[id.xy]);
 
-	float2 slopeXY = _chunkSlopeAndCurvatureMap[id.xy];
+	float2 slopeXY = _chunkSlopeAndCurvatureMap[id.xy].xy;
 	float slope = length(slopeXY);
 
 	float altidute = height01;
 	float distanceToPoles = smoothstep(0.4, 1, abs(dir.z));
-	float snowWeight = altidute + distanceToPoles + snoise(dir * 100, 5, 2) * 0.1;
-	
+	float snowBiomeWeight = altidute + distanceToPoles + snoise(dir * 100, 5, 2) * 0.1;
+	float snowParticleWeight = snowBiomeWeight * smoothstep(0.5, 0, slope);
+
 	float3 color;
 
-	if(slope > 0.3)
-		color = GetRock(pos, normal);
+
+	if (snowParticleWeight > 1.5)
+		color = GetSnow(triplanarPos, normal);
+	else if(slope > 0.3)
+		color = GetRock(triplanarPos, normal);
 	else {
-		if (snowWeight > 1.5)
-			color = GetSnow(pos, normal);
-		else if (snowWeight > 1.2)
-			color = GetTundra(pos, normal);
+		if (snowBiomeWeight > 1.2)
+			color = GetTundra(triplanarPos, normal);
 		else if (slope < 0.25)
-			color = GetGrass(pos, normal);
+			color = GetGrass(triplanarPos, normal);
 		else
-			color = GetClay(pos, normal);
+			color = GetClay(triplanarPos, normal);
 	}
 
-	*/
 
-	float2 slopeXY = _chunkSlopeAndCurvatureMap[id.xy];
-	float chunkMapHeight = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r;
-	float realPlanetHeight = chunkMapHeight * (_heightMax - _heightMin) + _heightMin;
-
-	BiomeData data;
-	data.dir = dir;
-	data.slopeXY = slopeXY;
-	data.humidity = 0.5;
-	data.altidute = realPlanetHeight;
-
-	BiomeResult biome = selectBiome(data);
-
-	float3 color = getDiffuseColor(biome, data);
-
+		
 
 
 	// DEBUG
+	//color = _grass.SampleLevel(sampler_grass, pos.yz, 0);
+	//color = GetGrass(pos, normal);
 	//color = float3(1, 1, 1) * slope;
 	//color = PACK_NORMAL(normal);
 	//color = SampleLinearFloat(_chunkNormalMap, uv);
