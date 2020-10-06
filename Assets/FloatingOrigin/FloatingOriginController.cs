@@ -4,7 +4,9 @@ using UnityEngine;
 
 public class FloatingOriginController : MonoBehaviour
 {
-	public WorldPos sceneCenterIsAt;
+	public BigPosition BigPosition => SceneCenterIsAt + this.transform.position;
+
+	public BigPosition SceneCenterIsAt { get; private set; }
 
 	public static FloatingOriginController Instance { get; private set; }
 
@@ -20,16 +22,21 @@ public class FloatingOriginController : MonoBehaviour
 		fs.Add(f);
 	}
 
+	public void Remove(FloatingOriginTransform f)
+	{
+		fs.Remove(f);
+	}
+
 	private void FixedUpdate()
 	{
 		if (this.transform.position.sqrMagnitude > 1000 * 1000)
 		{
-			var worldPosDelta = new WorldPos(transform.position).KeepOnlySectorPos();
-			sceneCenterIsAt += worldPosDelta;
+			var worldPosDelta = new BigPosition(transform.position).KeepOnlySectorPos();
+			SceneCenterIsAt += worldPosDelta;
 			this.transform.position -= worldPosDelta;
 
 			foreach (var i in fs)
-				i.SceneOriginChanged(sceneCenterIsAt);
+				i.SceneOriginChanged(SceneCenterIsAt);
 		}
 	}
 

@@ -8,7 +8,7 @@ public partial class Planet
 {
 	public struct PointOfInterest
 	{
-		public Vector3 pos;
+		public BigPosition pos;
 		public float fieldOfView;
 	}
 

@@ -3,7 +3,7 @@ using UnityEngine;
 
 // TODO: try to use BigInteger or BigRational once .Net 4.0 is available
 [System.Serializable]
-public struct WorldPos : IEquatable<WorldPos>
+public struct BigPosition : IEquatable<BigPosition>
 {
 	[SerializeField]
 	Vector3 insideSectorPosition;
@@ -14,10 +14,10 @@ public struct WorldPos : IEquatable<WorldPos>
 	//const double offset = 0.5;
 
 
-	public static readonly WorldPos Zero = new WorldPos();
+	public static readonly BigPosition Zero = new BigPosition();
 
 
-	public WorldPos normalized
+	public BigPosition normalized
 	{
 		get
 		{
@@ -31,7 +31,23 @@ public struct WorldPos : IEquatable<WorldPos>
 		}
 	}
 
-	public WorldPos(float x, float y, float z)
+	public float magnitude
+	{
+		get
+		{
+			return ToVector3().magnitude;
+		}
+	}
+
+	public float sqrMagnitude
+	{
+		get
+		{
+			return ToVector3().sqrMagnitude;
+		}
+	}
+
+	public BigPosition(float x, float y, float z)
 	{
 		insideSectorPosition = new Vector3(x, y, z);
 		sectorX = 0;
@@ -40,16 +56,16 @@ public struct WorldPos : IEquatable<WorldPos>
 		MoveSectorIfNeeded();
 	}
 
-	public WorldPos(Vector3 pos)
+	public BigPosition(Vector3 pos)
 	{
 		insideSectorPosition = pos;
 		sectorX = 0; sectorY = 0; sectorZ = 0;
 		MoveSectorIfNeeded();
 	}
 
-	public WorldPos KeepOnlySectorPos()
+	public BigPosition KeepOnlySectorPos()
 	{
-		return new WorldPos()
+		return new BigPosition()
 		{
 			sectorX = this.sectorX,
 			sectorY = this.sectorY,
@@ -73,32 +89,32 @@ public struct WorldPos : IEquatable<WorldPos>
 
 	private void MoveSectorIfNeeded()
 	{
-		long sector_add;
+		long sectorAdd;
 
-		sector_add = (long)(insideSectorPosition.x / sectorCubeSideLength);
-		insideSectorPosition.x -= sectorCubeSideLength * sector_add;
-		sectorX += sector_add;
+		sectorAdd = (long)(insideSectorPosition.x / sectorCubeSideLength);
+		insideSectorPosition.x -= sectorCubeSideLength * sectorAdd;
+		sectorX += sectorAdd;
 
-		sector_add = (long)(insideSectorPosition.y / sectorCubeSideLength);
-		insideSectorPosition.y -= sectorCubeSideLength * sector_add;
-		sectorY += sector_add;
+		sectorAdd = (long)(insideSectorPosition.y / sectorCubeSideLength);
+		insideSectorPosition.y -= sectorCubeSideLength * sectorAdd;
+		sectorY += sectorAdd;
 
-		sector_add = (long)(insideSectorPosition.z / sectorCubeSideLength);
-		insideSectorPosition.z -= sectorCubeSideLength * sector_add;
-		sectorZ += sector_add;
+		sectorAdd = (long)(insideSectorPosition.z / sectorCubeSideLength);
+		insideSectorPosition.z -= sectorCubeSideLength * sectorAdd;
+		sectorZ += sectorAdd;
 	}
 
-	public static double Distance(WorldPos a, WorldPos b)
+	public static double Distance(BigPosition a, BigPosition b)
 	{
 		return a.Distance(b);
 	}
-	public double Distance(WorldPos worldPos)
+	public double Distance(BigPosition worldPos)
 	{
-		return this.Towards(worldPos).ToVector3().magnitude;
+		return this.Towards(ref worldPos).magnitude;
 	}
-	public double DistanceSqr(WorldPos worldPos)
+	public double DistanceSqr(BigPosition worldPos)
 	{
-		return this.Towards(worldPos).ToVector3().sqrMagnitude;
+		return this.Towards(ref worldPos).sqrMagnitude;
 	}
 
 	public Vector3 ToVector3()
@@ -114,7 +130,7 @@ public struct WorldPos : IEquatable<WorldPos>
 		return ToVector3();
 	}
 
-	public bool Equals(WorldPos other)
+	public bool Equals(BigPosition other)
 	{
 		return
 			other.insideSectorPosition == insideSectorPosition &&
@@ -125,8 +141,8 @@ public struct WorldPos : IEquatable<WorldPos>
 
 	public override bool Equals(object obj)
 	{
-		if ((obj is WorldPos) == false) return false;
-		return this.Equals((WorldPos)obj);
+		if ((obj is BigPosition) == false) return false;
+		return this.Equals((BigPosition)obj);
 	}
 
 	public override int GetHashCode()
@@ -135,23 +151,23 @@ public struct WorldPos : IEquatable<WorldPos>
 	}
 
 
-	public WorldPos Towards(WorldPos other)
+	public BigPosition Towards(BigPosition other)
 	{
 		return this.Towards(ref other);
 	}
-	public WorldPos Towards(ref WorldPos other)
+	public BigPosition Towards(ref BigPosition other)
 	{
 		return other.Subtract(this);
 	}
 
-	public WorldPos Subtract(WorldPos other)
+	public BigPosition Subtract(BigPosition other)
 	{
 		return Subtract(ref other);
 	}
 
-	public WorldPos Subtract(ref WorldPos other)
+	public BigPosition Subtract(ref BigPosition other)
 	{
-		var ret = new WorldPos();
+		var ret = new BigPosition();
 		ret.insideSectorPosition = this.insideSectorPosition - other.insideSectorPosition;
 		ret.sectorX = this.sectorX - other.sectorX;
 		ret.sectorY = this.sectorY - other.sectorY;
@@ -160,13 +176,13 @@ public struct WorldPos : IEquatable<WorldPos>
 		return ret;
 	}
 
-	public WorldPos Add(WorldPos other)
+	public BigPosition Add(BigPosition other)
 	{
 		return Add(ref other);
 	}
-	public WorldPos Add(ref WorldPos other)
+	public BigPosition Add(ref BigPosition other)
 	{
-		var ret = new WorldPos();
+		var ret = new BigPosition();
 		ret.insideSectorPosition = this.insideSectorPosition + other.insideSectorPosition;
 		ret.sectorX = this.sectorX + other.sectorX;
 		ret.sectorY = this.sectorY + other.sectorY;
@@ -175,9 +191,9 @@ public struct WorldPos : IEquatable<WorldPos>
 		return ret;
 	}
 
-	public WorldPos MultiplyBy(double v)
+	public BigPosition MultiplyBy(double v)
 	{
-		var ret = new WorldPos();
+		var ret = new BigPosition();
 
 		ret.insideSectorPosition = this.ToVector3() * (float)v;
 		ret.MoveSectorIfNeeded();
@@ -214,56 +230,56 @@ public struct WorldPos : IEquatable<WorldPos>
 
 
 
-	public static WorldPos operator *(WorldPos left, float right)
+	public static BigPosition operator *(BigPosition left, float right)
 	{
 		return left.MultiplyBy(right);
 	}
-	public static WorldPos operator /(WorldPos left, float right)
+	public static BigPosition operator /(BigPosition left, float right)
 	{
 		return left.MultiplyBy(1.0f / right);
 	}
 
 
-	public static WorldPos operator +(WorldPos left, WorldPos right)
+	public static BigPosition operator +(BigPosition left, BigPosition right)
 	{
 		return left.Add(ref right);
 	}
-	public static WorldPos operator +(WorldPos left, Vector3 right)
+	public static BigPosition operator +(BigPosition left, Vector3 right)
 	{
-		return left + new WorldPos(right);
+		return left + new BigPosition(right);
 	}
-	public static WorldPos operator +(Vector3 left, WorldPos right)
+	public static BigPosition operator +(Vector3 left, BigPosition right)
 	{
 		return right + left;
 	}
 
 
 
-	public static WorldPos operator -(WorldPos left, WorldPos right)
+	public static BigPosition operator -(BigPosition left, BigPosition right)
 	{
 		return left.Subtract(ref right);
 	}
-	public static WorldPos operator -(WorldPos left, Vector3 right)
+	public static BigPosition operator -(BigPosition left, Vector3 right)
 	{
-		return left - new WorldPos(right);
+		return left - new BigPosition(right);
 	}
 
 
-	public static bool operator ==(WorldPos left, WorldPos right)
+	public static bool operator ==(BigPosition left, BigPosition right)
 	{
 		return left.Equals(right);
 	}
-	public static bool operator !=(WorldPos left, WorldPos right)
+	public static bool operator !=(BigPosition left, BigPosition right)
 	{
 		return left.Equals(right) == false;
 	}
 
 
-	public static implicit operator Vector3(WorldPos self)
+	public static implicit operator Vector3(BigPosition self)
 	{
 		return self.ToVector3();
 	}
-	public static implicit operator Vector4(WorldPos self)
+	public static implicit operator Vector4(BigPosition self)
 	{
 		return self.ToVector4();
 	}
@@ -276,7 +292,7 @@ public struct WorldPos : IEquatable<WorldPos>
 	}
 
 
-	public static WorldPos Normalize(WorldPos self)
+	public static BigPosition Normalize(BigPosition self)
 	{
 		return self.normalized;
 	}

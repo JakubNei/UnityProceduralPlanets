@@ -32,11 +32,12 @@ public partial class Planet : MonoBehaviour, IDisposable
 	{
 		public bool useSkirts = false;
 		public int numberOfVerticesOnEdge = 20;
-		public float weightNeededToSubdivide = 0.70f;
+		public float weightNeededToSubdivide = 0.6f;
 		public float stopSegmentRecursionAtWorldSize = 10;
 		public bool createColliders = true;
-		public int textureResolution = 256; // must be multiplier of 16
-		public bool rescaleToMinMax = true;
+		public int textureResolution = 512; // must be multiplier of 16
+		public bool rescaleToMinMax = false;
+		public bool generateUsingPlanetGlobalPos = false;
 		public int NumberOfVerticesNeededTotal { get { return numberOfVerticesOnEdge * numberOfVerticesOnEdge; } }
 
 		public Material chunkMaterial;
@@ -55,6 +56,8 @@ public partial class Planet : MonoBehaviour, IDisposable
 	public ChunkConfig chunkConfig;
 
 
+
+
 	public ulong id;
 
 	public List<Chunk> rootChildren;
@@ -63,7 +66,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 	public static HashSet<Planet> allPlanets = new HashSet<Planet>();
 
 
-
+	public BigPosition BigPosition => new BigPosition(Vector3.zero);
 	public Vector3 Center { get { return transform.position; } }
 
 	void Awake()
@@ -171,7 +174,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 
 		var pointOfInterest = new PointOfInterest()
 		{
-			pos = Camera.main.transform.position,
+			pos = FloatingOriginController.Instance.BigPosition,
 			fieldOfView = Camera.main.fieldOfView,
 		};
 
@@ -260,6 +263,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 
 		MyProfiler.AddAvergaNumberSample("Procedural Planet / Generate chunks / coroutines executed", couroutinesExecuted);
 		MyProfiler.AddAvergaNumberSample("Procedural Planet / Generate chunks / concurent coroutines", chunkGenerationCoroutines.Count);
+		MyProfiler.AddAvergaNumberSample("Procedural Planet / Generate chunks / to generate", subdivisonCalculationLast.NumChunksToGenerate);
 	}
 
 
@@ -295,7 +299,8 @@ public partial class Planet : MonoBehaviour, IDisposable
 		}
 		MyProfiler.EndSample();
 
-		MyProfiler.AddAvergaNumberSample("Procedural Planet / Update ChunkRenderers / toStartRendering", toStartRendering.Count);
+		MyProfiler.AddAvergaNumberSample("Procedural Planet / Update ChunkRenderers / to start rendering", toStartRendering.Count);
+		MyProfiler.AddAvergaNumberSample("Procedural Planet / Update ChunkRenderers / to render", toRenderChunks.Count);
 
 		var freeRenderers = new Stack<ChunkRenderer>();
 		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers / toStartRendering / get free renderers");
@@ -319,12 +324,6 @@ public partial class Planet : MonoBehaviour, IDisposable
 		MyProfiler.EndSample();
 	}
 
-	private void OnGUI()
-	{
-		GUILayout.Button("chunks to generate: " + subdivisonCalculationLast.NumChunksToGenerate);
-		GUILayout.Button("chunks to render: " + subdivisonCalculationLast.NumChunksToRender);
-	}
-
 
 	private void InitializeRootChildren()
 	{
@@ -346,15 +345,15 @@ public partial class Planet : MonoBehaviour, IDisposable
 
 		var corners = new[] {
 			// top 4
-			new WorldPos(1, 1, 1),
-			new WorldPos(1, 1, -1),
-			new WorldPos(-1, 1, -1),
-			new WorldPos(-1, 1, 1),
+			new BigPosition(1, 1, 1),
+			new BigPosition(1, 1, -1),
+			new BigPosition(-1, 1, -1),
+			new BigPosition(-1, 1, 1),
 			// bottom 4
-			new WorldPos(1, -1, 1),
-			new WorldPos(1, -1, -1),
-			new WorldPos(-1, -1, -1),
-			new WorldPos(-1, -1, 1)
+			new BigPosition(1, -1, 1),
+			new BigPosition(1, -1, -1),
+			new BigPosition(-1, -1, -1),
+			new BigPosition(-1, -1, 1)
 		};
 
 		AddRootChunk(0, corners, 0, 1, 2, 3); // top
@@ -364,7 +363,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 		AddRootChunk(4, corners, 0, 4, 5, 1); // right
 		AddRootChunk(5, corners, 2, 6, 7, 3); // left
 	}
-	void AddRootChunk(ulong id, WorldPos[] corners, int a, int b, int c, int d)
+	void AddRootChunk(ulong id, BigPosition[] corners, int a, int b, int c, int d)
 	{
 		var range = new Range()
 		{

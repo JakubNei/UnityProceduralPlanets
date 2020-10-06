@@ -1,5 +1,5 @@
 ﻿#pragma kernel generateUsingPlanetGlobalPos
-//#pragma kernel generateUsingChunkLocalPos
+#pragma kernel generateUsingChunkLocalPos
 
 #include "Planet.Compute.cginc"
 
@@ -51,22 +51,15 @@ void generateUsingPlanetGlobalPos(uint3 id : SV_DispatchThreadID)
 	//height = 0;
 	//height = clamp(height, 0, 1000);
 
-
 	_vertices[id.x + id.y * _numberOfVerticesOnEdge] = dir * height;
 }
 
-/*
+
 [numthreads(1, 1, 1)]
 void generateUsingChunkLocalPos(uint3 id : SV_DispatchThreadID)
 {
 	float max = _numberOfVerticesOnEdge - 1;
 	float2 uv = float2(id.x / max, id.y / max);
-
-	float3 localPos = lerp(
-		lerp(_rangeLocalPosA, _rangeLocalPosB, uv.x),
-		lerp(_rangeLocalPosD, _rangeLocalPosC, uv.x),
-		uv.y
-	);
 
 	float3 unitCubePos = lerp(
 		lerp(_rangeUnitCubePosA, _rangeUnitCubePosB, uv.x),
@@ -74,15 +67,20 @@ void generateUsingChunkLocalPos(uint3 id : SV_DispatchThreadID)
 		uv.y
 	);
 
+	float3 origin = normalize((_rangeUnitCubePosA + _rangeUnitCubePosB + _rangeUnitCubePosC + _rangeUnitCubePosD) / 4.0) * _planetRadiusStart;
 
-	float3 dirNorm = unitCubeToUnitSphere(unitCubePos);
+	float3 dir = unitCubeToUnitSphere(unitCubePos);
 
+	float height = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r;
+	height = height * (_heightMax - _heightMin) + _heightMin;
+	height *= _planetRadiusHeightMapMultiplier;
 
-	float height = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r * _planetRadiusHeightMapMultiplier + length(dirNorm - unitCubePos) * _planetRadiusStart;
+	float3 offset = dir * height;
+	float3 basePos = dir * _planetRadiusStart;
 
 	//DEBUG
 	//height = 0;
 
-	_vertices[id.x + id.y * _numberOfVerticesOnEdge] = localPos + dirNorm * height;
+	_vertices[id.x + id.y * _numberOfVerticesOnEdge] = basePos - origin + offset;
 }
-*/
+

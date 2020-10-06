@@ -1,4 +1,5 @@
 ﻿using System;
+using UnityEditor;
 using UnityEngine;
 
 public class ChunkRenderer : MonoBehaviour
@@ -10,11 +11,12 @@ public class ChunkRenderer : MonoBehaviour
 	Material material;
 	MeshFilter meshFilter;
 	MeshCollider meshCollider;
+	FloatingOriginTransform floatingTransform;
 
 	public static ChunkRenderer CreateFor(Planet planet)
 	{
 		var go = new GameObject(nameof(ChunkRenderer));
-		go.transform.parent = planet.transform;
+		//go.transform.parent = planet.transform;
 		var renderer = go.AddComponent<ChunkRenderer>();
 		renderer.planet = planet;
 		renderer.CreateComponents();
@@ -26,6 +28,8 @@ public class ChunkRenderer : MonoBehaviour
 		MyProfiler.BeginSample("Procedural Planet / ChunkRenderer / CreateComponents");
 
 		meshFilter = gameObject.AddComponent<MeshFilter>();
+		
+		floatingTransform = gameObject.AddComponent<FloatingOriginTransform>();
 
 		material = new Material(planet.chunkConfig.chunkMaterial);
 		var meshRenderer = gameObject.AddComponent<MeshRenderer>();
@@ -46,16 +50,15 @@ public class ChunkRenderer : MonoBehaviour
 		this.chunk = chunk;
 
 		if (chunk.GenerateUsingPlanetGlobalPos)
-			gameObject.transform.localPosition = Vector3.zero;
+			floatingTransform.BigPosition = planet.BigPosition;
 		else
-			gameObject.transform.localPosition = chunk.offsetFromPlanetCenter;
+			floatingTransform.BigPosition = planet.BigPosition + chunk.bigPositionLocalToPlanet;
 
 		meshFilter.sharedMesh = chunk.generatedData.mesh;
 		if (meshCollider) meshCollider.sharedMesh = chunk.generatedData.mesh;
 
 		if (material && chunk.generatedData.chunkDiffuseMap) material.mainTexture = chunk.generatedData.chunkDiffuseMap;
 		if (material && chunk.generatedData.chunkNormalMap) material.SetTexture("_BumpMap", chunk.generatedData.chunkNormalMap);
-	
 	}
 
 	public void Hide()
@@ -64,17 +67,23 @@ public class ChunkRenderer : MonoBehaviour
 		if (meshCollider) meshCollider.sharedMesh = null;
 	}
 
-
 	private void OnDrawGizmosSelected()
 	{
 		if (gameObject && gameObject.activeSelf && chunk != null)
 		{
 			Gizmos.color = Color.cyan;
 			//rangePosRealSubdivided.DrawGizmos();
-			chunk.rangePosToCalculateScreenSizeOn.DrawGizmos(planet.transform.position);
+			chunk.rangePosToCalculateScreenSizeOn_localToPlanet.DrawGizmos(chunk.planet.transform.position);
+
+			Vector3 unityCenter = chunk.rangePosToCalculateScreenSizeOn_localToPlanet.CenterPos + chunk.planet.transform.position;
+
+			Gizmos.DrawSphere(unityCenter, 0.1f);
+
+			Handles.Label(unityCenter, 
+				"weight " + chunk.lastGenerationWeight.ToString() + "\n" +
+				"dist " + chunk.lastDistanceToCamera.ToString() + "\n" +
+				"radius " + chunk.lastRadiusWorldSpace.ToString() + "\n"
+			);
 		}
 	}
-
-	
-
 }

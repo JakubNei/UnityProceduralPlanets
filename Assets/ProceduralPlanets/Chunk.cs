@@ -18,7 +18,7 @@ public class Chunk : IDisposable
 
 	public Range rangeUnitCubePosRealSubdivided;
 	public Range rangeUnitCubePosToGenerateInto;
-	public Range rangePosToCalculateScreenSizeOn;
+	public Range rangePosToCalculateScreenSizeOn_localToPlanet;
 
 
 	public Vector3 offsetFromPlanetCenter;
@@ -30,11 +30,13 @@ public class Chunk : IDisposable
 	//public float ChunkRelativeSize { get { return chunkRadius / planetConfig.radiusStart; } }
 
 	//public bool GenerateUsingPlanetGlobalPos { get { return chunkRangeMaxAngleDeg > 2; } }
-	public bool GenerateUsingPlanetGlobalPos { get { return true; } }
+	public bool GenerateUsingPlanetGlobalPos { get { return chunkConfig.generateUsingPlanetGlobalPos; } }
 	//public int SlopeModifier { get { return (int)Mathf.Pow(2, generation); } }
 	//public float SlopeModifier { get { return (float)((planetConfig.radiusStart / chunkRadius / 4 * (heightMapResolution / 1024.0)) / 44.0 * HeightRange); } }
 	public float SlopeModifier { get { return (float)(Mathf.Pow(2, treeDepth) * (HeightMapResolution / 1024.0) * HeightRange); } }
 	public float HeightRange { get { return heightMax - heightMin; } }
+
+	public BigPosition bigPositionLocalToPlanet => new BigPosition(GenerateUsingPlanetGlobalPos ? Vector3.zero : offsetFromPlanetCenter);
 
 	public Planet.PlanetConfig planetConfig { get { return planet.planetConfig; } }
 	public Planet.ChunkConfig chunkConfig { get { return planet.chunkConfig; } }
@@ -152,7 +154,7 @@ public class Chunk : IDisposable
 		}
 
 
-		chunk.rangePosToCalculateScreenSizeOn = new Range
+		chunk.rangePosToCalculateScreenSizeOn_localToPlanet = new Range
 		{
 			a = chunk.rangeUnitCubePosToGenerateInto.a.normalized * planet.planetConfig.radiusStart,
 			b = chunk.rangeUnitCubePosToGenerateInto.b.normalized * planet.planetConfig.radiusStart,
@@ -160,7 +162,7 @@ public class Chunk : IDisposable
 			d = chunk.rangeUnitCubePosToGenerateInto.d.normalized * planet.planetConfig.radiusStart,
 		};
 
-		chunk.chunkRadius = chunk.rangePosToCalculateScreenSizeOn.ToBoundingSphere().radius;
+		chunk.chunkRadius = chunk.rangePosToCalculateScreenSizeOn_localToPlanet.ToBoundingSphere().radius;
 
 
 		//chunk.rangeDirToGenerateInto = new Range
@@ -402,6 +404,11 @@ public class Chunk : IDisposable
 			c.SetFloat("_heightMin", heightMin);
 			c.SetFloat("_heightMax", heightMax);
 
+
+
+			c.SetBool("_hasParent", parent != null);
+			if (parent != null) c.SetTexture(0, "_parentChunkHeightMap", parent.generatedData.chunkHeightMap);
+
 			c.SetTexture(0, "_chunkHeightMap", height1);
 			c.Dispatch(0, height1.width / 16, height1.height / 16, 1);
 
@@ -537,17 +544,17 @@ public class Chunk : IDisposable
 			int bIndex = verticesOnEdge - 1;
 			int cIndex = verticesOnEdge * verticesOnEdge - 1;
 			int dIndex = cIndex - (verticesOnEdge - 1);
-			rangePosToCalculateScreenSizeOn.a = vertexCPUBuffer[aIndex];
-			rangePosToCalculateScreenSizeOn.b = vertexCPUBuffer[bIndex];
-			rangePosToCalculateScreenSizeOn.c = vertexCPUBuffer[cIndex];
-			rangePosToCalculateScreenSizeOn.d = vertexCPUBuffer[dIndex];
+			rangePosToCalculateScreenSizeOn_localToPlanet.a = vertexCPUBuffer[aIndex];
+			rangePosToCalculateScreenSizeOn_localToPlanet.b = vertexCPUBuffer[bIndex];
+			rangePosToCalculateScreenSizeOn_localToPlanet.c = vertexCPUBuffer[cIndex];
+			rangePosToCalculateScreenSizeOn_localToPlanet.d = vertexCPUBuffer[dIndex];
 
 			if (!GenerateUsingPlanetGlobalPos)
 			{
-				rangePosToCalculateScreenSizeOn.a += offsetFromPlanetCenter;
-				rangePosToCalculateScreenSizeOn.b += offsetFromPlanetCenter;
-				rangePosToCalculateScreenSizeOn.c += offsetFromPlanetCenter;
-				rangePosToCalculateScreenSizeOn.d += offsetFromPlanetCenter;
+				rangePosToCalculateScreenSizeOn_localToPlanet.a += offsetFromPlanetCenter;
+				rangePosToCalculateScreenSizeOn_localToPlanet.b += offsetFromPlanetCenter;
+				rangePosToCalculateScreenSizeOn_localToPlanet.c += offsetFromPlanetCenter;
+				rangePosToCalculateScreenSizeOn_localToPlanet.d += offsetFromPlanetCenter;
 			}
 		}
 
@@ -578,6 +585,7 @@ public class Chunk : IDisposable
 
 	void MoveSkirtVertices()
 	{
+		return;
 		if (chunkConfig.useSkirts)
 		{
 			var v = vertexCPUBuffer;
@@ -649,6 +657,8 @@ public class Chunk : IDisposable
 			generatedData.chunkDiffuseMap = new RenderTexture(DiffuseMapResolution, DiffuseMapResolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
 			generatedData.chunkDiffuseMap.wrapMode = TextureWrapMode.Clamp;
 			generatedData.chunkDiffuseMap.filterMode = FilterMode.Trilinear;
+			generatedData.chunkDiffuseMap.useMipMap = true;
+			generatedData.chunkDiffuseMap.autoGenerateMips = false;
 			generatedData.chunkDiffuseMap.enableRandomWrite = true;
 			generatedData.chunkDiffuseMap.Create();
 		}
@@ -686,20 +696,25 @@ public class Chunk : IDisposable
 
 	private float GetSizeOnScreen(Planet.PointOfInterest data)
 	{
-		var myPos = rangePosToCalculateScreenSizeOn.CenterPos + planet.transform.position;
-		var distanceToCamera = Vector3.Distance(myPos, data.pos);
+		var myPos = rangePosToCalculateScreenSizeOn_localToPlanet.CenterPos + planet.BigPosition;
+		var distanceToCamera = BigPosition.Distance(myPos, data.pos);
 
 		// TODO: this is world space, doesnt take into consideration rotation, not good,
 		// but we dont care about rotation, we want to have correct detail even if we are looking at chunk from side?
-		var sphere = rangePosToCalculateScreenSizeOn.ToBoundingSphere();
+		var sphere = rangePosToCalculateScreenSizeOn_localToPlanet.ToBoundingSphere();
 		var radiusWorldSpace = sphere.radius;
 		var fov = data.fieldOfView;
-		var cot = 1.0f / Mathf.Tan(fov / 2f * Mathf.Deg2Rad);
+		var cot = 1.0 / Mathf.Tan(fov / 2f * Mathf.Deg2Rad);
 		var radiusCameraSpace = radiusWorldSpace * cot / distanceToCamera;
 
-		return radiusCameraSpace;
+		lastDistanceToCamera = distanceToCamera;
+		lastRadiusWorldSpace = radiusWorldSpace;
+
+		return (float)radiusCameraSpace;
 	}
 
+	public double lastDistanceToCamera;
+	public double lastRadiusWorldSpace;
 	public float lastGenerationWeight;
 	public float GetRelevanceWeight(Planet.PointOfInterest data)
 	{

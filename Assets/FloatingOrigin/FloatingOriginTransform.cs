@@ -3,29 +3,49 @@
 public class FloatingOriginTransform : MonoBehaviour
 {
 
-	public Quaternion Rotation
+	public Quaternion UnityRotation
 	{
 		get { return transform.rotation; }
 		set { transform.rotation = value; }
 	}
-	public Vector3 UnityPos
+	public Vector3 UnityPosition
 	{
 		get { return transform.position; }
 		set { transform.position = value; }
 	}
-	public WorldPos WorldPos
+	public BigPosition BigPosition
 	{
-		get;
-		set;
+		get
+		{
+			return _bigPosition;
+		}
+		set
+		{
+			_bigPosition = value;
+			UpdateUnityPos();
+		}
 	}
+
+	public BigPosition _bigPosition;
 
 	private void Start()
 	{
 		FloatingOriginController.Instance.Add(this);
+		UpdateUnityPos();
 	}
 
-	public void SceneOriginChanged(WorldPos sceneOrigin)
+	private void OnDisable()
 	{
-		UnityPos = WorldPos - sceneOrigin;
+		FloatingOriginController.Instance.Remove(this);
+	}
+	
+	private void UpdateUnityPos()
+	{
+		SceneOriginChanged(FloatingOriginController.Instance.SceneCenterIsAt);
+	}
+
+	public void SceneOriginChanged(BigPosition sceneOrigin)
+	{
+		UnityPosition = BigPosition - sceneOrigin;
 	}
 }

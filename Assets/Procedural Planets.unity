@@ -176,11 +176,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9a68662e147cdd7468fe75f96b37ffa4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sceneCenterIsAt:
-    insideSectorPosition: {x: 0, y: 0, z: 0}
-    sectorX: 0
-    sectorY: 0
-    sectorZ: 0
 --- !u!20 &48616964
 Camera:
   m_ObjectHideFlags: 0
@@ -552,8 +547,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1141529114}
-  - component: {fileID: 1141529113}
   - component: {fileID: 1141529115}
+  - component: {fileID: 1141529113}
   m_Layer: 0
   m_Name: planet
   m_TagString: Untagged
@@ -592,10 +587,11 @@ MonoBehaviour:
     useSkirts: 0
     numberOfVerticesOnEdge: 20
     weightNeededToSubdivide: 0.6
-    stopSegmentRecursionAtWorldSize: 50
-    createColliders: 0
+    stopSegmentRecursionAtWorldSize: 20
+    createColliders: 1
     textureResolution: 512
     rescaleToMinMax: 0
+    generateUsingPlanetGlobalPos: 0
     chunkMaterial: {fileID: 2100000, guid: c1ef8c7ce330c5347a701bc512336e1f, type: 2}
     generateChunkVertices: {fileID: 7200000, guid: 651301ac22831ad45b2814adffcc8488,
       type: 3}
@@ -641,6 +637,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c1132b45122624940b2ca5b1b1d5d550, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _bigPosition:
+    insideSectorPosition: {x: 0, y: 0, z: 0}
+    sectorX: 0
+    sectorY: 0
+    sectorZ: 0
 --- !u!1 &1926511765
 GameObject:
   m_ObjectHideFlags: 0
