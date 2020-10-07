@@ -82,7 +82,8 @@ public class ChunkRenderer : MonoBehaviour
 			Handles.Label(unityCenter, 
 				"weight " + chunk.lastGenerationWeight.ToString() + "\n" +
 				"dist " + chunk.lastDistanceToCamera.ToString() + "\n" +
-				"radius " + chunk.lastRadiusWorldSpace.ToString() + "\n"
+				"radius " + chunk.lastRadiusWorldSpace.ToString() + "\n" +
+				"slopeModifier " + chunk.SlopeModifier.ToString() + "\n"
 			);
 		}
 	}

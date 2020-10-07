@@ -20,7 +20,7 @@ RenderSettings:
   m_FogDensity: 0.01
   m_LinearFogStart: 0
   m_LinearFogEnd: 300
-  m_AmbientSkyColor: {r: 0, g: 0, b: 0, a: 1}
+  m_AmbientSkyColor: {r: 0.16037738, g: 0.16037738, b: 0.16037738, a: 1}
   m_AmbientEquatorColor: {r: 0.114, g: 0.125, b: 0.133, a: 1}
   m_AmbientGroundColor: {r: 0.047, g: 0.043, b: 0.035, a: 1}
   m_AmbientIntensity: 1
@@ -584,8 +584,8 @@ MonoBehaviour:
     radiusHeightMapMultiplier: 3000
     seaLevel01: 0.5
   chunkConfig:
-    useSkirts: 0
-    numberOfVerticesOnEdge: 20
+    useSkirts: 1
+    numberOfVerticesOnEdge: 40
     weightNeededToSubdivide: 0.6
     stopSegmentRecursionAtWorldSize: 20
     createColliders: 1
@@ -601,8 +601,7 @@ MonoBehaviour:
       type: 3}
     generateChunkDiffuseMap: {fileID: 7200000, guid: fb9af6c0006df1748af7cf9fca53d058,
       type: 3}
-    generateChunkNormapMap: {fileID: 7200000, guid: 2d5e7e75df2190a41889b445d4a8d23b,
-      type: 3}
+    generateChunkNormapMap: {fileID: 0}
     generateSlopeAndCurvatureMap: {fileID: 7200000, guid: aa19f88d5397e0946892c5d96e017537,
       type: 3}
     generateChunkBiomesMap: {fileID: 0}

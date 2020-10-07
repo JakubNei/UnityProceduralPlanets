@@ -507,6 +507,8 @@ public class Chunk : IDisposable
 		c.SetFloat("_planetRadiusStart", planetConfig.radiusStart);
 		c.SetFloat("_planetRadiusHeightMapMultiplier", planetConfig.radiusHeightMapMultiplier);
 		c.SetTexture(kernelIndex, "_chunkHeightMap", generatedData.chunkHeightMap);
+		c.SetTexture(kernelIndex, "_chunkSlopeAndCurvatureMap", generatedData.chunkSlopeAndCurvatureMap);
+
 		c.SetFloat("_heightMin", heightMin);
 		c.SetFloat("_heightMax", heightMax);
 		c.SetFloat("_moveEdgeVerticesDown", chunkConfig.useSkirts ? chunkRadius / 20.0f : 0);
@@ -522,6 +524,7 @@ public class Chunk : IDisposable
 	void RequestMeshData()
 	{
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Get data from GPU to CPU / Request / new NativeArray");
+		if (vertexCPUBuffer.IsCreated) vertexCPUBuffer.Dispose();
 		vertexCPUBuffer = new NativeArray<Vector3>(chunkConfig.NumberOfVerticesNeededTotal, Allocator.Persistent);
 		MyProfiler.EndSample();
 
@@ -572,19 +575,23 @@ public class Chunk : IDisposable
 		generatedData.mesh.uv = planet.GetChunkMeshUVs();
 		generatedData.mesh.RecalculateBounds();
 
-		if (!chunkConfig.generateChunkNormapMap) 
+		if (!chunkConfig.generateChunkNormapMap)
 		{
 			generatedData.mesh.RecalculateNormals();
 			generatedData.mesh.RecalculateTangents();
 		}
-		//generatedData.mesh.tangents = new Vector4[] { };
-		//generatedData.mesh.normals = new Vector3[] { };
+		else
+		{
+			generatedData.mesh.tangents = new Vector4[] { };
+			generatedData.mesh.normals = new Vector3[] { };
+		}
 	}
 
 	void UploadMesh()
 	{
 		generatedData.mesh.UploadMeshData(false);
-		vertexCPUBuffer.Dispose();
+
+		if (vertexCPUBuffer.IsCreated) vertexCPUBuffer.Dispose();
 	}
 
 
@@ -718,6 +725,11 @@ public class Chunk : IDisposable
 		generatedData.chunkSlopeAndCurvatureMap = null;
 		if (generatedData.chunkBiomesMap) generatedData.chunkBiomesMap.Release();
 		generatedData.chunkBiomesMap = null;
+
+		if (vertexGPUBuffer != null) vertexGPUBuffer.Dispose();
+		vertexGPUBuffer = null;
+
+		if (vertexCPUBuffer.IsCreated) vertexCPUBuffer.Dispose();
 	}
 	void DestroyGeneratedData()
 	{

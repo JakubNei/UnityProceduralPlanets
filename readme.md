@@ -88,6 +88,7 @@ float chunkMapHeight = (realPlanetHeight - _heightMin) / (_heightMax - _heightMi
 float realPlanetHeight = chunkMapHeight * (_heightMax - _heightMin) + _heightMin;
 ```
 
+Child chunk height map is based off of parent chunk height map
 
 # Links
 [Normal maps blending aproaches](http://blog.selfshadow.com/publications/blending-in-detail/)
@@ -100,6 +101,7 @@ float realPlanetHeight = chunkMapHeight * (_heightMax - _heightMin) + _heightMin
 
 [Screenshot: Chunk skirts in Elite Dangerous](https://image.prntscr.com/image/ftDCxkimQK6uRgKqs9WBdg.png)
 
+[GPU-Based Procedural Terrains in 'Serious Sam 4: Planet Badass'](https://www.gdcvault.com/play/1026349/Advanced-Graphics-Techniques-Tutorial-Four)
 
 
 # Screenshots

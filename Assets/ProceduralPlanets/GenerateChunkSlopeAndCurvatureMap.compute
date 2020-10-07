@@ -29,6 +29,7 @@ float2 getSlope(int2 idXy, int w, int h)
 	int size = (_generation + 1) * 4;
 
 	size = min(size, w / (_numberOfVerticesOnEdge - 1));
+	size = 1;
 
 	//DEBUG
 	//size = 5;
@@ -39,7 +40,10 @@ float2 getSlope(int2 idXy, int w, int h)
 	float sx = 0;
 	float sy = 0;
 
-	for (int i = 1; i <= size; i++) {
+	//for (int i = 1; i <= size; i++) 
+	{
+		int i = 1;
+
 		sx += _chunkHeightMap[s11pos + int2(i, 0)].r;
 		sx -= _chunkHeightMap[s11pos - int2(i, 0)].r;
 
@@ -48,6 +52,7 @@ float2 getSlope(int2 idXy, int w, int h)
 	}
 
 
+	return float2(sx, sy);
 	return float2(sx, sy) / size / size * 7;
 }
 
@@ -58,7 +63,7 @@ void parentExists(uint3 id : SV_DispatchThreadID)
 	_chunkSlopeAndCurvatureMap.GetDimensions(w, h);
 	float2 uv = id.xy / float2(w - 1, h - 1);
 
-	float2 childSlope = getSlope(id.xy, w, h);
+	double2 childSlope = length(getSlope(id.xy, w, h));
 	childSlope *= _slopeModifier;
 
 	float2 parentSlope = _parentChunkSlopeAndCurvatureMap.SampleLevel(sampler_parentChunkSlopeAndCurvatureMap, uv / 2.0 + _parentUvStart, 0).xy;
@@ -68,7 +73,7 @@ void parentExists(uint3 id : SV_DispatchThreadID)
 	//slope = lerp(parentSlope, childSlope, 0.2);
 	//slope = normalize(childSlope) * length(parentSlope);
 	slope = childSlope;
-	//slope = parentSlope;
+	slope = parentSlope;
 
 	_chunkSlopeAndCurvatureMap[id.xy] = float4(slope, 0, 0);
 }
@@ -81,7 +86,7 @@ void parentDoesNotExist(uint3 id : SV_DispatchThreadID)
 	_chunkSlopeAndCurvatureMap.GetDimensions(w, h);
 
 	float2 slope = getSlope(id.xy, w, h);
-	slope *= _slopeModifier;
+	slope *= _slopeModifier * 10;
 
 	_chunkSlopeAndCurvatureMap[id.xy] = float4(slope, 0, 0);
 }

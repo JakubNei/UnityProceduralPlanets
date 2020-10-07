@@ -106,16 +106,11 @@ public partial class Planet : MonoBehaviour, IDisposable
 		MyProfiler.EndSample();
 	}
 
-	void Update()
-	{
-		if (Input.GetKeyDown(KeyCode.R))
-		{
-			ReGeneratePlanet();
-		}
-	}
-
 	void ReGeneratePlanet()
 	{
+		subdivisonCalculationCoroutine = null;
+		chunkGenerationCoroutines.Clear();
+
 		GeneratePlanetData();
 		ResetChunkRenderers();
 
@@ -166,6 +161,12 @@ public partial class Planet : MonoBehaviour, IDisposable
 
 	void LateUpdate()
 	{
+		if (Input.GetKeyDown(KeyCode.R))
+		{
+			ReGeneratePlanet();
+			return;
+		}
+
 		var frameStart = Stopwatch.StartNew();
 
 		var milisecondsBudget = (int)(Time.deltaTime * 1000f - 1000f / 90f);
