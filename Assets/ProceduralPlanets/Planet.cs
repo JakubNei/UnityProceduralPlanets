@@ -55,7 +55,14 @@ public partial class Planet : MonoBehaviour, IDisposable
 	}
 	public ChunkConfig chunkConfig;
 
-
+	[System.Serializable]
+	public struct Craters
+	{
+		public ComputeBuffer gpuBuffer;
+		public Vector4[] cpuBuffer;
+		public int nextIndex;
+	}
+	public Craters craters;
 
 
 	public ulong id;
@@ -74,8 +81,28 @@ public partial class Planet : MonoBehaviour, IDisposable
 		allPlanets.Add(this);
 		InitializeRootChildren();
 		GeneratePlanetData();
+
+		craters.cpuBuffer = new Vector4[100];
+		craters.gpuBuffer = new ComputeBuffer(craters.cpuBuffer.Length, 4 * sizeof(float));
 	}
 
+	public void AddCrater(BigPosition bigPosition, float radius)
+	{ 
+		var planetLocalPos = this.BigPosition.Towards(bigPosition).ToVector3();
+		craters.cpuBuffer[craters.nextIndex] = new Vector4(planetLocalPos.x, planetLocalPos.y, planetLocalPos.z, radius);
+		++craters.nextIndex;
+		if (craters.nextIndex >= craters.cpuBuffer.Length) craters.nextIndex = 0;
+		craters.gpuBuffer.SetData(craters.cpuBuffer);
+
+		foreach(var c in CollectAllChunks())
+		{
+			var s = c.rangePosToCalculateScreenSizeOn_localToPlanet.ToBoundingSphere();
+			if (Vector3.Distance(s.center, planetLocalPos) < s.radius + radius)
+			{
+				c.MarkForReGeneration();
+			}
+		}
+	}
 
 	void GeneratePlanetData()
 	{
@@ -110,6 +137,8 @@ public partial class Planet : MonoBehaviour, IDisposable
 	{
 		subdivisonCalculationCoroutine = null;
 		chunkGenerationCoroutines.Clear();
+		subdivisonCalculationInProgress.Clear();
+		subdivisonCalculationLast.Clear();
 
 		GeneratePlanetData();
 		ResetChunkRenderers();
@@ -423,6 +452,19 @@ public partial class Planet : MonoBehaviour, IDisposable
 		foreach (var chunk in allChunks)
 		{
 			chunk.Dispose();
+		}
+	}
+
+	private void OnDrawGizmosSelected()
+	{
+		if (gameObject && gameObject.activeSelf)
+		{
+			Gizmos.color = Color.red;
+			for (int i = 0; i < craters.nextIndex; ++i)
+			{ 
+				var c = craters.cpuBuffer[i];
+				Gizmos.DrawWireSphere(this.transform.position + new Vector3(c.x, c.y, c.z), c.w);
+			}
 		}
 	}
 }

@@ -41,6 +41,8 @@ float _mipMapLevel;
 
 RWTexture2D<float4> _chunkDiffuseMap;
 
+StructuredBuffer<float4> _craterSpherePositionRadius;
+
 
 
 struct MyBindingStruct
@@ -126,6 +128,17 @@ void main(uint3 id : SV_DispatchThreadID)
 	float clayWeight = smoothstep(0, 0.2, slope)*0.3 + 0.02*biomeAdjustmentNoise.y;
 
 	float grassWeight = smoothstep(0.8, 0, slope) + 0.05*biomeAdjustmentNoise.z;
+
+
+	float craterOffset = 0;
+	for (int i = 0; i < 100; ++i)
+	{
+		float4 c = _craterSpherePositionRadius[i];
+		float w = smoothstep(c.w, 0, distance(c.xyz, pos));
+		craterOffset = max(craterOffset, w);
+	}
+	clayWeight += craterOffset * 10;
+
 
 	float3 color;
 

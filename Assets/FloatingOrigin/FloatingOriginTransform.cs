@@ -36,7 +36,7 @@ public class FloatingOriginTransform : MonoBehaviour
 
 	private void OnDisable()
 	{
-		FloatingOriginController.Instance.Remove(this);
+		//FloatingOriginController.Instance.Remove(this);
 	}
 	
 	private void UpdateUnityPos()

@@ -29,7 +29,7 @@ float _moveEdgeVerticesDown;
 RWStructuredBuffer<float3> _vertices;
 
 
-
+StructuredBuffer<float4> _craterSpherePositionRadius;
 
 
 [numthreads(1, 1, 1)]
@@ -68,8 +68,8 @@ double height01ToHeightReal(double height01)
 [numthreads(1, 1, 1)]
 void generateUsingChunkLocalPos(uint3 id : SV_DispatchThreadID)
 {
-	float max = _numberOfVerticesOnEdge - 1;
-	float2 uv = float2(id.x / max, id.y / max);
+	float maxId = _numberOfVerticesOnEdge - 1;
+	float2 uv = float2(id.x / maxId, id.y / maxId);
 
 	float3 unitCubePos = lerp(
 		lerp(_rangeUnitCubePosA, _rangeUnitCubePosB, uv.x),
@@ -83,10 +83,11 @@ void generateUsingChunkLocalPos(uint3 id : SV_DispatchThreadID)
 
 	double height01 = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r;
 	double heightReal = height01ToHeightReal(height01) + _planetRadiusStart;
+	
+	double3 pos = dir * heightReal;
 
 	double3 offset = 0;
 	{
-		double3 pos = dir * heightReal;
 
 		double2 slopeXY = _chunkSlopeAndCurvatureMap.SampleLevel(sampler_chunkSlopeAndCurvatureMap, uv, 0).xy;
 		double slope = saturate(length(slopeXY));
@@ -99,11 +100,22 @@ void generateUsingChunkLocalPos(uint3 id : SV_DispatchThreadID)
 		//heightReal += height01ToHeightReal(height01Add);
 	}
 	
-	
+	float craterOffset = 0;
+	for (int i = 0; i < 100; ++i)
+	{
+		float4 c = _craterSpherePositionRadius[i];
+		float d = distance(c.xyz, pos);
+		float displacetMassHeight = c.w / 40.0;
+		craterOffset += d < c.w ? 
+			-smoothstep(c.w, c.w * 0.2, d) * c.w / 2.0 + displacetMassHeight: // inside of crater
+ 			smoothstep(c.w * 1.2f, c.w, d) * displacetMassHeight; // edge outside, displaced mass
+		//craterOffset = min(craterOffset, -w);
+	}
 
+	heightReal += craterOffset;
 
 	
-	if (_moveEdgeVerticesDown > 0 && id.x == 0 || id.x == max || id.y == 0 || id.y == max)
+	if (_moveEdgeVerticesDown > 0 && id.x == 0 || id.x == maxId || id.y == 0 || id.y == maxId)
 	{
 		heightReal -= _moveEdgeVerticesDown;
 	}

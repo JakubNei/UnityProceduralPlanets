@@ -404,7 +404,7 @@ public class Chunk : IDisposable
 
 
 			c.SetBool("_hasParent", parent != null);
-			if (parent != null) c.SetTexture(0, "_parentChunkHeightMap", parent.generatedData.chunkHeightMap);
+			if (parent != null && parent.generatedData.chunkHeightMap) c.SetTexture(0, "_parentChunkHeightMap", parent.generatedData.chunkHeightMap);
 
 			c.SetTexture(0, "_chunkHeightMap", height1);
 			c.Dispatch(0, height1.width / 16, height1.height / 16, 1);
@@ -460,8 +460,7 @@ public class Chunk : IDisposable
 		else kernelIndex = c.FindKernel("parentDoesNotExist");
 
 		SetAll(c, kernelIndex);
-		if (parent != null)
-			c.SetTexture(kernelIndex, "_parentChunkSlopeAndCurvatureMap", parent.generatedData.chunkSlopeAndCurvatureMap);
+		if (parent != null && parent.generatedData.chunkSlopeAndCurvatureMap) c.SetTexture(kernelIndex, "_parentChunkSlopeAndCurvatureMap", parent.generatedData.chunkSlopeAndCurvatureMap);
 		c.SetTexture(kernelIndex, "_chunkHeightMap", heightMap);
 
 		c.SetTexture(kernelIndex, "_chunkSlopeAndCurvatureMap", generatedData.chunkSlopeAndCurvatureMap);
@@ -512,6 +511,8 @@ public class Chunk : IDisposable
 		c.SetFloat("_heightMin", heightMin);
 		c.SetFloat("_heightMax", heightMax);
 		c.SetFloat("_moveEdgeVerticesDown", chunkConfig.useSkirts ? chunkRadius / 20.0f : 0);
+		
+		c.SetBuffer(kernelIndex, "_craterSpherePositionRadius", planet.craters.gpuBuffer);
 
 		c.SetBuffer(kernelIndex, "_vertices", vertexGPUBuffer);
 		c.Dispatch(kernelIndex, verticesOnEdge, verticesOnEdge, 1);
@@ -535,8 +536,11 @@ public class Chunk : IDisposable
 
 	void CreateMesh()
 	{
-		vertexGPUBuffer.Dispose();
-		vertexGPUBuffer = null;
+		if (vertexGPUBuffer != null && vertexGPUBuffer.IsValid())
+		{
+			vertexGPUBuffer.Dispose();
+			vertexGPUBuffer = null;
+		}
 
 		var verticesOnEdge = chunkConfig.numberOfVerticesOnEdge;
 
@@ -651,7 +655,7 @@ public class Chunk : IDisposable
 		c.SetTexture(0, "_grass", chunkConfig.grass);
 		c.SetTexture(0, "_clay", chunkConfig.clay);
 		c.SetTexture(0, "_rock", chunkConfig.rock);
-
+		c.SetBuffer(0, "_craterSpherePositionRadius", planet.craters.gpuBuffer);
 		c.SetTexture(0, "_chunkDiffuseMap", generatedData.chunkDiffuseMap);
 		c.Dispatch(0, generatedData.chunkDiffuseMap.width / 16, generatedData.chunkDiffuseMap.height / 16, 1);
 

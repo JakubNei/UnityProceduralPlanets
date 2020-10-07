@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Collections;
+using UnityEngine.UI;
 
 public partial class Planet
 {
@@ -31,6 +32,13 @@ public partial class Planet
 
 		public int NumChunksToGenerate => toGenerateChunks.Count;
 		public int NumChunksToRender => toRenderChunks.Count;
+
+		public void Clear()
+		{
+			toGenerateChunks.Clear();
+			toConsiderForSubdivision.Clear();
+			toRenderChunks.Clear();
+		}
 
 		public Chunk GetNextChunkToGenerate()
 		{

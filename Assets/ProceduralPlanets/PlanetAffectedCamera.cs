@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Networking;
 
 public class PlanetAffectedCamera : MonoBehaviour
 {
@@ -170,7 +171,15 @@ public class PlanetAffectedCamera : MonoBehaviour
 			}
 		}
 
-
+		if (Input.GetKeyDown(KeyCode.F))
+		{
+			RaycastHit hit;
+			if (Physics.Raycast(this.transform.position + this.transform.forward * 5, this.transform.forward, out hit, 100000.0f))
+			{
+				BigPosition bigPosition = hit.point + FloatingOriginController.Instance.SceneCenterIsAt;
+				planet.AddCrater(bigPosition, Random.Range(hit.distance * 0.3f, hit.distance * 0.5f));
+			}
+		}
 
 		if (planet != null)
 		{
