@@ -5,8 +5,8 @@
 
 Texture2D<float> _planetHeightMap;
 
-Texture2D<float3> _chunkNormalMap;
-SamplerState sampler_chunkNormalMap;
+//Texture2D<float3> _chunkNormalMap;
+//SamplerState sampler_chunkNormalMap;
 
 Texture2D<float> _chunkHeightMap;
 SamplerState sampler_chunkHeightMap;
@@ -49,8 +49,9 @@ struct MyBindingStruct
 	int3 region;
 };
 
-float3 triPlanar(Texture2D tex, SamplerState samp, float3 pos, float3 normal, float scale)
+float3 triPlanar(Texture2D tex, SamplerState samp, float3 pos, float2 slopeXY, float scale)
 {
+	float3 normal = normalize(float3(slopeXY.x, slopeXY.y, 1 - slopeXY.x - slopeXY.y));
 
 	float3 blendWeights = pow(abs(normal), 5);
 	blendWeights /= blendWeights.x + blendWeights.y + blendWeights.z;
@@ -67,22 +68,22 @@ float3 ramp(float v)
 }
 
 
-float3 GetGrass(float3 pos, float3 normal) {
+float3 GetGrass(float3 pos, float2 normal) {
 	return triPlanar(_grass, sampler_grass, pos, normal, 1);
 	return float3(121, 136, 69) / float3(255, 255, 255); // grass
 }
-float3 GetClay(float3 pos, float3 normal) {
+float3 GetClay(float3 pos, float2 normal) {
 	return triPlanar(_clay, sampler_clay, pos, normal, 1);
 	return float3(139, 133, 75) / float3(255, 255, 255); // clay
 }
-float3 GetRock(float3 pos, float3 normal) {
+float3 GetRock(float3 pos, float2 normal) {
 	return triPlanar(_rock, sampler_rock, pos, normal, 1);
 	return float3(100, 100, 100) / float3(255, 255, 255); // rock
 }
-float3 GetSnow(float3 pos, float3 normal) {
+float3 GetSnow(float3 pos, float2 normal) {
 	return float3(1, 1, 1); // white
 }
-float3 GetTundra(float3 pos, float3 normal) {
+float3 GetTundra(float3 pos, float2 normal) {
 	return float3(0.5, 0.5, 0.5); // grey
 }
 
@@ -103,39 +104,43 @@ void main(uint3 id : SV_DispatchThreadID)
 	height01 = height01 * (_heightMax - _heightMin) + _heightMin;
 	double heightReal = height01 * _planetRadiusHeightMapMultiplier;
 	heightReal += _planetRadiusStart;
-	heightReal /= 10;
 	double3 pos = dir * heightReal;
 
 	float3 triplanarPos = fmod(pos, 10);
 
-	float3 normal = UNPACK_NORMAL(_chunkNormalMap[id.xy]);
+	//float3 normal = UNPACK_NORMAL(_chunkNormalMap[id.xy]);
 
 	float2 slopeXY = _chunkSlopeAndCurvatureMap[id.xy].xy;
 	float slope = length(slopeXY);
 
+
 	float altidute = height01;
-	float distanceToPoles = smoothstep(0.4, 1, abs(dir.z));
-	float snowBiomeWeight = altidute + distanceToPoles + snoise(dir * 100, 5, 2) * 0.1;
-	float snowParticleWeight = snowBiomeWeight * smoothstep(0.5, 0, slope);
+	float3 biomeAdjustmentNoise = snoise_grad(pos / 5000, 10, 1.4);
+	biomeAdjustmentNoise = 0;
+
+
+	float snowWeight = smoothstep(0.2, 0, slope) * (smoothstep(0.8, 1, abs(dir.z)) * 2 + altidute * 2);
+	float tundraWeight = smoothstep(0.8, 0, slope) * (smoothstep(0.5, 1, abs(dir.z)) + altidute + 0.01*biomeAdjustmentNoise.z);
+
+	float rockWeight = smoothstep(0.5, 1, slope)*5 + 0.003*biomeAdjustmentNoise.x;
+	float clayWeight = smoothstep(0, 0.2, slope)*0.3 + 0.02*biomeAdjustmentNoise.y;
+
+	float grassWeight = smoothstep(0.8, 0, slope) + 0.05*biomeAdjustmentNoise.z;
 
 	float3 color;
 
-
-	if (snowParticleWeight > 1.5)
-		color = GetSnow(triplanarPos, normal);
-	else if(slope > 0.3)
-		color = GetRock(triplanarPos, normal);
-	else {
-		if (snowBiomeWeight > 1.2)
-			color = GetTundra(triplanarPos, normal);
-		else if (slope < 0.25)
-			color = GetGrass(triplanarPos, normal);
-		else
-			color = GetClay(triplanarPos, normal);
-	}
-
-
-		
+	if (snowWeight >= snowWeight && snowWeight >= rockWeight && snowWeight >= tundraWeight && snowWeight >= grassWeight && snowWeight >= clayWeight)
+		color = GetSnow(triplanarPos, slopeXY);
+	else if (rockWeight >= snowWeight && rockWeight >= rockWeight && rockWeight >= tundraWeight && rockWeight >= grassWeight && rockWeight >= clayWeight)
+		color = GetRock(triplanarPos, slopeXY);
+	else if (tundraWeight >= snowWeight && tundraWeight >= rockWeight && tundraWeight >= tundraWeight && tundraWeight >= grassWeight && tundraWeight >= clayWeight)
+		color = GetTundra(triplanarPos, slopeXY);
+	else if (grassWeight >= snowWeight && grassWeight >= rockWeight && grassWeight >= tundraWeight && grassWeight >= grassWeight && grassWeight >= clayWeight)
+		color = GetGrass(triplanarPos, slopeXY);
+	else if (clayWeight >= snowWeight && clayWeight >= rockWeight && clayWeight >= tundraWeight && clayWeight >= grassWeight && clayWeight >= clayWeight)
+		color = GetClay(triplanarPos, slopeXY);
+	else
+		color = float3(1, 0, 0);
 
 
 	// DEBUG
@@ -148,10 +153,11 @@ void main(uint3 id : SV_DispatchThreadID)
 	//color = _chunkSlopeAndCurvatureMap[id.xy].xyz;
 	//color = float3(slopeXY, 0);
 	//color = float3(slope > 0, 0, 0);
-	//color = _chunkSlopeAndCurvatureMap[id.xy].xyz;
+	//color = ramp(length(_chunkSlopeAndCurvatureMap[id.xy].xyz));
 	//color = float3(_chunkHeightMap[id.xy].x > 0 && _chunkHeightMap[id.xy].x < 0.5, 0, 0);
 	//color = _chunkHeightMap[id.xy].xyz;
 	//color = ramp(slope);
+	//color = ramp(lerp(0.8, 1, snoise(pos / 1000, 10, 1.5)));
 
 	// SAFE
 	//if (slope > 1) color = float3(1, 0, 0);

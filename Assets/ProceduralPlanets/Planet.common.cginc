@@ -108,6 +108,18 @@ float snoise(float3 pos, int octaves, float modifier)
 	return result;
 }
 
+float3 snoise_grad(float3 pos, int octaves, float modifier)
+{
+	float result = 0;
+	float amp = 1;
+	for (int i = 0; i < octaves; i++)
+	{
+		result += snoise_grad(pos) * amp;
+		pos *= modifier;
+		amp /= modifier;
+	}
+	return result;
+}
 
 
 // from http://www.java-gaming.org/index.php?topic=35123.0
