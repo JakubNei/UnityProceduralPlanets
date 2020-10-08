@@ -87,9 +87,10 @@ public partial class Planet
 				toConsiderForSubdivision.RemoveAt(i);
 
 				float weight = chunk.GetRelevanceWeight(fromPosition);
+
 				if (weight > weightNeededToSubdivide && chunk.treeDepth < subdivisionMaxRecurisonDepth) // want subdivide ?
 				{
-					if (chunk.isGenerationDone) // children require generated data from parent
+					if (chunk.HasFullyGeneratedData) // children require generated data from parent
 					{ 
 						chunk.EnsureChildrenInstancesAreCreated();
 					
@@ -100,7 +101,7 @@ public partial class Planet
 						bool areAllChildrenGenerated = true;
 						for (int j = 0; j < chunk.children.Count; ++j)
 						{
-							if (!chunk.children[j].isGenerationDone) 
+							if (!chunk.children[j].HasFullyGeneratedData) 
 							{
 								areAllChildrenGenerated = false;
 								break;
@@ -111,10 +112,20 @@ public partial class Planet
 						{
 							toConsiderForSubdivision.AddRange(chunk.children);
 							i += chunk.children.Count;
+
+							if (chunk.WantsRefresh)
+							{
+								toGenerateChunks.Add(new ToGenerateChunk() { weight = weight * 0.1f, chunk = chunk });
+							}
 						}
 						else
 						{
 							toRenderChunks.Add(chunk);
+							if (chunk.WantsRefresh)
+							{
+								toGenerateChunks.Add(new ToGenerateChunk() { weight = weight * 2f, chunk = chunk });
+							}
+
 							for (int j = 0; j < chunk.children.Count; ++j)
 							{
 								toGenerateChunks.Add(new ToGenerateChunk() { weight = weight, chunk = chunk.children[j] });
@@ -128,8 +139,18 @@ public partial class Planet
 				}
 				else
 				{
-					if (chunk.isGenerationDone) toRenderChunks.Add(chunk);
-					else toGenerateChunks.Add(new ToGenerateChunk() { weight = weight, chunk = chunk });
+					if (chunk.HasFullyGeneratedData) 
+					{
+						toRenderChunks.Add(chunk);
+						if (chunk.WantsRefresh)
+						{
+							toGenerateChunks.Add(new ToGenerateChunk() { weight = weight * 2f, chunk = chunk });
+						}
+					}
+					else 
+					{
+						toGenerateChunks.Add(new ToGenerateChunk() { weight = weight, chunk = chunk });
+					}
 				}
 			}
 

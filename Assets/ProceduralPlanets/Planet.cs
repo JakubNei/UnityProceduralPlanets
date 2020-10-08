@@ -99,7 +99,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 			var s = c.rangePosToCalculateScreenSizeOn_localToPlanet.ToBoundingSphere();
 			if (Vector3.Distance(s.center, planetLocalPos) < s.radius + radius)
 			{
-				c.MarkForReGeneration();
+				c.MarkForRefresh();
 			}
 		}
 	}
@@ -146,7 +146,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 		var allChunks = CollectAllChunks();
 		foreach (var chunk in allChunks)
 		{
-			chunk.MarkForReGeneration();
+			chunk.MarkForRefresh();
 		}
 	}
 
@@ -199,7 +199,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 		var frameStart = Stopwatch.StartNew();
 
 		var milisecondsBudget = (int)(Time.deltaTime * 1000f - 1000f / 90f);
-		milisecondsBudget = 2;
+		milisecondsBudget = 10;
 
 
 		var pointOfInterest = new PointOfInterest()
@@ -235,8 +235,8 @@ public partial class Planet : MonoBehaviour, IDisposable
 	}
 
 
-
-	List<IEnumerator> chunkGenerationCoroutines = new List<IEnumerator>();
+	List<Chunk> chunkGenerationFinished = new List<Chunk>();
+	List<Tuple<Chunk, IEnumerator>> chunkGenerationCoroutines = new List<Tuple<Chunk, IEnumerator>>();
 	private void GenerateChunks(Stopwatch frameStart, int milisecondsBudget)
 	{
 		MyProfiler.BeginSample("Procedural Planet / Generate chunks / coroutines execution");
@@ -252,8 +252,8 @@ public partial class Planet : MonoBehaviour, IDisposable
 				{
 					Chunk chunk = subdivisonCalculationLast.GetNextChunkToGenerate();
 					if (chunk == null) continue;
-					if (chunk.generationBegan) continue;
-					chunkGenerationCoroutines.Add(chunk.StartGenerateCoroutine());
+					if (chunk.GenerationInProgress) continue;
+					chunkGenerationCoroutines.Add(new Tuple<Chunk, IEnumerator>(chunk, chunk.StartGenerateCoroutine()));
 				};
 			}
 
@@ -263,9 +263,9 @@ public partial class Planet : MonoBehaviour, IDisposable
 			for (int i = chunkGenerationCoroutines.Count - 1; i >= 0; --i)
 			{
 				var c = chunkGenerationCoroutines[i];
-				if (c.MoveNext()) // coroutine execution
+				if (c.Item2.MoveNext()) // coroutine execution
 				{
-					if (c.Current is WaitForEndOfFrame)
+					if (c.Item2.Current is WaitForEndOfFrame)
 					{
 						++numWaitingForEndOfFrame;
 					}
@@ -278,6 +278,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 				{
 					// finished
 					chunkGenerationCoroutines.RemoveAt(i);
+					chunkGenerationFinished.Add(c.Item1);
 				}
 
 				if (frameStart.ElapsedMilliseconds > milisecondsBudget) break;
@@ -312,6 +313,18 @@ public partial class Planet : MonoBehaviour, IDisposable
 			if (!toRenderChunks.Contains(kvp.Key)) toStopRendering.Add(kvp.Key);
 		}
 		MyProfiler.EndSample();
+
+
+		// refresh again generated chunk that is currently being shown
+		foreach (var c in chunkGenerationFinished)
+		{
+			if (toRenderChunks.Contains(c) && chunksBeingRendered.ContainsKey(c))
+			{
+				chunksBeingRendered[c].RenderChunk(c);
+			}
+		}
+		chunkGenerationFinished.Clear();
+
 
 		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers / Return to pool");
 		foreach (var chunk in toStopRendering)

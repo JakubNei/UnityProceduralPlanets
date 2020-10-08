@@ -31,12 +31,16 @@ public class FloatingOriginController : MonoBehaviour
 	{
 		if (this.transform.position.sqrMagnitude > 1000 * 1000)
 		{
+			MyProfiler.BeginSample("Floating origin / scene origin changed");
+
 			var worldPosDelta = new BigPosition(transform.position).KeepOnlySectorPos();
 			SceneCenterIsAt += worldPosDelta;
 			this.transform.position -= worldPosDelta;
 
 			foreach (var i in fs)
 				i.SceneOriginChanged(SceneCenterIsAt);
+
+			MyProfiler.EndSample();
 		}
 	}
 

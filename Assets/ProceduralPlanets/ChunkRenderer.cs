@@ -8,6 +8,8 @@ public class ChunkRenderer : MonoBehaviour
 
 	public Chunk chunk;
 
+	public Chunk.GeneratedData generatedData; // chunk may refresh, and create new generated data so lets keep alive the data we are showing
+
 	Material material;
 	MeshFilter meshFilter;
 	MeshCollider meshCollider;
@@ -54,15 +56,20 @@ public class ChunkRenderer : MonoBehaviour
 		else
 			floatingTransform.BigPosition = planet.BigPosition + chunk.bigPositionLocalToPlanet;
 
-		meshFilter.sharedMesh = chunk.generatedData.mesh;
-		if (meshCollider) meshCollider.sharedMesh = chunk.generatedData.mesh;
+		generatedData = chunk.FullyGeneratedData;
 
-		if (material && chunk.generatedData.chunkDiffuseMap) material.mainTexture = chunk.generatedData.chunkDiffuseMap;
-		if (material && chunk.generatedData.chunkNormalMap) material.SetTexture("_BumpMap", chunk.generatedData.chunkNormalMap);
+		meshFilter.sharedMesh = generatedData.mesh;
+		if (meshCollider) meshCollider.sharedMesh = generatedData.mesh;
+
+		if (material && generatedData.chunkDiffuseMap) material.mainTexture = generatedData.chunkDiffuseMap;
+		if (material && generatedData.chunkNormalMap) material.SetTexture("_BumpMap", generatedData.chunkNormalMap);
 	}
 
 	public void Hide()
 	{
+		generatedData = null;
+		chunk = null;
+
 		meshFilter.sharedMesh = null;
 		if (meshCollider) meshCollider.sharedMesh = null;
 	}
