@@ -87,7 +87,7 @@ public struct BigPosition : IEquatable<BigPosition>
 		);
 	}
 
-	private void MoveSectorIfNeeded()
+	public void MoveSectorIfNeeded()
 	{
 		long sectorAdd;
 

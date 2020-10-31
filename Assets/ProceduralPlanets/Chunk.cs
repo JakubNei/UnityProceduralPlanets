@@ -77,7 +77,7 @@ public class Chunk : IDisposable
 	GeneratedData generatingData;
 	public bool GenerationInProgress => generatingData != null;
 	public bool HasFullyGeneratedData => FullyGeneratedData != null;
-	public bool WantsRefresh { get; private set; }
+	public bool WantsRefresh;
 
 
 	public float heightMin = 0;
@@ -194,6 +194,7 @@ public class Chunk : IDisposable
 	public void MarkForRefresh()
 	{
 		WantsRefresh = true;
+		generatingData = null;
 	}
 
 	private void AddChild(Vector3 a, Vector3 b, Vector3 c, Vector3 d, ChildPosition cp, ushort index)
@@ -583,8 +584,8 @@ public class Chunk : IDisposable
 			//generatedData.mesh.RecalculateNormals();
 			//generatedData.mesh.RecalculateTangents();
 
-			generatingData.mesh.normals = RecalculateNormals(ref vertexCPUBuffer, planet.GetChunkMeshTriangles(), planet.GetChunkMeshUVs());
-			generatingData.mesh.tangents = RecalculateTangents(ref vertexCPUBuffer, planet.GetChunkMeshTriangles(), planet.GetChunkMeshUVs());
+			generatingData.mesh.normals = RecalculateNormals(ref vertexCPUBuffer, planet.GetChunkMeshTriangles(), planet.GetChunkMeshUVs(), planet.GetChunkMeshIndiciesEdge());
+			generatingData.mesh.tangents = RecalculateTangents(ref vertexCPUBuffer, planet.GetChunkMeshTriangles(), planet.GetChunkMeshUVs(), planet.GetChunkMeshIndiciesEdge());
 		}
 		else
 		{
@@ -711,8 +712,6 @@ public class Chunk : IDisposable
 	{
 		generatingData = null;
 		FullyGeneratedData = null;
-
-		if (vertexGPUBuffer != null) vertexGPUBuffer.Dispose();
 		vertexGPUBuffer = null;
 
 		if (vertexCPUBuffer.IsCreated) vertexCPUBuffer.Dispose();
@@ -721,7 +720,7 @@ public class Chunk : IDisposable
 
 
 
-	public static Vector3[] RecalculateNormals(ref NativeArray<Vector3> vertices, int[] triangleIndicies, Vector2[] uvs)
+	public static Vector3[] RecalculateNormals(ref NativeArray<Vector3> vertices, int[] triangleIndicies, Vector2[] uvs, HashSet<int> ignoreIndicies = null)
 	{
 		int verticesNum = vertices.Length;
 		int indiciesNum = triangleIndicies.Length;
@@ -737,6 +736,8 @@ public class Chunk : IDisposable
 
 			if (ai < verticesNum && bi < verticesNum && ci < verticesNum)
 			{
+				if (ignoreIndicies != null && (ignoreIndicies.Contains(ai) || ignoreIndicies.Contains(bi) || ignoreIndicies.Contains(ci))) continue;
+
 				Vector3 av = vertices[ai];
 				Vector3 n = Vector3.Normalize(Vector3.Cross(
 					vertices[bi] - av,
@@ -762,7 +763,7 @@ public class Chunk : IDisposable
 	}
 
 
-	public static Vector4[] RecalculateTangents(ref NativeArray<Vector3> vertices, int[] triangleIndicies, Vector2[] uvs)
+	public static Vector4[] RecalculateTangents(ref NativeArray<Vector3> vertices, int[] triangleIndicies, Vector2[] uvs, HashSet<int> ignoreIndicies = null)
 	{
 		// inspired by http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-13-normal-mapping/
 
@@ -780,6 +781,8 @@ public class Chunk : IDisposable
 
 			if (ai < verticesNum && bi < verticesNum && ci < verticesNum)
 			{
+				if (ignoreIndicies != null && (ignoreIndicies.Contains(ai) || ignoreIndicies.Contains(bi) || ignoreIndicies.Contains(ci))) continue;
+
 				Vector3 av = vertices[ai];
 				Vector3 deltaPos1 = vertices[bi] - av;
 				Vector3 deltaPos2 = vertices[ci] - av;

@@ -30,7 +30,8 @@ public class FloatingOriginTransform : MonoBehaviour
 
 	private void Start()
 	{
-		FloatingOriginController.Instance.Add(this);
+		_bigPosition.MoveSectorIfNeeded();
+		FloatingOriginCamera.Instance.Add(this);
 		UpdateUnityPos();
 	}
 
@@ -41,7 +42,7 @@ public class FloatingOriginTransform : MonoBehaviour
 	
 	private void UpdateUnityPos()
 	{
-		SceneOriginChanged(FloatingOriginController.Instance.SceneCenterIsAt);
+		SceneOriginChanged(FloatingOriginCamera.Instance.SceneCenterIsAt);
 	}
 
 	public void SceneOriginChanged(BigPosition sceneOrigin)

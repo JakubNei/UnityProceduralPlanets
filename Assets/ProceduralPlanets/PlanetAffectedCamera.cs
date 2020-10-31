@@ -24,8 +24,6 @@ public class PlanetAffectedCamera : MonoBehaviour
 	public bool walkOnPlanet_clampUpDownRotation = true;
 	public bool walkOnPlanet_applyGravity = true;
 
-	Camera cam { get { return GetComponent<Camera>(); } }
-
 
 	Planet GetClosestPlanet(Vector3 pos)
 	{
@@ -70,6 +68,9 @@ public class PlanetAffectedCamera : MonoBehaviour
 	private void Update()
 	{
 		Application.targetFrameRate = targetFrameRate;
+
+		Camera.main.transform.position = this.transform.position;
+		Camera.main.transform.rotation = this.transform.rotation;
 	}
 
 	private void FixedUpdate()
@@ -176,7 +177,7 @@ public class PlanetAffectedCamera : MonoBehaviour
 			RaycastHit hit;
 			if (Physics.Raycast(this.transform.position + this.transform.forward * 5, this.transform.forward, out hit, 100000.0f))
 			{
-				BigPosition bigPosition = hit.point + FloatingOriginController.Instance.SceneCenterIsAt;
+				BigPosition bigPosition = hit.point + FloatingOriginCamera.Instance.SceneCenterIsAt;
 				planet.AddCrater(bigPosition, Random.Range(hit.distance * 0.3f, hit.distance * 0.5f));
 			}
 		}

@@ -2,13 +2,13 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class FloatingOriginController : MonoBehaviour
+public class FloatingOriginCamera : MonoBehaviour
 {
 	public BigPosition BigPosition => SceneCenterIsAt + this.transform.position;
 
 	public BigPosition SceneCenterIsAt { get; private set; }
 
-	public static FloatingOriginController Instance { get; private set; }
+	public static FloatingOriginCamera Instance { get; private set; }
 
 	private List<FloatingOriginTransform> fs = new List<FloatingOriginTransform>();
 

@@ -56,6 +56,8 @@ public class ChunkRenderer : MonoBehaviour
 		else
 			floatingTransform.BigPosition = planet.BigPosition + chunk.bigPositionLocalToPlanet;
 
+		this.transform.rotation = planet.transform.rotation;
+
 		generatedData = chunk.FullyGeneratedData;
 
 		meshFilter.sharedMesh = generatedData.mesh;

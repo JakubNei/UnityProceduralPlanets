@@ -64,7 +64,7 @@ void parentExists(uint3 id : SV_DispatchThreadID)
 	float2 uv = id.xy / float2(w - 1, h - 1);
 
 	double2 childSlope = length(getSlope(id.xy, w, h));
-	childSlope *= _slopeModifier;
+	childSlope *= _slopeModifier * 10;
 
 	float2 parentSlope = _parentChunkSlopeAndCurvatureMap.SampleLevel(sampler_parentChunkSlopeAndCurvatureMap, uv / 2.0 + _parentUvStart, 0).xy;
 
@@ -72,8 +72,8 @@ void parentExists(uint3 id : SV_DispatchThreadID)
 	float2 slope;
 	//slope = lerp(parentSlope, childSlope, 0.2);
 	//slope = normalize(childSlope) * length(parentSlope);
-	slope = childSlope;
-	slope = parentSlope;
+	slope = _slopeModifier < 600 ? childSlope : parentSlope;
+	//slope = parentSlope;
 
 	_chunkSlopeAndCurvatureMap[id.xy] = float4(slope, 0, 0);
 }

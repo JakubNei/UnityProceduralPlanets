@@ -64,6 +64,28 @@ public partial class Planet
 		return chunkMeshTriangles;
 	}
 
+	HashSet<int> chunkMeshIndiciesEdge;
+	public HashSet<int> GetChunkMeshIndiciesEdge()
+	{
+		if (chunkMeshIndiciesEdge != null) return chunkMeshIndiciesEdge;
+		chunkMeshIndiciesEdge = new HashSet<int>();
+
+		int verticesOnEdge = chunkConfig.numberOfVerticesOnEdge;
+
+		for (int i = 0; i < verticesOnEdge; i++)
+		{
+			chunkMeshIndiciesEdge.Add(i); // top ling
+			chunkMeshIndiciesEdge.Add(verticesOnEdge * (verticesOnEdge - 1) + i); // bottom line
+		}
+		for (int i = 1; i < verticesOnEdge - 1; i++)
+		{
+			chunkMeshIndiciesEdge.Add(verticesOnEdge * i); // left line
+			chunkMeshIndiciesEdge.Add(verticesOnEdge * i + verticesOnEdge - 1); // right line
+		}
+
+		return chunkMeshIndiciesEdge;
+	}
+
 
 	Vector2[] chunkMeshUVs;
 	public Vector2[] GetChunkMeshUVs()

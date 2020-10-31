@@ -114,7 +114,7 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	float2 slopeXY = _chunkSlopeAndCurvatureMap[id.xy].xy;
 	float slope = length(slopeXY);
-
+	//slope = 0.2; // DEBUG
 
 	float altidute = height01;
 	float3 biomeAdjustmentNoise = snoise_grad(pos / 5000, 10, 1.4);
@@ -123,10 +123,8 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	float snowWeight = smoothstep(0.2, 0, slope) * (smoothstep(0.8, 1, abs(dir.z)) * 2 + altidute * 2);
 	float tundraWeight = smoothstep(0.8, 0, slope) * (smoothstep(0.5, 1, abs(dir.z)) + altidute + 0.01*biomeAdjustmentNoise.z);
-
 	float rockWeight = smoothstep(0.5, 1, slope)*5 + 0.003*biomeAdjustmentNoise.x;
 	float clayWeight = smoothstep(0, 0.2, slope)*0.3 + 0.02*biomeAdjustmentNoise.y;
-
 	float grassWeight = smoothstep(0.8, 0, slope) + 0.05*biomeAdjustmentNoise.z;
 
 
@@ -170,6 +168,7 @@ void main(uint3 id : SV_DispatchThreadID)
 	//color = float3(_chunkHeightMap[id.xy].x > 0 && _chunkHeightMap[id.xy].x < 0.5, 0, 0);
 	//color = _chunkHeightMap[id.xy].xyz;
 	//color = ramp(slope);
+	//color = ramp(snowWeight);
 	//color = ramp(lerp(0.8, 1, snoise(pos / 1000, 10, 1.5)));
 
 	// SAFE

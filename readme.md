@@ -102,6 +102,11 @@ Child chunk height map is based off of parent chunk height map
 
 [GPU-Based Procedural Terrains in 'Serious Sam 4: Planet Badass'](https://www.gdcvault.com/play/1026349/Advanced-Graphics-Techniques-Tutorial-Four)
 
+[► Sean Murray GDC-Talk (2017) | Building Worlds with Noise Generation | No Man's Sky | [HQ]](https://www.youtube.com/watch?v=SePDzis8HqY)
+
+[Coding Adventure: Procedural Moons and Planets](https://www.youtube.com/watch?v=lctXaT9pxA0)
+
+[Star Citizen Live: Making Mountains](https://www.youtube.com/watch?v=ksMQ4hYhfSA)
 
 # Screenshots
 ![](https://image.prntscr.com/image/lv0pwbK-R0CGY1vul4sscQ.png)

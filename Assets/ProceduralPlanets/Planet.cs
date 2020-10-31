@@ -72,8 +72,9 @@ public partial class Planet : MonoBehaviour, IDisposable
 
 	public static HashSet<Planet> allPlanets = new HashSet<Planet>();
 
+	FloatingOriginTransform floatingOrigin;
 
-	public BigPosition BigPosition => new BigPosition(Vector3.zero);
+	public BigPosition BigPosition => floatingOrigin.BigPosition;
 	public Vector3 Center { get { return transform.position; } }
 
 	void Awake()
@@ -81,6 +82,8 @@ public partial class Planet : MonoBehaviour, IDisposable
 		allPlanets.Add(this);
 		InitializeRootChildren();
 		GeneratePlanetData();
+
+		floatingOrigin = GetComponent<FloatingOriginTransform>();
 
 		craters.cpuBuffer = new Vector4[100];
 		craters.gpuBuffer = new ComputeBuffer(craters.cpuBuffer.Length, 4 * sizeof(float));
@@ -198,13 +201,18 @@ public partial class Planet : MonoBehaviour, IDisposable
 
 		var frameStart = Stopwatch.StartNew();
 
-		var milisecondsBudget = (int)(Time.deltaTime * 1000f - 1000f / 90f);
-		milisecondsBudget = 10;
+		var targetFrameTime = 1000.0f / 60; // set here instead of Application.targetFrameRate, so frame time is limited only by this script
+		var currentFrameTime = 1000.0f * Time.unscaledDeltaTime;
+		int milisecondsBudget = Mathf.FloorToInt(targetFrameTime - currentFrameTime);
+		if (milisecondsBudget < 0) milisecondsBudget = 0;
+		if (milisecondsBudget > 15) milisecondsBudget = 15;
+
+		MyProfiler.AddAvergaNumberSample("milisecondsBudget", milisecondsBudget);
 
 
 		var pointOfInterest = new PointOfInterest()
 		{
-			pos = FloatingOriginController.Instance.BigPosition,
+			pos = FloatingOriginCamera.Instance.BigPosition,
 			fieldOfView = Camera.main.fieldOfView,
 		};
 
@@ -293,7 +301,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 		MyProfiler.EndSample();
 
 		MyProfiler.AddAvergaNumberSample("Procedural Planet / Generate chunks / coroutines executed", couroutinesExecuted);
-		MyProfiler.AddAvergaNumberSample("Procedural Planet / Generate chunks / concurent coroutines", chunkGenerationCoroutines.Count);
+		MyProfiler.AddAvergaNumberSample("Procedural Planet / Generate chunks / concurrent coroutines", chunkGenerationCoroutines.Count);
 		MyProfiler.AddAvergaNumberSample("Procedural Planet / Generate chunks / to generate", subdivisonCalculationLast.NumChunksToGenerate);
 	}
 

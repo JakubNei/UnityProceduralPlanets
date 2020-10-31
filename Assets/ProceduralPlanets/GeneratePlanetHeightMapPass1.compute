@@ -4,35 +4,76 @@
 
 
 
+float _planetRadiusStart;
+
+
+float bigHills(float3 dir, float size)
+{
+	float x = (1.0 - abs(snoise(dir / size, 7, 2)));
+	x += abs(snoise(dir.xzy / size, 7, 2));
+	float2 w = worley(dir / size);
+	w += worley(dir.xzy / size);
+	x *= smoothstep(0.4, 1, w.y - w.x);
+	return x;
+}
+
+float craters(float3 dir, float size)
+{
+	float distanceToCenter = worley(dir / size);
+	distanceToCenter += snoise(dir, 6, 4) * 0.1;
+	float c = 5;
+	distanceToCenter *= c;
+	float height = size * 20 / c;
+	//return distanceToCenter;
+	float displacetMassHeight = height / 40.0;
+	return distanceToCenter < 0.8 ? 
+		-smoothstep(0.8, 0.2, distanceToCenter) * height / 2.0 + displacetMassHeight: // inside of crater
+ 		smoothstep(1, 0.8, distanceToCenter) * displacetMassHeight; // edge outside, displaced mass
+}
+
 float getProceduralHeight01(float3 dir)
 {
-	float result = 0;
+	float3 pos = dir * _planetRadiusStart;
+
+	float h = 0.5;
 
 	float2 w;
 	float x;
 
+	// base nose
+	h += snoise(dir * 2, 10, 2) * 0.2;
+	h += snoise(dir, 1, 1) * 0.5;
 
-	result += snoise(dir * 2, 10, 2) * 0.7;
+	h += bigHills(dir, 0.97);
+	h += bigHills(dir.xzy, 0.95);
+	h += bigHills(dir.yzx, 0.92);
+	h += bigHills(dir, 0.56);
+	h += bigHills(dir, 0.22);
+	
+	h += craters(dir, 0.93);
+	h += craters(dir, 0.45);
+	h += craters(dir, 0.13);
 
-	// big hills
-	w = worley(dir * 2);
-	result += (w.y - w.x) * 0.7;
+
+	// base nose
+	//h += snoise(dir * 2, 10, 2) * 0.2;
 
 	// small hills
 	w = worley(dir * 15);
-	result += (w.y - w.x) * 0.1;
+	//h += (w.y - w.x) * 0.1;
 
 	// big rivers
 	x = snoise(dir * 3, 10, 2);
-	result -= exp(-abs(x * 55)) * 0.2;
+	//h -= exp(-abs(x * 55)) * 0.2;
 
 	// big craters
 	w = worley(dir * 3);
-	result -= smoothstep(0.9, 1, 1 - w.x);
+	//h -= smoothstep(0.9, 1, 1 - w.x);
 
 	// small craters
 	w = worley(dir * 15);
-	result -= smoothstep(0.9, 1, 1 - w.x) * 0.3;
+	//h -= smoothstep(0.9, 1, 1 - w.x) * 0.3;
+
 
 	/*
 	{ // terraces
@@ -50,41 +91,40 @@ float getProceduralHeight01(float3 dir)
 	}
 	}
 	*/
-	// small noise
 	
 	/*
 	{ //big detail
 	//continents
-	result += abs(snoise(dir*0.5, 5, 4));
+	h += abs(snoise(dir*0.5, 5, 4));
 	//w = worleyNoise(dir * 2);
-	//result += (w.x - w.y) * 2;
+	//h += (w.x - w.y) * 2;
 	//oceans
-	result -= abs(snoise(dir*2.2, 4, 4));
+	h -= abs(snoise(dir*2.2, 4, 4));
 	//big rivers
 	x = snoise(dir * 3, 3, 2);
-	result += -exp(-pow(x * 55, 2)) * 0.2;
+	h += -exp(-pow(x * 55, 2)) * 0.2;
 	//craters
 	//w = worleyNoise(dir);
-	//result += smoothstep(0.0, 0.1, w.x);
+	//h += smoothstep(0.0, 0.1, w.x);
 	}
 	*/
+	
 	/*
-
 	{ //small detail
 	float p = snoise(dir * 10, 5, 10) * 100;
 	float t = 0.3;
 	t = clamp(snoise(dir * 2), 0.1, 1.0);
-	result += terrace(p, 0.2)*0.005;
-	result += p*0.005;
-	//small rivers
+	h += terrace(p, 0.2)*0.005;
+	h += p*0.005;
+	small rivers
 	x = snoise(dir * 3);
-	//result += -exp(-pow(x*55,2));
+	h += -exp(-pow(x*55,2));
 	}
-
 	*/
+	
 
 
-	return result;
+	return h * 0.5;
 
 }
 
