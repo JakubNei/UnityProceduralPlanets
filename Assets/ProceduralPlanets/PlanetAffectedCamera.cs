@@ -69,10 +69,12 @@ public class PlanetAffectedCamera : MonoBehaviour
 	{
 		Application.targetFrameRate = targetFrameRate;
 
-		Camera.main.transform.position = this.transform.position;
-		Camera.main.transform.rotation = this.transform.rotation;
+		var camera = Camera.main.GetComponent<FloatingOriginCamera>();
+		camera.BigPosition = this.GetComponent<FloatingOriginTransform>().BigPosition;
+		camera.Rotation = this.GetComponent<FloatingOriginTransform>().Rotation;
 	}
 
+	
 	private void FixedUpdate()
 	{
 		UpdatePosition(Time.fixedDeltaTime);
@@ -177,7 +179,7 @@ public class PlanetAffectedCamera : MonoBehaviour
 			RaycastHit hit;
 			if (Physics.Raycast(this.transform.position + this.transform.forward * 5, this.transform.forward, out hit, 100000.0f))
 			{
-				BigPosition bigPosition = hit.point + FloatingOriginCamera.Instance.SceneCenterIsAt;
+				BigPosition bigPosition = hit.point + FloatingOriginCamera.Main.VisualSceneOrigin;
 				planet.AddCrater(bigPosition, Random.Range(hit.distance * 0.3f, hit.distance * 0.5f));
 			}
 		}

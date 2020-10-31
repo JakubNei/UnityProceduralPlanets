@@ -1,30 +1,77 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 
+[RequireComponent(typeof(Camera))]
 public class FloatingOriginCamera : MonoBehaviour
 {
-	public BigPosition BigPosition => SceneCenterIsAt + this.transform.position;
+	public static FloatingOriginCamera Main 
+	{
+		get
+		{
+			var c = Camera.main.GetComponent<FloatingOriginCamera>();
+			return c;
+		}
+	}
 
-	public BigPosition SceneCenterIsAt { get; private set; }
+	public float fieldOfView 
+	{
+		get { return camera.fieldOfView; }
+		set { camera.fieldOfView = value; }
+	}
 
-	public static FloatingOriginCamera Instance { get; private set; }
+	public Quaternion Rotation
+	{
+		get { return transform.rotation; }
+		set { transform.rotation = value; }
+	}
+	public Vector3 VisualPosition
+	{
+		get 
+		{
+			return transform.position; 
+		}
+		set
+		{
+			transform.position = value;
+		}
+	}
+	public BigPosition BigPosition
+	{
+		get
+		{
+			return VisualSceneOrigin + transform.position;
+		}
+		set
+		{
+			transform.position = value - VisualSceneOrigin;
+		}
+	}
 
-	private List<FloatingOriginTransform> fs = new List<FloatingOriginTransform>();
+
+	public BigPosition VisualSceneOrigin { get; private set; }
+
+
+	private List<FloatingOriginTransform> floatingTransforms = new List<FloatingOriginTransform>();
+
+
+	private Camera camera;
 
 	private void Awake()
 	{
-		Instance = this;
+		camera = GetComponent<Camera>();
 	}
 
 	public void Add(FloatingOriginTransform f)
 	{
-		fs.Add(f);
+		floatingTransforms.Add(f);
 	}
 
 	public void Remove(FloatingOriginTransform f)
 	{
-		fs.Remove(f);
+		floatingTransforms.Remove(f);
 	}
 
 	private void FixedUpdate()
@@ -34,11 +81,11 @@ public class FloatingOriginCamera : MonoBehaviour
 			MyProfiler.BeginSample("Floating origin / scene origin changed");
 
 			var worldPosDelta = new BigPosition(transform.position).KeepOnlySectorPos();
-			SceneCenterIsAt += worldPosDelta;
+			VisualSceneOrigin += worldPosDelta;
 			this.transform.position -= worldPosDelta;
 
-			foreach (var i in fs)
-				i.SceneOriginChanged(SceneCenterIsAt);
+			foreach (var i in floatingTransforms)
+				i.SceneOriginChanged(VisualSceneOrigin);
 
 			MyProfiler.EndSample();
 		}

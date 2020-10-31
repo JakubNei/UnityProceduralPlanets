@@ -1,52 +1,84 @@
-﻿using UnityEngine;
+﻿using System.Xml.Schema;
+using UnityEngine;
 
 public class FloatingOriginTransform : MonoBehaviour
 {
-
-	public Quaternion UnityRotation
+	public Quaternion Rotation
 	{
 		get { return transform.rotation; }
 		set { transform.rotation = value; }
 	}
-	public Vector3 UnityPosition
+
+	public Vector3 VisualPosition
 	{
-		get { return transform.position; }
-		set { transform.position = value; }
+		get 
+		{
+			return lastSetVisualPosition; 
+		}
+		set
+		{
+			bigPosition = VisualSceneOrigin + value;
+			lastSetVisualPosition = value;
+			transform.position = value;
+		}
 	}
+
 	public BigPosition BigPosition
 	{
 		get
 		{
-			return _bigPosition;
+			return bigPosition;
 		}
 		set
 		{
-			_bigPosition = value;
-			UpdateUnityPos();
+			bigPosition = value;
+			lastSetVisualPosition = value - VisualSceneOrigin;
+			transform.position = lastSetVisualPosition;
 		}
 	}
 
-	public BigPosition _bigPosition;
+
+	[SerializeField]
+	private BigPosition bigPosition;
+
+	private Vector3 lastSetVisualPosition;
+
+	private BigPosition VisualSceneOrigin => FloatingOriginCamera.Main.VisualSceneOrigin;
+
 
 	private void Start()
 	{
-		_bigPosition.MoveSectorIfNeeded();
-		FloatingOriginCamera.Instance.Add(this);
-		UpdateUnityPos();
+		var camera = FloatingOriginCamera.Main;
+		camera.Add(this);
+		transform.position = bigPosition - VisualSceneOrigin;
+	}
+
+	private void OnDrawGizmosSelected()
+	{	
+		bigPosition.MoveSectorIfNeeded();
+		if (bigPosition != transform.position + VisualSceneOrigin)
+		{
+			transform.position = bigPosition - VisualSceneOrigin;
+		}
+	}
+
+	private void FixedUpdate()
+	{
+		if (transform.position != lastSetVisualPosition) 
+		{
+			// Some system didnt set position thru FloatingOriginTransform, probably Unity physics, lets compensate for it
+			VisualPosition = transform.position;
+		}
 	}
 
 	private void OnDisable()
 	{
 		//FloatingOriginController.Instance.Remove(this);
 	}
-	
-	private void UpdateUnityPos()
-	{
-		SceneOriginChanged(FloatingOriginCamera.Instance.SceneCenterIsAt);
-	}
 
-	public void SceneOriginChanged(BigPosition sceneOrigin)
+
+	public void SceneOriginChanged(BigPosition newSceneOrigin)
 	{
-		UnityPosition = BigPosition - sceneOrigin;
+		 transform.position = bigPosition - newSceneOrigin;
 	}
 }

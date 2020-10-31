@@ -212,8 +212,8 @@ public partial class Planet : MonoBehaviour, IDisposable
 
 		var pointOfInterest = new PointOfInterest()
 		{
-			pos = FloatingOriginCamera.Instance.BigPosition,
-			fieldOfView = Camera.main.fieldOfView,
+			pos = FloatingOriginCamera.Main.BigPosition,
+			fieldOfView = FloatingOriginCamera.Main.fieldOfView,
 		};
 
 		bool shouldUpdateRenderers = false;
