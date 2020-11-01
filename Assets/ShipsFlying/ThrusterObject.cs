@@ -104,8 +104,6 @@ public class ThrusterObject : MonoBehaviour
 	// Update is called once per frame
 	void Update()
 	{
-		currentPower = Mathf.Lerp(currentPower, targetPower, Time.deltaTime * 30.0f);
-
 		if (currentPower > 0)
 			SetParticles(currentPower / MaxPower);
 		else
@@ -190,6 +188,9 @@ public class ThrusterObject : MonoBehaviour
 
 	private void FixedUpdate()
 	{
+		//currentPower = Mathf.Lerp(currentPower, targetPower, Time.fixedDeltaTime * 30.0f);
+		currentPower = targetPower;
+
 		if (targetPower > 0)
 		{
 			var worldDirection = ShipRoot.TransformDirection(shipRoot_direction);

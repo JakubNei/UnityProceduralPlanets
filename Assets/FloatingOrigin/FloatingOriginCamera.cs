@@ -7,7 +7,7 @@ using UnityEngine;
 [RequireComponent(typeof(Camera))]
 public class FloatingOriginCamera : MonoBehaviour
 {
-	public static FloatingOriginCamera Main 
+	public static FloatingOriginCamera main 
 	{
 		get
 		{

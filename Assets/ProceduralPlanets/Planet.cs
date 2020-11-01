@@ -7,6 +7,7 @@ using UnityEditorInternal;
 using UnityEngine;
 using UnityEngine.Events;
 
+[RequireComponent(typeof(FloatingOriginTransform))]
 public partial class Planet : MonoBehaviour, IDisposable
 {
 	[System.Serializable]
@@ -71,16 +72,15 @@ public partial class Planet : MonoBehaviour, IDisposable
 
 	public bool markedForRegeneration;
 
-	public static HashSet<Planet> allPlanets = new HashSet<Planet>();
-
 	FloatingOriginTransform floatingOrigin;
 
 	public BigPosition BigPosition => floatingOrigin.BigPosition;
 	public Vector3 Center { get { return transform.position; } }
 
-	void Awake()
+	
+	void Start()
 	{
-		allPlanets.Add(this);
+		ProceduralPlanets.main.AddPlanet(this);
 		InitializeRootChildren();
 		GeneratePlanetData();
 
@@ -88,6 +88,18 @@ public partial class Planet : MonoBehaviour, IDisposable
 
 		craters.cpuBuffer = new Vector4[100];
 		craters.gpuBuffer = new ComputeBuffer(craters.cpuBuffer.Length, 4 * sizeof(float));
+	}
+
+	public float GetGravityAtDistanceFromCenter(double distanceFromCenter)
+	{
+		double m = planetConfig.radiusHeightMapMultiplier;
+		double r = planetConfig.radiusStart;
+		
+		double altidute = distanceFromCenter - r;
+		if (altidute > r * 0.5f) return 0f;
+		if (altidute < m) return 9.81f;
+
+		return Mathf.SmoothStep(9.81f, 0, (float)((altidute - m) / (r * 0.5f)));
 	}
 
 	public void AddCrater(BigPosition bigPosition, float radius)
@@ -154,33 +166,14 @@ public partial class Planet : MonoBehaviour, IDisposable
 		}
 	}
 
-
-	Queue<ChunkRenderer> chunkRenderersToReuse = new Queue<ChunkRenderer>();
-
-	void ResetChunkRenderers()
+	public void ResetChunkRenderers()
 	{
 		foreach (var kvp in chunksBeingRendered)
 		{
-			ReturnChunkRendererToPool(kvp.Value);
+			ProceduralPlanets.main.ReturnChunkRendererToPool(kvp.Value);
 		}
 
 		chunksBeingRendered.Clear();
-	}
-
-	ChunkRenderer GetFreeChunkRenderer()
-	{
-		if (chunkRenderersToReuse.Count > 0)
-		{
-			return chunkRenderersToReuse.Dequeue();
-		}
-
-		var r = ChunkRenderer.CreateFor(this);
-		return r;
-	}
-	void ReturnChunkRendererToPool(ChunkRenderer chunkRenderer)
-	{
-		chunkRenderer.Hide();
-		chunkRenderersToReuse.Enqueue(chunkRenderer);
 	}
 
 	Dictionary<Chunk, ChunkRenderer> chunksBeingRendered = new Dictionary<Chunk, ChunkRenderer>();
@@ -214,8 +207,8 @@ public partial class Planet : MonoBehaviour, IDisposable
 
 		var pointOfInterest = new PointOfInterest()
 		{
-			pos = FloatingOriginCamera.Main.BigPosition,
-			fieldOfView = FloatingOriginCamera.Main.fieldOfView,
+			pos = FloatingOriginCamera.main.BigPosition,
+			fieldOfView = FloatingOriginCamera.main.fieldOfView,
 		};
 
 		bool shouldUpdateRenderers = false;
@@ -339,7 +332,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers / Return to pool");
 		foreach (var chunk in toStopRendering)
 		{
-			ReturnChunkRendererToPool(chunksBeingRendered[chunk]);
+			ProceduralPlanets.main.ReturnChunkRendererToPool(chunksBeingRendered[chunk]);
 			chunksBeingRendered.Remove(chunk);
 		}
 		MyProfiler.EndSample();
@@ -359,7 +352,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers / toStartRendering / get free renderers");
 		foreach (var chunk in toStartRendering)
 		{
-			var renderer = GetFreeChunkRenderer();
+			var renderer = ProceduralPlanets.main.GetFreeChunkRenderer(this);
 			freeRenderers.Push(renderer);
 		}
 		MyProfiler.EndSample();

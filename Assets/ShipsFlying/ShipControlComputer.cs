@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 
+[RequireComponent(typeof(FloatingOriginTransform), typeof(Rigidbody))]
 public class ShipControlComputer : MonoBehaviour
 {
 
@@ -13,11 +14,14 @@ public class ShipControlComputer : MonoBehaviour
 
 
 	public float ShipMass => rigidbody.mass;
-	public Vector3 CurrentVelocity => rigidbody.transform.InverseTransformDirection(rigidbody.velocity);
-	public Vector3 CurrentAngularVelocity => rigidbody.transform.InverseTransformDirection(rigidbody.angularVelocity);
+	public Vector3 ActualThrustersForce { get; private set; }
+	public Vector3 ActualThrustersAngularForce { get; private set; }
+	public Vector3 ExternalForce { get; private set; }
+
+	public Vector3 CurrentVelocity => rigidbody.transform.InverseTransformVector(rigidbody.velocity);
+	public Vector3 CurrentAngularVelocity => rigidbody.transform.InverseTransformVector(rigidbody.angularVelocity);
 	public Vector3 CurrentForce { get; private set; }
 
-	public Vector3 CurrentAngularForce { get; private set; }
 
 	public bool calculateVisuallyGoodForce = true;
 	public bool calculateVisuallyGoodTorque = true;
@@ -26,6 +30,7 @@ public class ShipControlComputer : MonoBehaviour
 	public bool calculateNNLSTorque = true;
 
 	Rigidbody rigidbody;
+	FloatingOriginTransform floatingOrigin;
 
 	Transform ShipRoot => transform;
 
@@ -33,6 +38,9 @@ public class ShipControlComputer : MonoBehaviour
 	void Start()
 	{
 		rigidbody = GetComponent<Rigidbody>();
+		floatingOrigin = GetComponent<FloatingOriginTransform>();
+		previousVelocity = CurrentVelocity;
+
 		conectedThrusters = GetComponentsInChildren<ThrusterObject>();
 		shipRoot_centerOfMass = ShipRoot.InverseTransformPoint(rigidbody.worldCenterOfMass);;
 
@@ -40,10 +48,27 @@ public class ShipControlComputer : MonoBehaviour
 			thruster.Initialize(shipRoot_centerOfMass);
 	}
 
+	Vector3 previousVelocity;
+	void FixedUpdate()
+	{
+		CurrentForce = (previousVelocity - CurrentVelocity) / Time.fixedDeltaTime;
+		previousVelocity = CurrentVelocity;
+
+		ExternalForce = Vector3.zero;
+		ApplyGravity();
+	}
+
+	void ApplyGravity()
+	{
+		var gravity = EnvironmentSensors.main.GetGravityAt(floatingOrigin.BigPosition);
+		if (gravity == Vector3.zero) return;
+		ExternalForce += gravity;
+		var rb = GetComponent<Rigidbody>();
+		rb.AddForce(gravity * Time.fixedDeltaTime, ForceMode.VelocityChange);
+	}
 
 
-
-	public void SetTarget(Vector3 targetForce, Vector3 targetTorque)
+	public void SetTargetForces(Vector3 targetForce, Vector3 targetTorque)
 	{
 		// https://www.youtube.com/watch?v=Lg3P4uIlgeU
 		ComputeAndSet(targetForce, targetTorque);
@@ -74,8 +99,8 @@ public class ShipControlComputer : MonoBehaviour
 
 	void ComputeAndSet(Vector3 tm, Vector3 td)
 	{
-		CurrentForce = Vector3.zero;
-		CurrentAngularForce = Vector3.zero;
+		ActualThrustersForce = Vector3.zero;
+		ActualThrustersAngularForce = Vector3.zero;
 
 		var targetForce = -tm;
 		var targetTorque = td;
@@ -194,7 +219,7 @@ public class ShipControlComputer : MonoBehaviour
 
 		} while (++iteration < 100 && lastIterationSolutionsFound > 0);
 
-		Debug.Log("lastSolutionsFound "  + lastIterationSolutionsFound + ", iteration " + iteration);
+		//Debug.Log("lastSolutionsFound "  + lastIterationSolutionsFound + ", iteration " + iteration);
 
 		// if one thruster target power is above its limit, decrease all thruster power by same ratio
 		float multipleAllBy = 1;
@@ -217,8 +242,8 @@ public class ShipControlComputer : MonoBehaviour
 			var power = finalPowerPerThruster[i] * multipleAllBy;
 			thruster.SetPower(power);
 
-			CurrentForce += thruster.shipRoot_direction * power;
-			CurrentAngularForce += thruster.shipRoot_torqueWithPowerOne * power;
+			ActualThrustersForce += thruster.shipRoot_direction * power;
+			ActualThrustersAngularForce += thruster.shipRoot_torqueWithPowerOne * power;
 		}
 
 

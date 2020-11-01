@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 
+[RequireComponent(typeof(FloatingOriginTransform))]
 public class PlanetAffectedCamera : MonoBehaviour
 {
 	public int targetFrameRate = 60;
@@ -24,30 +25,18 @@ public class PlanetAffectedCamera : MonoBehaviour
 	public bool walkOnPlanet_clampUpDownRotation = true;
 	public bool walkOnPlanet_applyGravity = true;
 
-
-	Planet GetClosestPlanet(Vector3 pos)
-	{
-		Planet closest = null;
-		float closestDist = float.MaxValue;
-		foreach (var p in Planet.allPlanets)
-		{
-			var d = Vector3.Distance(p.Center, pos) - p.planetConfig.radiusStart;
-			if (d < closestDist)
-			{
-				closestDist = d;
-				closest = p;
-			}
-		}
-		return closest;
-	}
+	FloatingOriginTransform floatingOrigin;
 
 	void Start()
 	{
+		floatingOrigin = GetComponent<FloatingOriginTransform>();
+
 		physicMaterial = new PhysicMaterial()
 		{
 			frictionCombine = PhysicMaterialCombine.Minimum,
 			bounceCombine = PhysicMaterialCombine.Minimum,
 		};
+
 		foreach (var c in GetComponentsInChildren<Collider>())
 			c.sharedMaterial = physicMaterial;
 
@@ -67,14 +56,12 @@ public class PlanetAffectedCamera : MonoBehaviour
 
 	private void Update()
 	{
-		Application.targetFrameRate = targetFrameRate;
-
-		var camera = Camera.main.GetComponent<FloatingOriginCamera>();
-		camera.BigPosition = this.GetComponent<FloatingOriginTransform>().BigPosition;
-		camera.Rotation = this.GetComponent<FloatingOriginTransform>().Rotation;
+		var camera = FloatingOriginCamera.main;
+		camera.BigPosition = floatingOrigin.BigPosition;
+		camera.Rotation = floatingOrigin.Rotation;
 	}
 
-	
+
 	private void FixedUpdate()
 	{
 		UpdatePosition(Time.fixedDeltaTime);
@@ -82,8 +69,8 @@ public class PlanetAffectedCamera : MonoBehaviour
 	}
 
 	void MoveToClosestPlanetSurface()
-	{	
-		var planet = GetClosestPlanet(transform.position);
+	{
+		var planet = ProceduralPlanets.main.GetClosestPlanet(floatingOrigin.BigPosition);
 		if (planet != null)
 		{
 			SetPosRot(
@@ -98,7 +85,6 @@ public class PlanetAffectedCamera : MonoBehaviour
 	{
 		var rotation = transform.rotation;
 		var position = transform.position;
-		var planet = GetClosestPlanet(position);
 		var rb = GetComponent<Rigidbody>();
 
 		if (rb)
@@ -174,22 +160,25 @@ public class PlanetAffectedCamera : MonoBehaviour
 			}
 		}
 
-		if (Input.GetKeyDown(KeyCode.F))
-		{
-			RaycastHit hit;
-			if (Physics.Raycast(this.transform.position + this.transform.forward * 5, this.transform.forward, out hit, 100000.0f))
-			{
-				BigPosition bigPosition = hit.point + FloatingOriginCamera.Main.VisualSceneOrigin;
-				planet.AddCrater(bigPosition, Random.Range(hit.distance * 0.3f, hit.distance * 0.5f));
-			}
-		}
-
+		var planet = ProceduralPlanets.main.GetClosestPlanet(floatingOrigin.BigPosition);
 		if (planet != null)
 		{
-			RaycastHit hit;
-			if (Physics.Raycast(position, planet.Center - position, out hit))
+			if (Input.GetKeyDown(KeyCode.F))
 			{
-				distanceToClosestPlanet = Vector3.Distance(hit.point, position);
+				RaycastHit hit;
+				if (Physics.Raycast(this.transform.position + this.transform.forward * 5, this.transform.forward, out hit, 100000.0f))
+				{
+					BigPosition bigPosition = hit.point + FloatingOriginCamera.main.VisualSceneOrigin;
+					planet.AddCrater(bigPosition, Random.Range(hit.distance * 0.3f, hit.distance * 0.5f));
+				}
+			}
+
+			{
+				RaycastHit hit;
+				if (Physics.Raycast(position, planet.Center - position, out hit))
+				{
+					distanceToClosestPlanet = Vector3.Distance(hit.point, position);
+				}
 			}
 		}
 
@@ -355,18 +344,11 @@ public class PlanetAffectedCamera : MonoBehaviour
 
 	}
 
-
 	void ApplyGravity()
 	{
-		var pos = transform.position;
+		var gravity = EnvironmentSensors.main.GetGravityAt(floatingOrigin.BigPosition);
+		if (gravity == Vector3.zero) return;
 		var rb = GetComponent<Rigidbody>();
-		var planet = GetClosestPlanet(pos);
-
-		// make cam on top of the planet
-		if (planet != null && rb && walkOnPlanet && walkOnPlanet_applyGravity)
-		{
-			var gravityDir = (planet.Center - pos).normalized;
-			rb.AddForce(gravityDir * 9.81f * Time.fixedDeltaTime, ForceMode.VelocityChange);
-		}
+		rb.AddForce(gravity * Time.fixedDeltaTime, ForceMode.VelocityChange);
 	}
 }

@@ -51,12 +51,12 @@ public class FloatingOriginTransform : MonoBehaviour
 	private BigPosition bigPosition;
 
 
-	private BigPosition VisualSceneOrigin => FloatingOriginCamera.Main.VisualSceneOrigin;
+	private BigPosition VisualSceneOrigin => FloatingOriginCamera.main.VisualSceneOrigin;
 
 	Rigidbody rb;
 	private void Start()
 	{
-		var camera = FloatingOriginCamera.Main;
+		var camera = FloatingOriginCamera.main;
 		camera.Add(this);
 		transform.position = bigPosition - VisualSceneOrigin;
 
@@ -77,7 +77,7 @@ public class FloatingOriginTransform : MonoBehaviour
 	{
 		if (rb && rb.position!= lastRbPosition) 
 		{
-			// Some system didnt set position thru FloatingOriginTransform, probably Unity physics, lets compensate for it			
+			// Some system didnt set position thru FloatingOriginTransform, probably Unity physics, lets compensate for it
 			bigPosition = VisualSceneOrigin + rb.position;
 			lastRbPosition = rb.position;
 		}

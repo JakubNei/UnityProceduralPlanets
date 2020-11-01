@@ -36,8 +36,8 @@ public class ShipPlayerController : MonoBehaviour
 		
 		if (coupledMode)
 		{
-			targetMove -= shipComputer.CurrentVelocity * 100;
-			targetDir -= shipComputer.CurrentAngularVelocity * 100;
+			targetMove -= shipComputer.CurrentVelocity;
+			targetDir -= shipComputer.CurrentAngularVelocity;
 
 			//targetMove -= shipComputer.CurrentVelocity.normalized * (targetMove.magnitude > 0 ? targetMove.magnitude : multiplier) *
 			//	Math.Max(0, 1 - Vector3.Dot(targetMove.normalized, shipComputer.CurrentVelocity.normalized));
@@ -80,7 +80,7 @@ public class ShipPlayerController : MonoBehaviour
 		targetMove *= mass;
 		targetDir *= mass;
 
-		shipComputer.SetTarget(targetMove, targetDir);
+		shipComputer.SetTargetForces(targetMove, targetDir);
 
 
 		
@@ -111,7 +111,7 @@ public class ShipPlayerController : MonoBehaviour
 			cameraRotation = Vector3.Slerp(cameraRotation, Vector3.zero, 10 * Time.deltaTime);
 		}
 
-		var camera = FloatingOriginCamera.Main;
+		var camera = FloatingOriginCamera.main;
 		camera.Rotation = shipComputer.transform.rotation * Quaternion.Euler(cameraRotation);
 		camera.VisualPosition = shipComputer.transform.position + camera.Rotation * (Vector3.up * 5 + Vector3.back * (17 + shipComputer.CurrentVelocity.magnitude / 50));
 
@@ -122,7 +122,11 @@ public class ShipPlayerController : MonoBehaviour
 		GUILayout.Label("Ship status");
 		GUILayout.Label("Velocity linear: " + shipComputer.CurrentVelocity.magnitude);
 		GUILayout.Label("Velocity angular: " + shipComputer.CurrentAngularVelocity.magnitude);
-		GUILayout.Label("G Force: " + shipComputer.CurrentForce.magnitude);
+		GUILayout.Label("Actual thrust: " + shipComputer.ActualThrustersForce.magnitude);
+		GUILayout.Label("Actual thrust / ship mass: " + shipComputer.ActualThrustersForce.magnitude / shipComputer.ShipMass);
+		GUILayout.Label("Gravity (external forces): " + shipComputer.ExternalForce.magnitude);
+		GUILayout.Label("G: " + shipComputer.CurrentForce.magnitude.ToString("0.0"));
+
 		GUILayout.Label("");
 		GUILayout.Label("Input");
 		GUILayout.Label("Input multiplier: " + multiplier);
