@@ -7,11 +7,12 @@ using System;
 public class ShipControlComputer : MonoBehaviour
 {
 
-	public Vector3 centerOfMass;
+	public Vector3 shipRoot_centerOfMass;
 
 	ThrusterObject[] conectedThrusters;
 
 
+	public float ShipMass => rigidbody.mass;
 	public Vector3 CurrentVelocity => rigidbody.transform.InverseTransformDirection(rigidbody.velocity);
 	public Vector3 CurrentAngularVelocity => rigidbody.transform.InverseTransformDirection(rigidbody.angularVelocity);
 
@@ -21,19 +22,20 @@ public class ShipControlComputer : MonoBehaviour
 
 	public bool calculateNNLSForce = true;
 	public bool calculateNNLSTorque = true;
-	
+
 	Rigidbody rigidbody;
-	Rigidbody rb { get { return this.transform.root.GetComponentInChildren<Rigidbody>(); } }
+
+	Transform ShipRoot => transform;
 
 	// Use this for initialization
 	void Start()
 	{
 		rigidbody = GetComponent<Rigidbody>();
-		centerOfMass = rigidbody.centerOfMass;
 		conectedThrusters = GetComponentsInChildren<ThrusterObject>();
+		shipRoot_centerOfMass = ShipRoot.InverseTransformPoint(rigidbody.worldCenterOfMass);;
 
 		foreach (var thruster in conectedThrusters)
-			thruster.Initialize(centerOfMass);
+			thruster.Initialize(shipRoot_centerOfMass);
 	}
 
 
@@ -77,7 +79,7 @@ public class ShipControlComputer : MonoBehaviour
 		{
 			var t = thrusters[i];
 			var f = power[i];
-			force += t.mountedDirection * f;
+			force += t.shipRoot_direction * f;
 		}
 		return force;
 	}
@@ -105,19 +107,19 @@ public class ShipControlComputer : MonoBehaviour
 		{
 			var t = thrusters[i];
 			var f = power[i];
-			torque += Cross(t.mountedDirection * f, t.localOffsetFromCenterOfMass);
+			torque += Cross(t.shipRoot_direction * f, t.shipRoot_offsetFromCenterOfMass);
 		}
 		return torque;
 	}
 
 	static Vector3 GetForce(ThrusterObject thruster, float power)
 	{
-		return thruster.mountedDirection * power;
+		return thruster.shipRoot_direction * power;
 	}
 
 	static Vector3 GetTorque(ThrusterObject thruster, float power)
 	{
-		return Cross(thruster.mountedDirection, thruster.localOffsetFromCenterOfMass) * power;
+		return Cross(thruster.shipRoot_direction, thruster.shipRoot_offsetFromCenterOfMass) * power;
 	}
 	static Vector3 GetMaxTorque(ThrusterObject thruster)
 	{
@@ -130,8 +132,6 @@ public class ShipControlComputer : MonoBehaviour
 		var targetForce = -tm;
 		var targetTorque = td;
 
-		var originalTargetForce = targetForce;
-		var originalTargetTorque = targetTorque;
 
 		if (targetForce.sqrMagnitude <= 0 && targetTorque.sqrMagnitude <= 0)
 		{
@@ -140,8 +140,190 @@ public class ShipControlComputer : MonoBehaviour
 			return;
 		}
 
-		var globalThrustersPower = new float[conectedThrusters.Length];
-		var localThrustersPower = new float[conectedThrusters.Length];
+		var finalPowerPerThruster = new float[conectedThrusters.Length];
+
+		/*
+		for (int i = 0; i < conectedThrusters.Length; ++i)
+		{
+			var thruster = conectedThrusters[i];
+			var error = float.MaxValue;
+
+			float canProvideForce = thruster.MaxPower * Vector3.Dot(targetForce.normalized, thruster.shipRoot_direction);
+
+			Vector3 torqueWithPowerOne = Cross(thruster.shipRoot_direction, thruster.shipRoot_offsetFromCenterOfMass);
+			Vector3 torqueAtMaxPower = torqueWithPowerOne * thruster.MaxPower;
+			float canProvideTorque = torqueAtMaxPower.magnitude * Math.Max(0, Vector3.Dot(targetTorque.normalized, torqueWithPowerOne.normalized));			
+
+			if (canProvideForce > 0 || canProvideTorque > 0)
+			{
+				float thrusterPower = canProvideForce;
+				if (thrusterPower > targetForce.magnitude) thrusterPower = targetForce.magnitude;
+
+				targetForce -= thruster.shipRoot_direction * thrusterPower;
+				targetTorque -= Cross(thruster.shipRoot_direction, thruster.shipRoot_offsetFromCenterOfMass) * thrusterPower;
+
+				finalPowerPerThruster[i] = thrusterPower;
+			}
+		}
+		*/
+
+		/*
+		float minError = float.MaxValue;
+		int iteration = 0;	
+		do
+		{ 
+			var errorPerThruster = new float[conectedThrusters.Length];
+		
+			minError = float.MaxValue;
+
+			for (int i = 0; i < conectedThrusters.Length; ++i)
+			{
+				var thruster = conectedThrusters[i];
+				var error = float.MaxValue;
+
+				Vector3 torqueWithPowerOne = Cross(thruster.shipRoot_direction, thruster.shipRoot_offsetFromCenterOfMass);
+
+				error = 
+					Vector3.Angle(targetForce.normalized, thruster.shipRoot_direction) +
+					Vector3.Angle(targetTorque.normalized, torqueWithPowerOne.normalized);
+
+				errorPerThruster[i] = error;
+
+				minError = Math.Min(error, minError);
+			}
+
+			List<int> acceptableError = new List<int>();
+			float sumMaxForce = 0;
+			for (int i = 0; i < conectedThrusters.Length; ++i)
+			{
+				var thruster = conectedThrusters[i];
+				var error = errorPerThruster[i];
+				if (error * 0.9f > minError) continue;
+				acceptableError.Add(i);
+				sumMaxForce += thruster.MaxPower;
+			}
+
+
+			float powerRatio = targetForce.magnitude / sumMaxForce;
+			if (powerRatio > 1) powerRatio = 1;
+
+			// distribute equally between all acceptable
+			for (int j = 0; j < acceptableError.Count; ++j)
+			{
+				int i = acceptableError[j];
+				var thruster = conectedThrusters[i];
+				finalPowerPerThruster[i] += powerRatio * thruster.MaxPower;
+			}
+
+		} while (false && minError > 0 && ++iteration < 10);
+		*/
+
+
+
+	
+		int iteration = 0;	
+		do
+		{ 
+			// force
+			if (true)
+			{ 
+				var fitnessPerThruster = new float[conectedThrusters.Length];	
+				float maxFitness = 0;
+
+				for (int i = 0; i < conectedThrusters.Length; ++i)
+				{
+					var thruster = conectedThrusters[i];
+					var fitness = Math.Max(0, Vector3.Dot(targetForce.normalized, thruster.shipRoot_direction));
+					fitnessPerThruster[i] = fitness;
+					maxFitness = Math.Max(fitness, maxFitness);
+				}
+
+				List<int> acceptableThrusters = new List<int>();
+				float sumMaxForce = 0;
+				for (int i = 0; i < conectedThrusters.Length; ++i)
+				{
+					var thruster = conectedThrusters[i];
+					var fitness = fitnessPerThruster[i];
+					if (fitness > maxFitness * 0.9f) 
+					{ 
+						acceptableThrusters.Add(i);
+						sumMaxForce += thruster.MaxPower;
+					}
+				}
+
+				float powerRatio = targetForce.magnitude / sumMaxForce;
+				if (powerRatio > 1) powerRatio = 1;
+
+				// distribute equally between all acceptable
+				for (int j = 0; j < acceptableThrusters.Count; ++j)
+				{
+					int i = acceptableThrusters[j];
+					var thruster = conectedThrusters[i];
+					float thrusterPower = powerRatio * thruster.MaxPower;
+					finalPowerPerThruster[i] += thrusterPower;
+					targetForce -= thruster.shipRoot_direction * thrusterPower;
+					targetTorque -= Cross(thruster.shipRoot_direction, thruster.shipRoot_offsetFromCenterOfMass) * thrusterPower;
+				}
+			}
+
+			// torque
+			if (true)
+			{ 
+				var fitnessPerThruster = new float[conectedThrusters.Length];	
+				float maxFitness = 0;
+
+				for (int i = 0; i < conectedThrusters.Length; ++i)
+				{
+					var thruster = conectedThrusters[i];
+					Vector3 torqueWithPowerOne = Cross(thruster.shipRoot_direction, thruster.shipRoot_offsetFromCenterOfMass);
+					var fitnes = Math.Max(0, Vector3.Dot(targetTorque.normalized, torqueWithPowerOne.normalized));
+					fitnessPerThruster[i] = fitnes;
+					maxFitness = Math.Max(fitnes, maxFitness);
+				}
+
+				List<int> acceptableThrusters = new List<int>();
+				float sumMaxTorque = 0;
+				for (int i = 0; i < conectedThrusters.Length; ++i)
+				{
+					var thruster = conectedThrusters[i];
+					var fitness = fitnessPerThruster[i];
+					if (fitness > maxFitness * 0.9f) 
+					{ 
+						acceptableThrusters.Add(i);
+						Vector3 torqueWithPowerOne = Cross(thruster.shipRoot_direction, thruster.shipRoot_offsetFromCenterOfMass);
+						sumMaxTorque += torqueWithPowerOne.magnitude * thruster.MaxPower;
+					}
+				}
+
+				float powerRatio = targetTorque.magnitude / sumMaxTorque;
+				if (powerRatio > 1) powerRatio = 1;
+
+				// distribute equally between all acceptable
+				for (int j = 0; j < acceptableThrusters.Count; ++j)
+				{
+					int i = acceptableThrusters[j];
+					var thruster = conectedThrusters[i];
+					float thrusterPower = powerRatio * thruster.MaxPower;
+					finalPowerPerThruster[i] += thrusterPower;
+					targetForce -= thruster.shipRoot_direction * thrusterPower;
+					targetTorque -= Cross(thruster.shipRoot_direction, thruster.shipRoot_offsetFromCenterOfMass) * thrusterPower;
+				}
+			}
+
+		} while (++iteration < 10);
+
+
+
+
+
+
+		/*
+		var originalTargetForce = targetForce;
+		var originalTargetTorque = targetTorque;
+
+
+		var localThrustersPower = new float[conectedThrusters.Length];		
+
 
 		if (calculateVisuallyGoodForce && targetForce.sqrMagnitude > 0)
 		{
@@ -157,7 +339,7 @@ public class ShipControlComputer : MonoBehaviour
 				for (int i = 0; i < conectedThrusters.Length; i++)
 				{
 					var t = conectedThrusters[i];
-					if (Vector3.Distance(t.mountedDirection, targetForce) < minDistance)
+					if (Vector3.Distance(t.shipRoot_direction, targetForce) < minDistance)
 						thrusterIndexes.Add(i);
 				}
 				if (thrusterIndexes.Count > 0)
@@ -165,7 +347,7 @@ public class ShipControlComputer : MonoBehaviour
 					var allSumForce = GetSumForce(conectedThrusters, localThrustersPower);
 					var allSumForceRatioOnTarget = Vector3.Dot(allSumForce, targetForceNormalized);
 
-					var newSumForce = thrusterIndexes.Select(ti => conectedThrusters[ti]).Select(t => t.mountedDirection * t.MaxPower).Aggregate((a, b) => a + b);
+					var newSumForce = thrusterIndexes.Select(ti => conectedThrusters[ti]).Select(t => t.shipRoot_direction * t.MaxThrust).Aggregate((a, b) => a + b);
 					var newSumForceRatioOnTarget = Vector3.Dot(newSumForce, targetForceNormalized);
 
 					var newForceRatioNeeded = 1f - allSumForceRatioOnTarget;
@@ -177,9 +359,9 @@ public class ShipControlComputer : MonoBehaviour
 					// set the force
 					foreach (var i in thrusterIndexes)
 					{
-						var f = conectedThrusters[i].MaxPower;
+						var f = conectedThrusters[i].MaxThrust;
 						localThrustersPower[i] = f;
-						globalThrustersPower[i] += f;
+						powerPerThruster[i] += f;
 					}
 
 					if (allSumForceRatioOnTarget + newSumForceRatioOnTarget >= 1) break;
@@ -226,9 +408,9 @@ public class ShipControlComputer : MonoBehaviour
 					// set the force
 					foreach (var i in thrusterIndexes)
 					{
-						var f = conectedThrusters[i].MaxPower * newTorqueMultiplier;
+						var f = conectedThrusters[i].MaxThrust * newTorqueMultiplier;
 						localThrustersPower[i] = f;
-						globalThrustersPower[i] += f;
+						powerPerThruster[i] += f;
 					}
 
 					if (allSumTorqueRatioOnTarget + newSumTorqueRatioOnTarget >= 1) break;
@@ -240,39 +422,31 @@ public class ShipControlComputer : MonoBehaviour
 			targetForce -= GetSumForce(conectedThrusters, localThrustersPower);
 			targetTorque -= GetSumTorque(conectedThrusters, localThrustersPower);
 		}
-
+		*/
 
 		// if one thruster target force is above its limit, decrease all thruster force solution by same amount
 		double multipleAllBy = 1;
 		for (int i = 0; i < conectedThrusters.Length; i++)
 		{
 			var t = conectedThrusters[i];
-			var f = globalThrustersPower[i];
+			var wantedPower = finalPowerPerThruster[i];
 
-			if (t.MaxPower < f)
+			if (wantedPower > t.MaxPower)
 			{
-				var newMultAllBy = t.MaxPower / f;
+				var newMultAllBy = t.MaxPower / wantedPower;
 				if (newMultAllBy < multipleAllBy) multipleAllBy = newMultAllBy;
 			}
 		}
-
-
+		
 
 		//Debug.Log("error: " + GetError(conectedThrusters, globalThrustersPower, originalTargetForce, originalTargetTorque) + ", power multiplier:" + multipleAllBy);
-
-
-
-
 
 		for (int i = 0; i < conectedThrusters.Length; i++)
 		{
 			var t = conectedThrusters[i];
-			var f = globalThrustersPower[i];
-			t.SetThrust(f * multipleAllBy);
+			var f = finalPowerPerThruster[i] * multipleAllBy;
+			t.SetThrust(f);
 		}
-
-
-
 
 
 	}
@@ -288,7 +462,7 @@ public class ShipControlComputer : MonoBehaviour
 		}
 		float GetWeight(ThrusterObject t)
 		{
-			return Vector3.Angle(t.mountedDirection * t.MaxPower, targetForce);
+			return Vector3.Angle(t.shipRoot_direction * t.MaxPower, targetForce);
 		}
 		public int Compare(int x, int y)
 		{

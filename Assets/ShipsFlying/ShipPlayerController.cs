@@ -12,7 +12,7 @@ public class ShipPlayerController : MonoBehaviour
 
 	public float mouseSpeedMultiplier = 4;
 	public float moveSpeedMultiplier = 2;
-	public float force = 1;
+	public float multiplier = 1;
 
 	public Vector3 lastValocity;
 	public Vector3 acceleration;
@@ -47,9 +47,9 @@ public class ShipPlayerController : MonoBehaviour
 		Camera.main.transform.rotation = shipComputer.transform.rotation;
 
 
-		if (Input.mouseScrollDelta.y > 0) force++;
-		else if (Input.mouseScrollDelta.y < 0) force--;
-		force = Mathf.Clamp(force, 0, 100);
+		if (Input.mouseScrollDelta.y > 0) multiplier++;
+		else if (Input.mouseScrollDelta.y < 0) multiplier--;
+		multiplier = Mathf.Clamp(multiplier, 0, 100);
 
 
 		var targetDir = new Vector3();
@@ -75,8 +75,6 @@ public class ShipPlayerController : MonoBehaviour
 		if (Input.GetKey(KeyCode.LeftControl)) targetMove.y -= 1;
 		if (Input.GetKey(KeyCode.Space)) targetMove.y += 1;
 
-		targetMove *= force;
-
 		if (Input.GetKeyDown(KeyCode.C))
 			coupledMode = !coupledMode;
 
@@ -98,8 +96,15 @@ public class ShipPlayerController : MonoBehaviour
             targetDir = (targetRotationError + angularAcceleration) * C;
         }
 
-		if (Input.GetKey(KeyCode.F)) targetMove = -shipComputer.CurrentVelocity * force;
-		if (Input.GetKey(KeyCode.R)) targetDir = -shipComputer.CurrentAngularVelocity * force;
+		if (Input.GetKey(KeyCode.F)) targetMove = -shipComputer.CurrentVelocity ;
+		if (Input.GetKey(KeyCode.R)) targetDir = -shipComputer.CurrentAngularVelocity;
+		
+		targetMove *= multiplier;
+		targetDir *= multiplier;
+
+		float mass = shipComputer.ShipMass;
+		targetMove *= mass;
+		targetDir *= mass;
 
 		shipComputer.SetTarget(targetMove, targetDir);
 	}

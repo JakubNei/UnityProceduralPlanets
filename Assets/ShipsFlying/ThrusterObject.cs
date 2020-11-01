@@ -3,18 +3,28 @@ using System.Collections;
 using System.Linq;
 using System;
 using System.Runtime.InteropServices;
+using UnityEditor;
 
 public class ThrusterObject : MonoBehaviour
 {
+	[SerializeField]
+	public Vector3 shipRoot_offsetFromCenterOfMass;
 
-	public Vector3 localOffsetFromCenterOfMass { get; private set; }
+	[SerializeField]
+	public Vector3 shipRoot_direction;
 
-	public Vector3 mountedDirection;
+	[SerializeField]
+	public Vector3 shipRoot_location;
+
+	[SerializeField]
+	Vector3 shipRoot_centerOfMass;
+
 	public float MaxPower { get { return maxPower; } }
 
 	[SerializeField]
 	float maxPower = 5;
 
+	[SerializeField]
 	float targetPower;
 
 	[SerializeField]
@@ -41,14 +51,18 @@ public class ThrusterObject : MonoBehaviour
 
 	}
 
+	Transform ShipRoot => transform.root;
+
 	Rigidbody rb;
 	// Use this for initialization
-	public void Initialize(Vector3 centerOfMass)
+	public void Initialize(Vector3 shipRoot_centerOfMass)
 	{
-		rb = this.transform.root.GetComponentInChildren<Rigidbody>();
+		rb = ShipRoot.GetComponent<Rigidbody>();
 
-		localOffsetFromCenterOfMass = this.transform.localPosition - centerOfMass;
-		mountedDirection = (this.transform.localRotation * Vector3.forward).normalized;
+		shipRoot_location = ShipRoot.InverseTransformPoint(this.transform.position);
+		shipRoot_direction = ShipRoot.InverseTransformDirection(this.transform.forward).normalized;
+		this.shipRoot_centerOfMass = shipRoot_centerOfMass;
+		shipRoot_offsetFromCenterOfMass = shipRoot_location - shipRoot_centerOfMass;
 
 		SetParticles(0);
 	}
@@ -89,16 +103,35 @@ public class ThrusterObject : MonoBehaviour
 	}
 
 	private void OnDrawGizmosSelected()
-	{
-		mountedDirection = (transform.localRotation * Vector3.forward).normalized;
+	{	
+		if (!EditorApplication.isPlaying)
+		{ 
+			shipRoot_location = ShipRoot.InverseTransformPoint(this.transform.position);
+			shipRoot_direction = ShipRoot.InverseTransformDirection(this.transform.forward).normalized;
+			shipRoot_centerOfMass = ShipRoot.InverseTransformPoint(ShipRoot.GetComponent<Rigidbody>().worldCenterOfMass);
+			shipRoot_offsetFromCenterOfMass = shipRoot_location - shipRoot_centerOfMass;
+		}
+
 		if (transform.parent)
 		{
-			const float c = 0.3f;
-			Gizmos.matrix = Matrix4x4.TRS(transform.position, transform.rotation, transform.lossyScale);
-			Gizmos.color = Color.blue;
-			Gizmos.DrawFrustum(Vector3.zero, 20, maxPower * c, 0, 1);
+			Rigidbody rigidBody = ShipRoot.GetComponent<Rigidbody>();
+
 			Gizmos.color = Color.red;
-			Gizmos.DrawFrustum(Vector3.zero, 19, targetPower * c, 0, 1);
+			Gizmos.DrawLine(ShipRoot.TransformPoint(shipRoot_centerOfMass) + ShipRoot.TransformVector(shipRoot_offsetFromCenterOfMass), rigidBody.worldCenterOfMass);
+			//Gizmos.DrawLine(ShipRoot.TransformPoint(shipRoot_location), ShipRoot.TransformPoint(shipRoot_location) + ShipRoot.TransformVector(Vector3.Cross(shipRoot_direction, shipRoot_offsetFromCenterOfMass)));
+
+			float mass = rigidBody.mass;
+			Func<float, float> visual = t => t / mass;
+			Gizmos.matrix = Matrix4x4.TRS(
+				ShipRoot.TransformPoint(shipRoot_location), 
+				Quaternion.LookRotation(ShipRoot.TransformDirection(shipRoot_direction)), 
+				transform.lossyScale
+			);
+			Gizmos.color = Color.blue;
+			Gizmos.color = Color.blue;
+			Gizmos.DrawFrustum(Vector3.zero, 20, visual(maxPower), 0, 1);
+			Gizmos.color = Color.red;
+			Gizmos.DrawFrustum(Vector3.zero, 19, visual(targetPower), 0, 1);
 
 			// Maintain mirrored thruster game object
 			{
@@ -124,11 +157,11 @@ public class ThrusterObject : MonoBehaviour
 					if (mirrored)
 					{
 						mirrored.maxPower = this.maxPower;
-						var p = this.transform.root.InverseTransformPoint(this.transform.position);
-						mirrored.transform.position = this.transform.root.TransformPoint(new Vector3(-p.x, p.y, p.z));
+						var p = ShipRoot.InverseTransformPoint(this.transform.position);
+						mirrored.transform.position = ShipRoot.TransformPoint(new Vector3(-p.x, p.y, p.z));
 
-						var r = this.transform.root.InverseTransformDirection(this.transform.forward);
-						mirrored.transform.forward =  this.transform.root.TransformDirection(new Vector3(-r.x, r.y, r.z));
+						var r = ShipRoot.InverseTransformDirection(this.transform.forward);
+						mirrored.transform.forward = ShipRoot.TransformDirection(new Vector3(-r.x, r.y, r.z));
 					}
 				}
 				else if (mirrored)
@@ -143,11 +176,9 @@ public class ThrusterObject : MonoBehaviour
 	{
 		if (targetPower > 0)
 		{
-			var worldDir = this.transform.root.TransformDirection(mountedDirection);
-			if (worldDir.sqrMagnitude > 0) this.transform.rotation = Quaternion.LookRotation(worldDir);
-
+			var worldDirection = ShipRoot.TransformDirection(shipRoot_direction);
 			rb.AddForceAtPosition(
-				-worldDir * targetPower,
+				-worldDirection * targetPower,
 				transform.position,
 				ForceMode.Force
 			);

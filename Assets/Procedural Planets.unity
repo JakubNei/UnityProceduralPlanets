@@ -274,7 +274,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 64370204}
   m_LocalRotation: {x: -0, y: -0, z: 1, w: 0}
-  m_LocalPosition: {x: 11.6, y: 0.00000023841858, z: 0}
+  m_LocalPosition: {x: 11.26, y: 0.0000009536743, z: 0}
   m_LocalScale: {x: 1, y: 1.0000001, z: 1.0000001}
   m_Children: []
   m_Father: {fileID: 222534377}
@@ -292,8 +292,60 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mountedDirection: {x: 0, y: 0, z: 1}
-  maxPower: 10
+  shipRoot_offsetFromCenterOfMass: {x: 5.631112, y: 1.9199276, z: -4.2446146}
+  shipRoot_direction: {x: 0, y: 0, z: -1}
+  shipRoot_location: {x: 5.63, y: 2.039999, z: -11.48}
+  maxPower: 5000
+  targetPower: 0
+  createMirroredThruster: 0
+--- !u!1 &165533679
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 165533680}
+  - component: {fileID: 165533681}
+  m_Layer: 0
+  m_Name: mirrored thruster
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &165533680
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 165533679}
+  m_LocalRotation: {x: 0.6962676, y: 0.6962676, z: 0.123334646, w: -0.123334646}
+  m_LocalPosition: {x: -0.0000019073486, y: 1.5704907, z: -8.865979}
+  m_LocalScale: {x: 1, y: 1.0000001, z: 1.0000001}
+  m_Children: []
+  m_Father: {fileID: 424877784}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &165533681
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 165533679}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  shipRoot_offsetFromCenterOfMass: {x: 4.5031137, y: 3.4129257, z: -6.908614}
+  shipRoot_direction: {x: 0.984671, y: -0.000000009573797, z: -0.17442174}
+  shipRoot_location: {x: 4.502002, y: 3.5329971, z: -14.143999}
+  maxPower: 1000
+  targetPower: 0
   createMirroredThruster: 0
 --- !u!1 &172110975
 GameObject:
@@ -320,7 +372,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 172110975}
   m_LocalRotation: {x: 0, y: -1, z: 0, w: 0}
-  m_LocalPosition: {x: -2.55, y: 2.11, z: -11.83}
+  m_LocalPosition: {x: -2.55, y: 2.09, z: -11.83}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 894861558}
@@ -339,9 +391,157 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mountedDirection: {x: 0, y: 0, z: -1}
-  maxPower: 20
+  shipRoot_offsetFromCenterOfMass: {x: -2.548888, y: 1.9699287, z: -4.594615}
+  shipRoot_direction: {x: 0, y: 0, z: -1}
+  shipRoot_location: {x: -2.55, y: 2.0900002, z: -11.83}
+  maxPower: 10000
+  targetPower: 0
   createMirroredThruster: 1
+--- !u!1 &185774436
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 185774437}
+  - component: {fileID: 185774438}
+  m_Layer: 0
+  m_Name: mirrored thruster
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &185774437
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 185774436}
+  m_LocalRotation: {x: 0.6209619, y: 0.5400377, z: -0.5509161, w: -0.13877013}
+  m_LocalPosition: {x: -1.2577933, y: -0.63741624, z: -2.042543}
+  m_LocalScale: {x: 1, y: 1.0000001, z: 1.0000001}
+  m_Children: []
+  m_Father: {fileID: 1686599223}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &185774438
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 185774436}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  shipRoot_offsetFromCenterOfMass: {x: 1.2421123, y: 0.3709278, z: 10.740385}
+  shipRoot_direction: {x: 0.82294255, y: -0.49293494, z: 0.28245467}
+  shipRoot_location: {x: 1.2410003, y: 0.49099922, z: 3.5050004}
+  maxPower: 1000
+  targetPower: 0
+  createMirroredThruster: 0
+--- !u!1 &212224604
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 212224605}
+  - component: {fileID: 212224608}
+  - component: {fileID: 212224607}
+  - component: {fileID: 212224606}
+  m_Layer: 0
+  m_Name: Capsule
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &212224605
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 212224604}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: -1.086, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 284363556}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!136 &212224606
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 212224604}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  m_Radius: 0.5
+  m_Height: 2
+  m_Direction: 1
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &212224607
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 212224604}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &212224608
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 212224604}
+  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1 &222534376
 GameObject:
   m_ObjectHideFlags: 0
@@ -367,7 +567,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 222534376}
   m_LocalRotation: {x: -1, y: 0, z: 0, w: 0}
-  m_LocalPosition: {x: -5.8, y: 2.11, z: -11.48}
+  m_LocalPosition: {x: -5.63, y: 2.04, z: -11.48}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 64370205}
@@ -386,8 +586,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mountedDirection: {x: 0, y: 0, z: -1}
-  maxPower: 10
+  shipRoot_offsetFromCenterOfMass: {x: -5.628888, y: 1.9199276, z: -4.2446146}
+  shipRoot_direction: {x: 0, y: 0, z: -1}
+  shipRoot_location: {x: -5.63, y: 2.039999, z: -11.48}
+  maxPower: 5000
+  targetPower: 0
   createMirroredThruster: 1
 --- !u!1 &284363551
 GameObject:
@@ -400,7 +603,6 @@ GameObject:
   - component: {fileID: 284363556}
   - component: {fileID: 284363555}
   - component: {fileID: 284363554}
-  - component: {fileID: 284363553}
   - component: {fileID: 284363552}
   - component: {fileID: 284363557}
   m_Layer: 0
@@ -471,19 +673,6 @@ Light:
   m_UseBoundingSphereOverride: 0
   m_ShadowRadius: 0
   m_ShadowAngle: 0
---- !u!135 &284363553
-SphereCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 284363551}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 2
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!54 &284363554
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -538,9 +727,10 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 284363551}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 2.38, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
+  - {fileID: 212224605}
   - {fileID: 2000855548}
   m_Father: {fileID: 0}
   m_RootOrder: 1
@@ -558,7 +748,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bigPosition:
-    insideSectorPosition: {x: 0, y: 0, z: 0}
+    insideSectorPosition: {x: 0, y: 2.38, z: 0}
     sectorX: 0
     sectorY: 0
     sectorZ: 0
@@ -666,6 +856,56 @@ MonoBehaviour:
   targetComponents: []
   closestSun: {fileID: 1926511767}
   closestSunDirection: {x: 0, y: 0, z: 0}
+--- !u!1 &424877783
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 424877784}
+  - component: {fileID: 424877785}
+  m_Layer: 0
+  m_Name: Thruster (15)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &424877784
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 424877783}
+  m_LocalRotation: {x: -0.54185367, y: -0.54185367, z: 0.45430678, w: 0.45430678}
+  m_LocalPosition: {x: -4.502, y: 3.533, z: -14.144}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 165533680}
+  m_Father: {fileID: 1786561272}
+  m_RootOrder: 14
+  m_LocalEulerAnglesHint: {x: 0, y: -100.045, z: 90}
+--- !u!114 &424877785
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 424877783}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  shipRoot_offsetFromCenterOfMass: {x: -4.500888, y: 3.4129276, z: -6.908615}
+  shipRoot_direction: {x: -0.98467106, y: 0, z: -0.17442153}
+  shipRoot_location: {x: -4.502, y: 3.532999, z: -14.144}
+  maxPower: 1000
+  targetPower: 0
+  createMirroredThruster: 1
 --- !u!1 &432046030
 GameObject:
   m_ObjectHideFlags: 0
@@ -691,7 +931,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 432046030}
   m_LocalRotation: {x: -0.00000008940697, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 29.744, y: 0, z: 0}
+  m_LocalPosition: {x: 29.744, y: -1.1368684e-13, z: 0.0000009536744}
   m_LocalScale: {x: 1, y: 1.0000001, z: 1.0000001}
   m_Children: []
   m_Father: {fileID: 828881815}
@@ -709,8 +949,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mountedDirection: {x: 0, y: 0.00000017881393, z: 1}
-  maxPower: 3
+  shipRoot_offsetFromCenterOfMass: {x: 14.873112, y: 1.7359295, z: -2.988615}
+  shipRoot_direction: {x: 0, y: 1, z: -0.00000035762784}
+  shipRoot_location: {x: 14.872, y: 1.8560009, z: -10.224}
+  maxPower: 1000
+  targetPower: 0
   createMirroredThruster: 0
 --- !u!850595691 &639500831
 LightingSettings:
@@ -816,9 +1059,161 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mountedDirection: {x: 0, y: -0.00000017881393, z: 1}
-  maxPower: 3
+  shipRoot_offsetFromCenterOfMass: {x: 2.481112, y: 0.099928856, z: -2.2546148}
+  shipRoot_direction: {x: 0, y: -1, z: -0.00000035762784}
+  shipRoot_location: {x: 2.48, y: 0.22000027, z: -9.49}
+  maxPower: 1000
+  targetPower: 0
   createMirroredThruster: 0
+--- !u!1 &660064430
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 660064431}
+  - component: {fileID: 660064432}
+  m_Layer: 0
+  m_Name: Thruster (18)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &660064431
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 660064430}
+  m_LocalRotation: {x: 0.024233948, y: -0.49957737, z: 0.84793776, w: 0.17560418}
+  m_LocalPosition: {x: -0.491, y: 0.42300034, z: 3.819}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 668809072}
+  m_Father: {fileID: 1786561272}
+  m_RootOrder: 17
+  m_LocalEulerAnglesHint: {x: 58.841, y: -15.05, z: 148.078}
+--- !u!114 &660064432
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 660064430}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  shipRoot_offsetFromCenterOfMass: {x: -0.489888, y: 0.30292892, z: 11.054385}
+  shipRoot_direction: {x: -0.13435799, y: -0.8557322, z: 0.49967033}
+  shipRoot_location: {x: -0.491, y: 0.42300034, z: 3.819}
+  maxPower: 1000
+  targetPower: 0
+  createMirroredThruster: 1
+--- !u!1 &668809071
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 668809072}
+  - component: {fileID: 668809073}
+  m_Layer: 0
+  m_Name: mirrored thruster
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &668809072
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 668809071}
+  m_LocalRotation: {x: 0.12917852, y: 0.03694555, z: -0.9895726, w: 0.051905252}
+  m_LocalPosition: {x: -0.9202832, y: -0.31622002, z: -0.13193955}
+  m_LocalScale: {x: 1, y: 1.0000001, z: 1.0000001}
+  m_Children: []
+  m_Father: {fileID: 660064431}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &668809073
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 668809071}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  shipRoot_offsetFromCenterOfMass: {x: 0.49211222, y: 0.30292892, z: 11.054385}
+  shipRoot_direction: {x: 0.13435797, y: -0.85573226, z: 0.49967}
+  shipRoot_location: {x: 0.49100024, y: 0.42300034, z: 3.819}
+  maxPower: 1000
+  targetPower: 0
+  createMirroredThruster: 0
+--- !u!1 &793665990
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 793665991}
+  - component: {fileID: 793665992}
+  m_Layer: 0
+  m_Name: Thruster (16)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &793665991
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 793665990}
+  m_LocalRotation: {x: -0.70710677, y: 0, z: 0, w: 0.70710677}
+  m_LocalPosition: {x: -3.921, y: 3.763, z: -14.118}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 1798101406}
+  m_Father: {fileID: 1786561272}
+  m_RootOrder: 15
+  m_LocalEulerAnglesHint: {x: -90, y: -90, z: 90}
+--- !u!114 &793665992
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 793665990}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  shipRoot_offsetFromCenterOfMass: {x: -3.919888, y: 3.642929, z: -6.882615}
+  shipRoot_direction: {x: 0, y: 1, z: 0.00000005960465}
+  shipRoot_location: {x: -3.921, y: 3.7630005, z: -14.118}
+  maxPower: 1000
+  targetPower: 0
+  createMirroredThruster: 1
 --- !u!1 &828881814
 GameObject:
   m_ObjectHideFlags: 0
@@ -849,7 +1244,7 @@ Transform:
   m_Children:
   - {fileID: 432046031}
   m_Father: {fileID: 1786561272}
-  m_RootOrder: 6
+  m_RootOrder: 7
   m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
 --- !u!114 &828881816
 MonoBehaviour:
@@ -863,8 +1258,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mountedDirection: {x: 0, y: 1, z: -0.000000119209275}
-  maxPower: 3
+  shipRoot_offsetFromCenterOfMass: {x: -14.870888, y: 1.7359295, z: -2.988615}
+  shipRoot_direction: {x: 0, y: 1, z: -0.000000119209275}
+  shipRoot_location: {x: -14.872, y: 1.8560009, z: -10.224}
+  maxPower: 1000
+  targetPower: 0
   createMirroredThruster: 1
 --- !u!1 &894861557
 GameObject:
@@ -891,7 +1289,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 894861557}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: -1}
-  m_LocalPosition: {x: -5.1, y: -0.00000023841858, z: 0}
+  m_LocalPosition: {x: -5.1, y: 0.00000023841858, z: 0}
   m_LocalScale: {x: 1, y: 1.0000001, z: 1.0000001}
   m_Children: []
   m_Father: {fileID: 172110976}
@@ -909,8 +1307,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mountedDirection: {x: 0, y: 0, z: 1}
-  maxPower: 20
+  shipRoot_offsetFromCenterOfMass: {x: 2.551112, y: 1.9699287, z: -4.594615}
+  shipRoot_direction: {x: 0, y: 0, z: -1}
+  shipRoot_location: {x: 2.55, y: 2.0900002, z: -11.83}
+  maxPower: 10000
+  targetPower: 0
   createMirroredThruster: 0
 --- !u!1 &974776123
 GameObject:
@@ -937,7 +1338,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 974776123}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 6.34, y: 0, z: 0}
+  m_LocalPosition: {x: 6.34, y: -0.0000009536743, z: 0}
   m_LocalScale: {x: 1, y: 1.0000001, z: 1.0000001}
   m_Children: []
   m_Father: {fileID: 1813588699}
@@ -955,8 +1356,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mountedDirection: {x: 0, y: 0, z: 1}
-  maxPower: 10
+  shipRoot_offsetFromCenterOfMass: {x: 3.171112, y: 1.9199276, z: 5.255385}
+  shipRoot_direction: {x: 0, y: 0, z: 1}
+  shipRoot_location: {x: 3.17, y: 2.039999, z: -1.98}
+  maxPower: 5000
+  targetPower: 0
   createMirroredThruster: 0
 --- !u!1 &1122278678
 GameObject:
@@ -983,12 +1387,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1122278678}
   m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: -3.37, y: 3.54, z: -3.41}
+  m_LocalPosition: {x: -3.37, y: 3.54, z: -3.07}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 1134270286}
   m_Father: {fileID: 1786561272}
-  m_RootOrder: 7
+  m_RootOrder: 8
   m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
 --- !u!114 &1122278680
 MonoBehaviour:
@@ -1002,9 +1406,61 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mountedDirection: {x: 0, y: 1, z: -0.000000119209275}
-  maxPower: 3
+  shipRoot_offsetFromCenterOfMass: {x: -3.368888, y: 3.4199276, z: 4.1653852}
+  shipRoot_direction: {x: 0, y: 1, z: -0.000000119209275}
+  shipRoot_location: {x: -3.37, y: 3.539999, z: -3.07}
+  maxPower: 1000
+  targetPower: 0
   createMirroredThruster: 1
+--- !u!1 &1127229438
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1127229439}
+  - component: {fileID: 1127229440}
+  m_Layer: 0
+  m_Name: mirrored thruster
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1127229439
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1127229438}
+  m_LocalRotation: {x: 0.00000005960465, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 2.3, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1.0000001, z: 1.0000001}
+  m_Children: []
+  m_Father: {fileID: 1884309565}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1127229440
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1127229438}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  shipRoot_offsetFromCenterOfMass: {x: 1.151112, y: 2.7099285, z: 5.215385}
+  shipRoot_direction: {x: 0, y: 1, z: 0.00000017881395}
+  shipRoot_location: {x: 1.15, y: 2.83, z: -2.02}
+  maxPower: 1000
+  targetPower: 0
+  createMirroredThruster: 0
 --- !u!1 &1134270285
 GameObject:
   m_ObjectHideFlags: 0
@@ -1030,7 +1486,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1134270285}
   m_LocalRotation: {x: -0.00000008940697, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 6.74, y: 0, z: 0}
+  m_LocalPosition: {x: 6.74, y: 1.1368684e-13, z: -0.0000009536744}
   m_LocalScale: {x: 1, y: 1.0000001, z: 1.0000001}
   m_Children: []
   m_Father: {fileID: 1122278679}
@@ -1048,8 +1504,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mountedDirection: {x: 0, y: 0.00000017881393, z: 1}
-  maxPower: 3
+  shipRoot_offsetFromCenterOfMass: {x: 3.3711119, y: 3.4199276, z: 4.1653852}
+  shipRoot_direction: {x: 0, y: 1, z: -0.00000035762784}
+  shipRoot_location: {x: 3.37, y: 3.539999, z: -3.07}
+  maxPower: 1000
+  targetPower: 0
   createMirroredThruster: 0
 --- !u!1 &1141529112
 GameObject:
@@ -1157,6 +1616,105 @@ MonoBehaviour:
     sectorX: 0
     sectorY: 0
     sectorZ: 5000
+--- !u!1 &1142496018
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1142496019}
+  - component: {fileID: 1142496020}
+  m_Layer: 0
+  m_Name: Thruster (12)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1142496019
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1142496018}
+  m_LocalRotation: {x: -0.5, y: -0.5, z: 0.5, w: 0.5}
+  m_LocalPosition: {x: -6.53, y: 2.634, z: -10.65}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 1204021346}
+  m_Father: {fileID: 1786561272}
+  m_RootOrder: 12
+  m_LocalEulerAnglesHint: {x: 0, y: -90, z: 90}
+--- !u!114 &1142496020
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1142496018}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  shipRoot_offsetFromCenterOfMass: {x: -6.528888, y: 2.5139294, z: -3.4146147}
+  shipRoot_direction: {x: -1, y: 0, z: 0}
+  shipRoot_location: {x: -6.53, y: 2.6340008, z: -10.65}
+  maxPower: 1000
+  targetPower: 0
+  createMirroredThruster: 1
+--- !u!1 &1204021345
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1204021346}
+  - component: {fileID: 1204021347}
+  m_Layer: 0
+  m_Name: mirrored thruster
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1204021346
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1204021345}
+  m_LocalRotation: {x: 0.7071068, y: 0.7071068, z: -0, w: 0}
+  m_LocalPosition: {x: 0.00000071525574, y: 0, z: -13.06}
+  m_LocalScale: {x: 1, y: 1.0000001, z: 1.0000001}
+  m_Children: []
+  m_Father: {fileID: 1142496019}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1204021347
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1204021345}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  shipRoot_offsetFromCenterOfMass: {x: 6.531112, y: 2.5139294, z: -3.4146147}
+  shipRoot_direction: {x: 1, y: 0, z: -0.000000119209275}
+  shipRoot_location: {x: 6.53, y: 2.6340008, z: -10.65}
+  maxPower: 1000
+  targetPower: 0
+  createMirroredThruster: 0
 --- !u!1 &1314401414
 GameObject:
   m_ObjectHideFlags: 0
@@ -1200,8 +1758,60 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mountedDirection: {x: 0, y: -0.00000017881393, z: 1}
-  maxPower: 3
+  shipRoot_offsetFromCenterOfMass: {x: 3.3711119, y: 0.79992867, z: 1.2253847}
+  shipRoot_direction: {x: 0, y: -1, z: -0.00000035762784}
+  shipRoot_location: {x: 3.37, y: 0.9200001, z: -6.01}
+  maxPower: 1000
+  targetPower: 0
+  createMirroredThruster: 0
+--- !u!1 &1335072156
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1335072157}
+  - component: {fileID: 1335072158}
+  m_Layer: 0
+  m_Name: mirrored thruster
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1335072157
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1335072156}
+  m_LocalRotation: {x: 0.65380883, y: 0.65380883, z: -0.26932147, w: 0.26932147}
+  m_LocalPosition: {x: 0, y: -3.5124578, z: -8.526895}
+  m_LocalScale: {x: 1, y: 1.0000001, z: 1.0000001}
+  m_Children: []
+  m_Father: {fileID: 2035800857}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1335072158
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1335072156}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  shipRoot_offsetFromCenterOfMass: {x: 4.612113, y: 2.4769287, z: 4.295385}
+  shipRoot_direction: {x: 0.92462534, y: 0.00000001238177, z: 0.3808778}
+  shipRoot_location: {x: 4.611001, y: 2.5970001, z: -2.94}
+  maxPower: 1000
+  targetPower: 0
   createMirroredThruster: 0
 --- !u!1 &1418961026
 GameObject:
@@ -1228,7 +1838,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1418961026}
   m_LocalRotation: {x: -0.00000008940697, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 11.24, y: 2.842171e-14, z: -0.0000002384186}
+  m_LocalPosition: {x: 11.24, y: -1.1368684e-13, z: 0.00000071525585}
   m_LocalScale: {x: 1, y: 1.0000001, z: 1.0000001}
   m_Children: []
   m_Father: {fileID: 1702022923}
@@ -1246,8 +1856,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mountedDirection: {x: 0, y: 0.00000017881393, z: 1}
-  maxPower: 3
+  shipRoot_offsetFromCenterOfMass: {x: 5.621112, y: 2.9899292, z: -2.554615}
+  shipRoot_direction: {x: 0, y: 1, z: -0.00000035762784}
+  shipRoot_location: {x: 5.62, y: 3.1100006, z: -9.79}
+  maxPower: 1000
+  targetPower: 0
   createMirroredThruster: 0
 --- !u!1 &1440153009
 GameObject:
@@ -1279,7 +1892,7 @@ Transform:
   m_Children:
   - {fileID: 1668475494}
   m_Father: {fileID: 1786561272}
-  m_RootOrder: 8
+  m_RootOrder: 9
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!114 &1440153011
 MonoBehaviour:
@@ -1293,8 +1906,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mountedDirection: {x: 0, y: -1, z: -0.000000119209275}
-  maxPower: 3
+  shipRoot_offsetFromCenterOfMass: {x: -3.368888, y: 0.79992867, z: 4.315385}
+  shipRoot_direction: {x: 0, y: -1, z: -0.000000119209275}
+  shipRoot_location: {x: -3.37, y: 0.9200001, z: -2.92}
+  maxPower: 1000
+  targetPower: 0
   createMirroredThruster: 1
 --- !u!1 &1453688529
 GameObject:
@@ -1326,7 +1942,7 @@ Transform:
   m_Children:
   - {fileID: 650693823}
   m_Father: {fileID: 1786561272}
-  m_RootOrder: 10
+  m_RootOrder: 11
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!114 &1453688531
 MonoBehaviour:
@@ -1340,55 +1956,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mountedDirection: {x: 0, y: -1, z: -0.000000119209275}
-  maxPower: 3
+  shipRoot_offsetFromCenterOfMass: {x: -2.478888, y: 0.099928856, z: -2.2546148}
+  shipRoot_direction: {x: 0, y: -1, z: -0.000000119209275}
+  shipRoot_location: {x: -2.48, y: 0.22000027, z: -9.49}
+  maxPower: 1000
+  targetPower: 0
   createMirroredThruster: 1
---- !u!1 &1480842797
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1480842798}
-  - component: {fileID: 1480842799}
-  m_Layer: 0
-  m_Name: mirrored thruster
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1480842798
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1480842797}
-  m_LocalRotation: {x: -0.00000008940697, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 12.72, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1.0000001, z: 1.0000001}
-  m_Children: []
-  m_Father: {fileID: 1874892523}
-  m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1480842799
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1480842797}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  mountedDirection: {x: 0, y: 0.00000017881393, z: 1}
-  maxPower: 3
-  createMirroredThruster: 0
 --- !u!1 &1570599381
 GameObject:
   m_ObjectHideFlags: 0
@@ -1414,7 +1987,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1570599381}
   m_LocalRotation: {x: 0.00000008940697, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 29.744, y: -5.684342e-14, z: -0.0000004768372}
+  m_LocalPosition: {x: 29.744, y: 5.684342e-14, z: 0.0000004768372}
   m_LocalScale: {x: 1, y: 1.0000001, z: 1.0000001}
   m_Children: []
   m_Father: {fileID: 2073081519}
@@ -1432,8 +2005,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mountedDirection: {x: 0, y: -0.00000017881393, z: 1}
-  maxPower: 3
+  shipRoot_offsetFromCenterOfMass: {x: 14.873112, y: 1.7279282, z: -2.988615}
+  shipRoot_direction: {x: 0, y: -1, z: -0.00000035762784}
+  shipRoot_location: {x: 14.872, y: 1.8479996, z: -10.224}
+  maxPower: 1000
+  targetPower: 0
   createMirroredThruster: 0
 --- !u!1 &1653565756
 GameObject:
@@ -1451,7 +2027,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1653565757
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1469,7 +2045,7 @@ MonoBehaviour:
   coupledMode: 0
   mouseSpeedMultiplier: 4
   moveSpeedMultiplier: 2
-  force: 1
+  multiplier: 1
   lastValocity: {x: 0, y: 0, z: 0}
   acceleration: {x: 0, y: 0, z: 0}
   lastAngularVelocity: {x: 0, y: 0, z: 0}
@@ -1535,9 +2111,62 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mountedDirection: {x: 0, y: -0.00000017881393, z: 1}
-  maxPower: 3
+  shipRoot_offsetFromCenterOfMass: {x: 3.3711119, y: 0.79992867, z: 4.315385}
+  shipRoot_direction: {x: 0, y: -1, z: -0.00000035762784}
+  shipRoot_location: {x: 3.37, y: 0.9200001, z: -2.92}
+  maxPower: 1000
+  targetPower: 0
   createMirroredThruster: 0
+--- !u!1 &1686599222
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1686599223}
+  - component: {fileID: 1686599224}
+  m_Layer: 0
+  m_Name: Thruster (17)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1686599223
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1686599222}
+  m_LocalRotation: {x: -0.28787333, y: -0.5252633, z: 0.6910002, w: 0.40465558}
+  m_LocalPosition: {x: -1.241, y: 0.49100018, z: 3.505}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 185774437}
+  m_Father: {fileID: 1786561272}
+  m_RootOrder: 16
+  m_LocalEulerAnglesHint: {x: 29.534, y: -71.056, z: 97.974}
+--- !u!114 &1686599224
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1686599222}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  shipRoot_offsetFromCenterOfMass: {x: -1.2398881, y: 0.3709278, z: 10.740385}
+  shipRoot_direction: {x: -0.8229425, y: -0.49293503, z: 0.2824548}
+  shipRoot_location: {x: -1.241, y: 0.49099922, z: 3.505}
+  maxPower: 1000
+  targetPower: 0
+  createMirroredThruster: 1
 --- !u!1 &1702022922
 GameObject:
   m_ObjectHideFlags: 0
@@ -1568,7 +2197,7 @@ Transform:
   m_Children:
   - {fileID: 1418961027}
   m_Father: {fileID: 1786561272}
-  m_RootOrder: 4
+  m_RootOrder: 6
   m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
 --- !u!114 &1702022924
 MonoBehaviour:
@@ -1582,8 +2211,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mountedDirection: {x: 0, y: 1, z: -0.000000119209275}
-  maxPower: 3
+  shipRoot_offsetFromCenterOfMass: {x: -5.618888, y: 2.9899292, z: -2.554615}
+  shipRoot_direction: {x: 0, y: 1, z: -0.000000119209275}
+  shipRoot_location: {x: -5.62, y: 3.1100006, z: -9.79}
+  maxPower: 1000
+  targetPower: 0
   createMirroredThruster: 1
 --- !u!1001 &1786561271
 PrefabInstance:
@@ -1600,7 +2232,7 @@ PrefabInstance:
     - target: {fileID: -8679921383154817045, guid: 086524aa49b25144c99df4cc1f4f5364,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: 12.53
+      value: 15.6
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 086524aa49b25144c99df4cc1f4f5364,
         type: 3}
@@ -1714,6 +2346,72 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &1786561276
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1786561273}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1132b45122624940b2ca5b1b1d5d550, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bigPosition:
+    insideSectorPosition: {x: 0, y: 15.6, z: 0}
+    sectorX: 0
+    sectorY: 0
+    sectorZ: 0
+--- !u!1 &1798101405
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1798101406}
+  - component: {fileID: 1798101407}
+  m_Layer: 0
+  m_Name: mirrored thruster
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1798101406
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1798101405}
+  m_LocalRotation: {x: 0.00000005960465, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 7.842, y: 2.842171e-14, z: 0.00000047683713}
+  m_LocalScale: {x: 1, y: 1.0000001, z: 1.0000001}
+  m_Children: []
+  m_Father: {fileID: 793665991}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1798101407
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1798101405}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  shipRoot_offsetFromCenterOfMass: {x: 3.922112, y: 3.642929, z: -6.882615}
+  shipRoot_direction: {x: 0, y: 1, z: 0.00000017881395}
+  shipRoot_location: {x: 3.921, y: 3.7630005, z: -14.118}
+  maxPower: 1000
+  targetPower: 0
+  createMirroredThruster: 0
 --- !u!1 &1813588698
 GameObject:
   m_ObjectHideFlags: 0
@@ -1744,7 +2442,7 @@ Transform:
   m_Children:
   - {fileID: 974776124}
   m_Father: {fileID: 1786561272}
-  m_RootOrder: 12
+  m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1813588700
 MonoBehaviour:
@@ -1758,8 +2456,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mountedDirection: {x: 0, y: 0, z: 1}
-  maxPower: 10
+  shipRoot_offsetFromCenterOfMass: {x: -3.168888, y: 1.9199276, z: 5.255385}
+  shipRoot_direction: {x: 0, y: 0, z: 1}
+  shipRoot_location: {x: -3.17, y: 2.039999, z: -1.98}
+  maxPower: 5000
+  targetPower: 0
   createMirroredThruster: 1
 --- !u!1 &1863418331
 GameObject:
@@ -1791,7 +2492,7 @@ Transform:
   m_Children:
   - {fileID: 1314401415}
   m_Father: {fileID: 1786561272}
-  m_RootOrder: 9
+  m_RootOrder: 10
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!114 &1863418333
 MonoBehaviour:
@@ -1805,10 +2506,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mountedDirection: {x: 0, y: -1, z: -0.000000119209275}
-  maxPower: 3
+  shipRoot_offsetFromCenterOfMass: {x: -3.368888, y: 0.79992867, z: 1.2253847}
+  shipRoot_direction: {x: 0, y: -1, z: -0.000000119209275}
+  shipRoot_location: {x: -3.37, y: 0.9200001, z: -6.01}
+  maxPower: 1000
+  targetPower: 0
   createMirroredThruster: 1
---- !u!1 &1874892522
+--- !u!1 &1884309564
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1816,44 +2520,47 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1874892523}
-  - component: {fileID: 1874892524}
+  - component: {fileID: 1884309565}
+  - component: {fileID: 1884309566}
   m_Layer: 0
-  m_Name: Thruster (4)
+  m_Name: Thruster (19)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1874892523
+--- !u!4 &1884309565
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1874892522}
-  m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: -6.36, y: 2.5, z: -5.84}
+  m_GameObject: {fileID: 1884309564}
+  m_LocalRotation: {x: -0.70710677, y: 0, z: 0, w: 0.70710677}
+  m_LocalPosition: {x: -1.15, y: 2.83, z: -2.02}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
-  - {fileID: 1480842798}
+  - {fileID: 1127229439}
   m_Father: {fileID: 1786561272}
-  m_RootOrder: 5
-  m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
---- !u!114 &1874892524
+  m_RootOrder: 18
+  m_LocalEulerAnglesHint: {x: -90, y: -90, z: 90}
+--- !u!114 &1884309566
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1874892522}
+  m_GameObject: {fileID: 1884309564}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mountedDirection: {x: 0, y: 1, z: -0.000000119209275}
-  maxPower: 3
+  shipRoot_offsetFromCenterOfMass: {x: -1.148888, y: 2.7099285, z: 5.215385}
+  shipRoot_direction: {x: 0, y: 1, z: 0.00000005960465}
+  shipRoot_location: {x: -1.15, y: 2.83, z: -2.02}
+  maxPower: 1000
+  targetPower: 0
   createMirroredThruster: 1
 --- !u!1 &1926511765
 GameObject:
@@ -2037,8 +2744,58 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 284363556}
-  m_RootOrder: 0
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2035800856
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2035800857}
+  - component: {fileID: 2035800858}
+  m_Layer: 0
+  m_Name: Thruster (14)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2035800857
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2035800856}
+  m_LocalRotation: {x: -0.3934215, y: -0.3934215, z: 0.58755386, w: 0.58755386}
+  m_LocalPosition: {x: -4.611, y: 2.5970001, z: -2.94}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 1335072157}
+  m_Father: {fileID: 1786561272}
+  m_RootOrder: 13
+  m_LocalEulerAnglesHint: {x: 0, y: -67.612, z: 90}
+--- !u!114 &2035800858
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2035800856}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  shipRoot_offsetFromCenterOfMass: {x: -4.609888, y: 2.4769287, z: 4.295385}
+  shipRoot_direction: {x: -0.9246253, y: 0, z: 0.3808781}
+  shipRoot_location: {x: -4.611, y: 2.5970001, z: -2.94}
+  maxPower: 1000
+  targetPower: 0
+  createMirroredThruster: 1
 --- !u!1 &2073081518
 GameObject:
   m_ObjectHideFlags: 0
@@ -2069,7 +2826,7 @@ Transform:
   m_Children:
   - {fileID: 1570599382}
   m_Father: {fileID: 1786561272}
-  m_RootOrder: 11
+  m_RootOrder: 5
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!114 &2073081520
 MonoBehaviour:
@@ -2083,6 +2840,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0268df8f8e184642a6777cac1a04830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mountedDirection: {x: 0, y: -1, z: -0.000000119209275}
-  maxPower: 3
+  shipRoot_offsetFromCenterOfMass: {x: -14.870888, y: 1.7279282, z: -2.988615}
+  shipRoot_direction: {x: 0, y: -1, z: -0.000000119209275}
+  shipRoot_location: {x: -14.872, y: 1.8479996, z: -10.224}
+  maxPower: 1000
+  targetPower: 0
   createMirroredThruster: 1
