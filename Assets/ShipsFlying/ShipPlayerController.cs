@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System;
 
 public class ShipPlayerController : MonoBehaviour
 {
@@ -8,88 +9,112 @@ public class ShipPlayerController : MonoBehaviour
 
 	public bool coupledMode = false;
 
-	public float multiplier = 1;
+	public float multiplier = 80;
 
 	void FixedUpdate()
 	{
 		if (!shipComputer) return;
 	}
 
-	public Vector3 targetVel;
-	public Vector3 targetAngularVel;
 
-	public Vector3 targetPositionError;
-	public Vector3 targetRotationError;
+
+	Vector3 cameraRotation;
+	float cameraRotationResetIn;
 
 	// Update is called once per frame
 	void Update()
 	{
 		if (!shipComputer) return;
 
-
-		Camera.main.transform.position = shipComputer.transform.position + shipComputer.transform.rotation * new Vector3(0, 10, -20);
-		Camera.main.transform.rotation = shipComputer.transform.rotation;
-
-
 		if (Input.mouseScrollDelta.y > 0) multiplier++;
 		else if (Input.mouseScrollDelta.y < 0) multiplier--;
 		multiplier = Mathf.Clamp(multiplier, 0, 100);
 
-
-		var targetDir = new Vector3();
-
-		if (Input.GetKey(KeyCode.RightArrow)) targetDir.y += multiplier;
-		if (Input.GetKey(KeyCode.LeftArrow)) targetDir.y -= multiplier;
-
-		if (Input.GetKey(KeyCode.UpArrow)) targetDir.x += multiplier;
-		if (Input.GetKey(KeyCode.DownArrow)) targetDir.x -= multiplier;
-
-		if (Input.GetKey(KeyCode.Q)) targetDir.z += multiplier;
-		if (Input.GetKey(KeyCode.E)) targetDir.z -= multiplier;
-
-
+		var targetDir = new Vector3();		
 		var targetMove = new Vector3();
-
-		if (Input.GetKey(KeyCode.A)) targetMove.x -= multiplier;
-		if (Input.GetKey(KeyCode.D)) targetMove.x += multiplier;
-
-		if (Input.GetKey(KeyCode.W)) targetMove.z += multiplier * 5;
-		if (Input.GetKey(KeyCode.S)) targetMove.z -= multiplier * 5;
-
-		if (Input.GetKey(KeyCode.LeftControl)) targetMove.y -= multiplier;
-		if (Input.GetKey(KeyCode.Space)) targetMove.y += multiplier;
-
-		if (Input.GetKeyDown(KeyCode.C))
-			coupledMode = !coupledMode;
-
-
-
+		
+		
 		if (coupledMode)
 		{
-			targetPositionError -= shipComputer.CurrentVelocity * Time.deltaTime;
-			targetRotationError -= shipComputer.CurrentAngularVelocity * Time.deltaTime;
+			targetMove -= shipComputer.CurrentVelocity * 100;
+			targetDir -= shipComputer.CurrentAngularVelocity * 100;
 
-			// var timeToRequiredToStop = currentSpeed / accelerationSpeed;
-			// var distanceRequiredToStop = currentSpeed * timeToRequiredToStop - accelerationSpeed * 1 / 2 * timeToRequiredToStop * timeToRequiredToStop;
-
-			var accelerationSpeed = 5;
-			var timeToRequiredToStop = shipComputer.CurrentVelocity / accelerationSpeed;
-			//var distanceRequiredToStop = controllerComputer.CurrentVelocity * timeToRequiredToStop - accelerationSpeed * 1 / 2 * timeToRequiredToStop * timeToRequiredToStop;		
-
-			const float C = 0.1f;
-			//targetMove = (targetPositionError + acceleration) * C;
-			//targetDir = (targetRotationError + angularAcceleration) * C;
+			//targetMove -= shipComputer.CurrentVelocity.normalized * (targetMove.magnitude > 0 ? targetMove.magnitude : multiplier) *
+			//	Math.Max(0, 1 - Vector3.Dot(targetMove.normalized, shipComputer.CurrentVelocity.normalized));
+				
+			//targetDir -= shipComputer.CurrentAngularVelocity.normalized * (targetDir.magnitude > 0 ? targetDir.magnitude : multiplier) *
+			//	Math.Max(0, 1 - Vector3.Dot(targetDir.normalized, shipComputer.CurrentAngularVelocity.normalized));
 		}
 
-		if (Input.GetKey(KeyCode.F)) targetMove = -shipComputer.CurrentVelocity;
-		if (Input.GetKey(KeyCode.R)) targetDir = -shipComputer.CurrentAngularVelocity;
+		if (Input.GetKey(KeyCode.F)) targetMove -= shipComputer.CurrentVelocity * multiplier;
+		if (Input.GetKey(KeyCode.R)) targetDir -= shipComputer.CurrentAngularVelocity * multiplier;
 
+
+
+		// User input should override automated adjustments
+
+		float dirMultiplier = multiplier;
+
+		if (Input.GetKey(KeyCode.RightArrow)) targetDir.y = +1 * dirMultiplier;
+		if (Input.GetKey(KeyCode.LeftArrow)) targetDir.y = -1 * dirMultiplier;
+
+		if (Input.GetKey(KeyCode.UpArrow)) targetDir.x = +1 * dirMultiplier;
+		if (Input.GetKey(KeyCode.DownArrow)) targetDir.x = -1 * dirMultiplier;
+
+		if (Input.GetKey(KeyCode.Q)) targetDir.z = +1 * dirMultiplier;
+		if (Input.GetKey(KeyCode.E)) targetDir.z = -1 * dirMultiplier;
+
+
+		if (Input.GetKey(KeyCode.A)) targetMove.x = -multiplier * 0.3f;
+		if (Input.GetKey(KeyCode.D)) targetMove.x = +multiplier * 0.3f;
+
+		if (Input.GetKey(KeyCode.W)) targetMove.z = +multiplier;
+		if (Input.GetKey(KeyCode.S)) targetMove.z = -multiplier;
+
+		if (Input.GetKey(KeyCode.LeftControl)) targetMove.y = -multiplier * 0.3f;
+		if (Input.GetKey(KeyCode.Space)) targetMove.y = +multiplier * 0.3f;
+
+		if (Input.GetKeyDown(KeyCode.C)) coupledMode = !coupledMode;
 
 		float mass = shipComputer.ShipMass;
 		targetMove *= mass;
 		targetDir *= mass;
 
 		shipComputer.SetTarget(targetMove, targetDir);
+
+
+		
+		
+
+		var mouseX = Input.GetAxis("Mouse X");
+		var mouseY = Input.GetAxis("Mouse Y");
+
+		if (mouseX == 0 && mouseY == 0)
+		{
+			cameraRotationResetIn -= Time.deltaTime;
+		}
+		else
+		{
+			cameraRotationResetIn = 2;
+			var r = 100 * Time.deltaTime;
+			cameraRotation.y += mouseX * r;
+			cameraRotation.x += -mouseY * r;
+		}
+
+		if (Input.GetKey(KeyCode.LeftAlt))
+		{
+			cameraRotationResetIn = 0;
+		}
+
+		if (cameraRotationResetIn <= 0) 
+		{
+			cameraRotation = Vector3.Slerp(cameraRotation, Vector3.zero, 10 * Time.deltaTime);
+		}
+
+		var camera = FloatingOriginCamera.Main;
+		camera.Rotation = shipComputer.transform.rotation * Quaternion.Euler(cameraRotation);
+		camera.VisualPosition = shipComputer.transform.position + camera.Rotation * (Vector3.up * 5 + Vector3.back * (17 + shipComputer.CurrentVelocity.magnitude / 50));
+
 	}
 
 	void OnGUI()

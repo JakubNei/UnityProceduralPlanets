@@ -32,6 +32,9 @@ public class ThrusterObject : MonoBehaviour
 	float targetPower;
 
 	[SerializeField]
+	float currentPower;
+
+	[SerializeField]
 	bool createMirroredThruster = false;
 
 	ParticleSystemControl[] particles;
@@ -40,17 +43,17 @@ public class ThrusterObject : MonoBehaviour
 	{
 		public GameObject gameObject { get { return ps.gameObject; } }
 		ParticleSystem ps;
-		float originalRateOverTimeMultiplier;
+		Color originalColor;
 
 		public ParticleSystemControl(ParticleSystem ps)
 		{
 			this.ps = ps;
-			originalRateOverTimeMultiplier = ps.emission.rateOverTimeMultiplier;
+			originalColor = ps.main.startColor.color;
 		}
-		public void Adjust(float ratio)
+		public void SetRatio(float ratio)
 		{
-			var emission = ps.emission;
-			emission.rateOverTimeMultiplier = originalRateOverTimeMultiplier * ratio;
+			var main = ps.main;
+			main.startColor = new Color(originalColor.r, originalColor.g, originalColor.b, originalColor.a * ratio);
 		}
 
 	}
@@ -81,7 +84,7 @@ public class ThrusterObject : MonoBehaviour
 		{
 			if (a > 0)
 			{
-				p.Adjust(a);
+				p.SetRatio(a);
 				p.gameObject.SetActive(true);
 			}
 			else
@@ -101,8 +104,10 @@ public class ThrusterObject : MonoBehaviour
 	// Update is called once per frame
 	void Update()
 	{
-		if (targetPower > 0)
-			SetParticles(targetPower * 3);
+		currentPower = Mathf.Lerp(currentPower, targetPower, Time.deltaTime * 30.0f);
+
+		if (currentPower > 0)
+			SetParticles(currentPower / MaxPower);
 		else
 			SetParticles(0);
 	}
@@ -137,28 +142,32 @@ public class ThrusterObject : MonoBehaviour
 			Gizmos.DrawFrustum(Vector3.zero, 20, visual(maxPower), 0, 1);
 			Gizmos.color = new Color(targetPower > 0 ? 0.3f : 0, 0, 1);
 			Gizmos.DrawFrustum(Vector3.zero, 20, visual(MaxPower), 0, 1);
-			Gizmos.color = Color.red;
+			Gizmos.color = new Color(0.5f, 0, 0);
 			Gizmos.DrawFrustum(Vector3.zero, 19, visual(targetPower), 0, 1);
+			Gizmos.color = new Color(1, 0, 0);
+			Gizmos.DrawFrustum(Vector3.zero, 19, visual(currentPower), 0, 1);
 
 			// Maintain mirrored thruster game object
 			{
-				const string mirroredGoName = "mirrored thruster";
+				string mirroredGoName = "mirrored thruster for: " + this.gameObject.name;
 				ThrusterObject mirrored = null;
-				for (int i = 0; i < this.transform.childCount; ++i)
+				for (int i = 0; i < this.transform.parent.childCount; ++i)
 				{
-					if (this.transform.GetChild(i).name != mirroredGoName) continue;
-					mirrored = this.transform.GetChild(i).GetComponent<ThrusterObject>();
+					if (this.transform.parent.GetChild(i).name != mirroredGoName) continue;
+					mirrored = this.transform.parent.GetChild(i).GetComponent<ThrusterObject>();
 					if (mirrored) break;
 				}
 
 				if (createMirroredThruster)
 				{
 					if (!mirrored)
-					{
-						var g = new GameObject(mirroredGoName);
+					{						
+						var g = GameObject.Instantiate(this.gameObject);
+						g.name = mirroredGoName;
 						g.hideFlags = HideFlags.None;
-						g.transform.parent = this.transform;
-						mirrored = g.AddComponent<ThrusterObject>();
+						g.transform.parent = this.transform.parent;
+						mirrored = g.GetComponent<ThrusterObject>();
+						mirrored.createMirroredThruster = false;
 					}
 
 					if (mirrored)
@@ -173,7 +182,7 @@ public class ThrusterObject : MonoBehaviour
 				}
 				else if (mirrored)
 				{
-					Destroy(mirrored.gameObject);
+					DestroyImmediate(mirrored.gameObject);
 				}
 			}
 		}
@@ -185,7 +194,7 @@ public class ThrusterObject : MonoBehaviour
 		{
 			var worldDirection = ShipRoot.TransformDirection(shipRoot_direction);
 			rb.AddForceAtPosition(
-				-worldDirection * targetPower,
+				-worldDirection * currentPower,
 				transform.position,
 				ForceMode.Force
 			);

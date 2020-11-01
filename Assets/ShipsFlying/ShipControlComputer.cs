@@ -15,9 +15,9 @@ public class ShipControlComputer : MonoBehaviour
 	public float ShipMass => rigidbody.mass;
 	public Vector3 CurrentVelocity => rigidbody.transform.InverseTransformDirection(rigidbody.velocity);
 	public Vector3 CurrentAngularVelocity => rigidbody.transform.InverseTransformDirection(rigidbody.angularVelocity);
-	public Vector3 CurrentForce { get; private set;}
+	public Vector3 CurrentForce { get; private set; }
 
-	public Vector3 CurrentAngularForce { get; private set;}
+	public Vector3 CurrentAngularForce { get; private set; }
 
 	public bool calculateVisuallyGoodForce = true;
 	public bool calculateVisuallyGoodTorque = true;
@@ -218,7 +218,7 @@ public class ShipControlComputer : MonoBehaviour
 			thruster.SetPower(power);
 
 			CurrentForce += thruster.shipRoot_direction * power;
-			CurrentForce += thruster.shipRoot_torqueWithPowerOne * power;
+			CurrentAngularForce += thruster.shipRoot_torqueWithPowerOne * power;
 		}
 
 
