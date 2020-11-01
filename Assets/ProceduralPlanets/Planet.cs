@@ -69,6 +69,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 
 	public List<Chunk> rootChildren;
 
+	public bool markedForRegeneration;
 
 	public static HashSet<Planet> allPlanets = new HashSet<Planet>();
 
@@ -193,8 +194,9 @@ public partial class Planet : MonoBehaviour, IDisposable
 
 	void LateUpdate()
 	{
-		if (Input.GetKeyDown(KeyCode.R))
+		if (markedForRegeneration)
 		{
+			markedForRegeneration = false;
 			ReGeneratePlanet();
 			return;
 		}

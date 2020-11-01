@@ -5,6 +5,7 @@ using UnityEngine.Rendering;
 
 public class GenerateAndSetSpaceSkyBox : MonoBehaviour
 {
+	public bool markedForRegeneration;
 
 	public ComputeShader shader;
 
@@ -39,7 +40,9 @@ public class GenerateAndSetSpaceSkyBox : MonoBehaviour
 	private void Update()
 	{
 		if (resolution != GetIdealResolution())
+		{ 
 			delyedResolutionChangeRegenerate++;
+		}
 
 		if (delyedResolutionChangeRegenerate > 120)
 		{
@@ -48,8 +51,11 @@ public class GenerateAndSetSpaceSkyBox : MonoBehaviour
 			Generate();
 		}
 
-		if (Input.GetKeyDown(refreshKey))
+		if (markedForRegeneration)
+		{
+			markedForRegeneration = false;
 			Generate();
+		}
 	}
 
 	int GetIdealResolution()

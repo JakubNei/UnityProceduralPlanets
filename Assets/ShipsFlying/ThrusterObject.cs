@@ -17,9 +17,13 @@ public class ThrusterObject : MonoBehaviour
 	public Vector3 shipRoot_location;
 
 	[SerializeField]
+	public Vector3 shipRoot_torqueWithPowerOne;
+
+	[SerializeField]
 	Vector3 shipRoot_centerOfMass;
 
-	public float MaxPower { get { return maxPower; } }
+	public float health = 1;
+	public float MaxPower { get { return gameObject.activeSelf ? maxPower * health: 0; } }
 
 	[SerializeField]
 	float maxPower = 5;
@@ -63,6 +67,7 @@ public class ThrusterObject : MonoBehaviour
 		shipRoot_direction = ShipRoot.InverseTransformDirection(this.transform.forward).normalized;
 		this.shipRoot_centerOfMass = shipRoot_centerOfMass;
 		shipRoot_offsetFromCenterOfMass = shipRoot_location - shipRoot_centerOfMass;
+		shipRoot_torqueWithPowerOne = Vector3.Cross(shipRoot_direction, shipRoot_offsetFromCenterOfMass);
 
 		SetParticles(0);
 	}
@@ -86,11 +91,11 @@ public class ThrusterObject : MonoBehaviour
 		}
 	}
 
-	public void SetThrust(double targetForce)
+	public void SetPower(float power)
 	{
-		if (targetForce < 0) targetForce = 0;
-		if (targetForce > MaxPower) targetForce = MaxPower;
-		this.targetPower = (float)targetForce;
+		if (power < 0) power = 0;
+		if (power > MaxPower) power = MaxPower;
+		targetPower = power;
 	}
 
 	// Update is called once per frame
@@ -116,7 +121,7 @@ public class ThrusterObject : MonoBehaviour
 		{
 			Rigidbody rigidBody = ShipRoot.GetComponent<Rigidbody>();
 
-			Gizmos.color = Color.red;
+			Gizmos.color = Color.blue;
 			Gizmos.DrawLine(ShipRoot.TransformPoint(shipRoot_centerOfMass) + ShipRoot.TransformVector(shipRoot_offsetFromCenterOfMass), rigidBody.worldCenterOfMass);
 			//Gizmos.DrawLine(ShipRoot.TransformPoint(shipRoot_location), ShipRoot.TransformPoint(shipRoot_location) + ShipRoot.TransformVector(Vector3.Cross(shipRoot_direction, shipRoot_offsetFromCenterOfMass)));
 
@@ -127,9 +132,11 @@ public class ThrusterObject : MonoBehaviour
 				Quaternion.LookRotation(ShipRoot.TransformDirection(shipRoot_direction)), 
 				transform.lossyScale
 			);
-			Gizmos.color = Color.blue;
-			Gizmos.color = Color.blue;
+
+			Gizmos.color = new Color(targetPower > 0 ? 0.3f : 0, 0, 0.5f);
 			Gizmos.DrawFrustum(Vector3.zero, 20, visual(maxPower), 0, 1);
+			Gizmos.color = new Color(targetPower > 0 ? 0.3f : 0, 0, 1);
+			Gizmos.DrawFrustum(Vector3.zero, 20, visual(MaxPower), 0, 1);
 			Gizmos.color = Color.red;
 			Gizmos.DrawFrustum(Vector3.zero, 19, visual(targetPower), 0, 1);
 
