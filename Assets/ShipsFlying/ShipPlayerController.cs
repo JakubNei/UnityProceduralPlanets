@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System;
+using UnityEngine.UIElements;
 
 public class ShipPlayerController : MonoBehaviour
 {
@@ -36,8 +37,8 @@ public class ShipPlayerController : MonoBehaviour
 		
 		if (coupledMode)
 		{
-			targetMove -= shipComputer.CurrentVelocity;
-			targetDir -= shipComputer.CurrentAngularVelocity;
+			targetMove -= shipComputer.CurrentVelocity * multiplier;;
+			targetDir -= shipComputer.CurrentAngularVelocity * multiplier;;
 
 			//targetMove -= shipComputer.CurrentVelocity.normalized * (targetMove.magnitude > 0 ? targetMove.magnitude : multiplier) *
 			//	Math.Max(0, 1 - Vector3.Dot(targetMove.normalized, shipComputer.CurrentVelocity.normalized));
@@ -113,9 +114,13 @@ public class ShipPlayerController : MonoBehaviour
 
 		var camera = FloatingOriginCamera.main;
 		camera.Rotation = shipComputer.transform.rotation * Quaternion.Euler(cameraRotation);
-		camera.VisualPosition = shipComputer.transform.position + camera.Rotation * (Vector3.up * 5 + Vector3.back * (17 + shipComputer.CurrentVelocity.magnitude / 50));
-
+		
+		cameraDistance = Mathf.Lerp(cameraDistance, shipComputer.CurrentForce.magnitude / 50, Time.deltaTime * 0.1f);
+		cameraDistance = Mathf.Clamp(cameraDistance, 1, 2);
+		camera.VisualPosition = shipComputer.transform.position + camera.Rotation * (Vector3.up * 5 + Vector3.back * 20) * cameraDistance;
 	}
+
+	float cameraDistance = 1;
 
 	void OnGUI()
 	{

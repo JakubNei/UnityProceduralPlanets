@@ -54,7 +54,7 @@ public class PlanetAffectedCamera : MonoBehaviour
 	public PhysicMaterial physicMaterial;
 
 
-	private void Update()
+	private void LateUpdate()
 	{
 		var camera = FloatingOriginCamera.main;
 		camera.BigPosition = floatingOrigin.BigPosition;
@@ -66,6 +66,10 @@ public class PlanetAffectedCamera : MonoBehaviour
 	{
 		UpdatePosition(Time.fixedDeltaTime);
 		ApplyGravity();
+
+		var camera = FloatingOriginCamera.main;
+		camera.BigPosition = floatingOrigin.BigPosition;
+		camera.Rotation = floatingOrigin.Rotation;
 	}
 
 	void MoveToClosestPlanetSurface()
@@ -298,7 +302,7 @@ public class PlanetAffectedCamera : MonoBehaviour
 
 			if (rb)
 			{
-				// change fricton based on whether we want to move or not
+				// change friction based on whether we want to move or not
 				var targetFriction = 1;
 				if (targetForce.sqrMagnitude > 0)
 					targetFriction = 0;

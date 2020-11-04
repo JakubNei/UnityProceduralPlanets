@@ -18,6 +18,8 @@ public class ThrusterObject : MonoBehaviour
 
 	[SerializeField]
 	public Vector3 shipRoot_torqueWithPowerOne;
+	[SerializeField]
+	public Vector3 shipRoot_torqueWithPowerOne_normalized;
 
 	[SerializeField]
 	Vector3 shipRoot_centerOfMass;
@@ -71,6 +73,7 @@ public class ThrusterObject : MonoBehaviour
 		this.shipRoot_centerOfMass = shipRoot_centerOfMass;
 		shipRoot_offsetFromCenterOfMass = shipRoot_location - shipRoot_centerOfMass;
 		shipRoot_torqueWithPowerOne = Vector3.Cross(shipRoot_direction, shipRoot_offsetFromCenterOfMass);
+		shipRoot_torqueWithPowerOne_normalized = shipRoot_torqueWithPowerOne.normalized;
 
 		SetParticles(0);
 	}
