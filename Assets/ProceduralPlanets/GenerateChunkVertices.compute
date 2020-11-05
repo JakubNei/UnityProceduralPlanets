@@ -139,9 +139,9 @@ float3 calculateVertexPosition(uint2 id, float moveEdgeVerticesDown)
 
 float3 calculateVertexNormal(uint2 id)
 {
-	int maxId = _numberOfVerticesOnEdge - 1;
-	float3 n = float3(0, 0, 0);
-	int c = 0;
+	const int maxId = _numberOfVerticesOnEdge - 1;
+	float3 normal = float3(0, 0, 0);
+	int count = 0;
 
 	//   /\ y
 	//   
@@ -149,62 +149,50 @@ float3 calculateVertexNormal(uint2 id)
 	//   |             |
 	// p01 --- p11 --- p21
 	//   |             |
-	//    ---- p10 ----    ---> x
-	
+	//    ---- p10 ----    ---> x	
 
-	float3 p11 = calculateVertexPosition(id.xy, 0);	
+	const float3 p11 = calculateVertexPosition(id.xy, 0);	
+	const float3 p01 = calculateVertexPosition(id.xy + uint2(-1, 0), 0);
+	const float3 p12 = calculateVertexPosition(id.xy + uint2(0, +1), 0);
+	const float3 p21 = calculateVertexPosition(id.xy + uint2(+1, 0), 0);
+	const float3 p10 = calculateVertexPosition(id.xy + uint2(0, -1), 0);
+
+	const float3 p12_p11 = normalize(p12 - p11);
+	const float3 p01_p11 = normalize(p01 - p11);
+	const float3 p10_p11 = normalize(p10 - p11);
+	const float3 p21_p11 = normalize(p21 - p11);
 
 	if (id.x > 0)
 	{
-		float3 p01 = calculateVertexPosition(id.xy + uint2(-1, 0), 0);
-
 		if (id.y < maxId)
 		{
-			float3 p12 = calculateVertexPosition(id.xy + uint2(0, +1), 0);
-			n += cross(normalize(p12 - p11), normalize(p01 - p11));
-			++c;
+			normal += cross(p12_p11, p01_p11);
+			++count;
 		}
 		
 		if (id.y > 0)
 		{
-			float3 p10 = calculateVertexPosition(id.xy + uint2(0, -1), 0);
-			n += cross(normalize(p01 - p11), normalize(p10 - p11));
-			++c;
+			normal += cross(p01_p11, p10_p11);
+			++count;
 		}
 	}
 
 	if (id.x < maxId)
 	{
-		float3 p21 = calculateVertexPosition(id.xy + uint2(+1, 0), 0);
-
 		if (id.y < maxId)
 		{
-			float3 p12 = calculateVertexPosition(id.xy + uint2(0, +1), 0);
-			n += cross(normalize(p21 - p11), normalize(p12 - p11));
-			++c;
+			normal += cross(p21_p11, p12_p11);
+			++count;
 		}
 
 		if (id.y > 0)
 		{
-			float3 p10 = calculateVertexPosition(id.xy + uint2(0, -1), 0);
-			n += cross(normalize(p10 - p11), normalize(p21 - p11));
-			++c;
+			normal += cross(p10_p11, p21_p11);
+			++count;
 		}
 	}
 
-	/*
-	float3 p11 = calculateVertexPosition(id.xy, 0);	
-	float3 p01 = calculateVertexPosition(id.xy + uint2(-1, 0), 0);
-	float3 p12 = calculateVertexPosition(id.xy + uint2(0, +1), 0);
-	float3 p21 = calculateVertexPosition(id.xy + uint2(+1, 0), 0);
-	float3 p10 = calculateVertexPosition(id.xy + uint2(0, -1), 0);
-	n += cross(normalize(p12 - p11), normalize(p01 - p11));
-	n += cross(normalize(p01 - p11), normalize(p10 - p11));
-	n += cross(normalize(p21 - p11), normalize(p12 - p11));
-	n += cross(normalize(p10 - p11), normalize(p21 - p11));
-	c = 4;*/
-
-	return normalize(n / c);
+	return normalize(normal / count);
 }
 
 [numthreads(1, 1, 1)]

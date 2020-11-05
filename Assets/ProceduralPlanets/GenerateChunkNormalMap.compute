@@ -23,7 +23,7 @@ RWTexture2D<float4> _chunkNormalMap;
 RWTexture2D<float4> _chunkSlopeMap;
 
 
-double3 positionAt(float2 uv)
+double3 calculatePositionAt(float2 uv)
 {
 	float3 unitCubePos = lerp(
 		lerp(_rangeUnitCubePosA, _rangeUnitCubePosB, uv.x),
@@ -41,34 +41,86 @@ double3 positionAt(float2 uv)
 	return dir * height;
 }
 
+double3 calculatePixelNormal(uint2 id)
+{
+	int w, h;
+	_chunkHeightMap.GetDimensions(w, h);
+	const int2 maxId = int2(w - 1, h - 1);
+	const float2 uv = id.xy / float2(w - 1, h - 1);
+	const float offset = 0.05;
+	float3 normal = float3(0, 0, 0);
+	int count = 0;
+
+	//   /\ y
+	//   
+	//    ---- p12 ----
+	//   |             |
+	// p01 --- p11 --- p21
+	//   |             |
+	//    ---- p10 ----    ---> x	
+
+	const double3 p11 = calculatePositionAt(uv);
+	const double3 p01 = calculatePositionAt(uv + float2(-offset, 0));
+	const double3 p12 = calculatePositionAt(uv + float2(0, +offset));
+	const double3 p21 = calculatePositionAt(uv + float2(+offset, 0));
+	const double3 p10 = calculatePositionAt(uv + float2(0, -offset));
+
+	const double3 p12_p11 = normalize(p12 - p11);
+	const double3 p01_p11 = normalize(p01 - p11);
+	const double3 p10_p11 = normalize(p10 - p11);
+	const double3 p21_p11 = normalize(p21 - p11);
+
+	if (id.x > 0)
+	{
+		if (id.y < maxId.y)
+		{
+			normal += cross(p12_p11, p01_p11);
+			++count;
+		}
+		
+		if (id.y > 0)
+		{
+			normal += cross(p01_p11, p10_p11);
+			++count;
+		}
+	}
+
+	if (id.x < maxId.x)
+	{
+		if (id.y < maxId.y)
+		{
+			normal += cross(p21_p11, p12_p11);
+			++count;
+		}
+
+		if (id.y > 0)
+		{
+			normal += cross(p10_p11, p21_p11);
+			++count;
+		}
+	}
+
+	return normalize(normal / count);
+}
+
 
 [numthreads(16, 16, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
-	int w, h;
-	_chunkHeightMap.GetDimensions(w, h);
-	float2 uv = id.xy / float2(w - 1, h - 1);
-
-	float offset = 0.05;
-	double3 c00 = positionAt(uv);
-	double3 c10 = positionAt(uv + float2(offset, 0));
-	double3 c01 = positionAt(uv + float2(0, offset));
-
-	double3 tangent = normalize(c10 - c00);
-	double3 bitangent = normalize(c01 - c00);
-
-	double3 worldNormal = cross(tangent, bitangent);
-
+	double3 worldNormal = calculatePixelNormal(id.xy);
 
 	//DEBUG
 	//worldNormal = float3(0.5, 0.5, 1);
 	//worldNormal = float3(1, 0, 0);
 	//worldNormal = normal;
-
-	worldNormal = normalize(worldNormal);
-	_chunkNormalMap[id.xy] = float4(PACK_NORMAL(worldNormal), 1);
-
 	
+	_chunkNormalMap[id.xy] = float4(PACK_NORMAL(worldNormal), 1);
+	
+
+	int w, h;
+	_chunkHeightMap.GetDimensions(w, h);
+	int2 maxId = int2(w - 1, h - 1);
+	float2 uv = id.xy / float2(w - 1, h - 1);
 
 	float3 unitCubePos = lerp(
 		lerp(_rangeUnitCubePosA, _rangeUnitCubePosB, uv.x),

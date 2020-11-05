@@ -63,7 +63,7 @@ public class PlanetAffectedCamera : MonoBehaviour
 	private void FixedUpdate()
 	{
 		UpdatePosition(Time.fixedDeltaTime);
-		ApplyGravity();
+		if (walkOnPlanet) ApplyGravity();
 
 		var camera = FloatingOriginCamera.main;
 		camera.BigPosition = floatingOrigin.BigPosition;

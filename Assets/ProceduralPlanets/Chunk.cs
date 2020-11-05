@@ -600,10 +600,12 @@ public class Chunk : IDisposable
 
 		var c = chunkConfig.generateChunkDiffuseMap;
 		SetAll(c, 0);
-		c.SetFloat("_mipMapLevel", Mathf.Max(1, chunkRadius / 10.0f) - 1);
+		c.SetFloat("_mipMapLevel", Mathf.Max(1, chunkRadius / 100.0f) - 1);
 		c.SetTexture(0, "_grass", chunkConfig.grass);
 		c.SetTexture(0, "_clay", chunkConfig.clay);
 		c.SetTexture(0, "_rock", chunkConfig.rock);
+		c.SetTexture(0, "_snow", chunkConfig.snow);
+		c.SetTexture(0, "_tundra", chunkConfig.tundra);
 		c.SetBuffer(0, "_craterSpherePositionRadius", planet.craters.gpuBuffer);
 		c.SetTexture(0, "_chunkDiffuseMap", generatingData.chunkDiffuseMap);
 		c.Dispatch(0, generatingData.chunkDiffuseMap.width / 16, generatingData.chunkDiffuseMap.height / 16, 1);

@@ -48,6 +48,8 @@ public partial class Planet : MonoBehaviour, IDisposable
 		public Texture2D grass;
 		public Texture2D clay;
 		public Texture2D rock;
+		public Texture2D snow;
+		public Texture2D tundra;
 	}
 	public ChunkConfig chunkConfig;
 
