@@ -15,12 +15,15 @@ public class BiomeProcessor
 top 2 weighted biomes would then adjust height and color ?
 */
 
+
 struct BiomeData {
 	float3 dir;
-	float2 slopeXY;
-	float humidity;
-	float altidute;
+	float slope;
 };
+
+
+
+
 
 struct BiomeResult {
 	int biome1Index;
@@ -31,15 +34,30 @@ struct BiomeResult {
 
 BiomeResult selectBiome(BiomeData data)
 {
-	float slope = saturate(length(data.slopeXY));
+	data.slope = _chunkSlopeMap[id.xy].x * 7;
 
 
-	float distanceToPoles = smoothstep(0.4, 1, abs(data.dir.z));
-	float snowWeight = data.altidute + distanceToPoles + snoise(data.dir * 100, 5, 2) * 0.1;
+
 
 	BiomeResult result;
 	
 	result.biome1Weight = 1;
+
+
+
+	float slope = data.slope;
+	float altidute = height01;
+	float3 biomeAdjustmentNoise = snoise_grad(pos / 50, 10, 1.4);
+	//biomeAdjustmentNoise = 0;
+
+
+	float snowWeight = smoothstep(0.2, 0, slope) * (smoothstep(0.8, 1, abs(dir.z)) * 2 + altidute * 2);
+	float tundraWeight = smoothstep(0.8, 0, slope) * (smoothstep(0.5, 1, abs(dir.z)) + altidute + 0.01*biomeAdjustmentNoise.z);
+	float rockWeight = smoothstep(0.5, 1, slope)*5 + 0.003*biomeAdjustmentNoise.x;
+	float clayWeight = smoothstep(0, 0.2, slope)*0.3 + 0.02*biomeAdjustmentNoise.y;
+	float grassWeight = smoothstep(0.8, 0, slope) + 0.05*biomeAdjustmentNoise.z;
+
+
 
 	if (slope > 0.3) {
 		result.biome1Index = 0; // rock

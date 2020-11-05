@@ -48,7 +48,6 @@ public class Chunk : IDisposable
 		public RenderTexture chunkWorldNormalMap;
 		public RenderTexture chunkTangentNormalMap;
 		public RenderTexture chunkDiffuseMap;
-		public RenderTexture chunkSlopeMap;
 		public Mesh mesh;
 		~GeneratedData()
 		{
@@ -68,8 +67,6 @@ public class Chunk : IDisposable
 			chunkTangentNormalMap = null;
 			if (chunkDiffuseMap) chunkDiffuseMap.Release();
 			chunkDiffuseMap = null;
-			if (chunkSlopeMap) chunkSlopeMap.Release();
-			chunkSlopeMap = null;
 		}
 	};
 
@@ -101,10 +98,9 @@ public class Chunk : IDisposable
 	public float chunkRadius;
 
 	int HeightMapResolution { get { return chunkConfig.textureResolution; } }
-	int NormalMapResolution { get { return HeightMapResolution; } }
-	int DiffuseMapResolution { get { return NormalMapResolution; } }
-	int SlopeMapResolution { get { return HeightMapResolution; } }
-	int BiomesMapResolution { get { return 16; } }
+	int TangentNormalMapResolution { get { return HeightMapResolution; } }
+	int WorldNormalMapResolution { get { return HeightMapResolution; } }
+	int DiffuseMapResolution { get { return TangentNormalMapResolution; } }
 
 	public static Chunk Create(Planet planet, Range range, ulong id, Chunk parent = null, int treeDepth = 0, ChildPosition childPosition = ChildPosition.NoneNoParent)
 	{
@@ -318,8 +314,8 @@ public class Chunk : IDisposable
 
 		c.SetTexture(kernelIndex, "_planetHeightMap", planetConfig.planetHeightMap);
 		if (generatingData.chunkHeightMap != null) c.SetTexture(kernelIndex, "_chunkHeightMap", generatingData.chunkHeightMap);
-		if (generatingData.chunkWorldNormalMap != null) c.SetTexture(kernelIndex, "_chunkNormalMap", generatingData.chunkWorldNormalMap);
-		if (generatingData.chunkSlopeMap != null) c.SetTexture(kernelIndex, "_chunkSlopeMap", generatingData.chunkSlopeMap);
+		if (generatingData.chunkWorldNormalMap != null) c.SetTexture(kernelIndex, "_chunkWorldNormalMap", generatingData.chunkWorldNormalMap);
+		if (generatingData.chunkTangentNormalMap != null) c.SetTexture(kernelIndex, "_chunkTangentNormalMap", generatingData.chunkTangentNormalMap);
 
 		c.SetFloat("_slopeModifier", SlopeModifier);
 
@@ -538,7 +534,8 @@ public class Chunk : IDisposable
 		var c = chunkConfig.generateChunkNormapMap;
 		if (c == null) return;
 
-		if (generatingData.chunkWorldNormalMap != null && generatingData.chunkWorldNormalMap.width != NormalMapResolution)
+
+		if (generatingData.chunkWorldNormalMap != null && generatingData.chunkWorldNormalMap.width != WorldNormalMapResolution)
 		{
 			generatingData.chunkWorldNormalMap.Release();
 			generatingData.chunkWorldNormalMap = null;
@@ -546,27 +543,29 @@ public class Chunk : IDisposable
 
 		if (generatingData.chunkWorldNormalMap == null)
 		{
-			generatingData.chunkWorldNormalMap = new RenderTexture(NormalMapResolution, NormalMapResolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+			generatingData.chunkWorldNormalMap = new RenderTexture(WorldNormalMapResolution, WorldNormalMapResolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
 			generatingData.chunkWorldNormalMap.wrapMode = TextureWrapMode.Clamp;
 			generatingData.chunkWorldNormalMap.filterMode = FilterMode.Bilinear;
 			generatingData.chunkWorldNormalMap.enableRandomWrite = true;
 			generatingData.chunkWorldNormalMap.Create();
 		}
 
-		if (generatingData.chunkSlopeMap != null && generatingData.chunkSlopeMap.width != SlopeMapResolution)
+
+		if (generatingData.chunkTangentNormalMap != null && generatingData.chunkTangentNormalMap.width != TangentNormalMapResolution)
 		{
-			generatingData.chunkSlopeMap.Release();
-			generatingData.chunkSlopeMap = null;
+			generatingData.chunkTangentNormalMap.Release();
+			generatingData.chunkTangentNormalMap = null;
 		}
 
-		if (generatingData.chunkSlopeMap == null)
+		if (generatingData.chunkTangentNormalMap == null)
 		{
-			generatingData.chunkSlopeMap = new RenderTexture(SlopeMapResolution, SlopeMapResolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
-			generatingData.chunkSlopeMap.wrapMode = TextureWrapMode.Clamp;
-			generatingData.chunkSlopeMap.filterMode = FilterMode.Bilinear;
-			generatingData.chunkSlopeMap.enableRandomWrite = true;
-			generatingData.chunkSlopeMap.Create();
+			generatingData.chunkTangentNormalMap = new RenderTexture(TangentNormalMapResolution, TangentNormalMapResolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+			generatingData.chunkTangentNormalMap.wrapMode = TextureWrapMode.Clamp;
+			generatingData.chunkTangentNormalMap.filterMode = FilterMode.Bilinear;
+			generatingData.chunkTangentNormalMap.enableRandomWrite = true;
+			generatingData.chunkTangentNormalMap.Create();
 		}
+
 
 		SetAll(c, 0);
 
@@ -576,7 +575,6 @@ public class Chunk : IDisposable
 
 		c.Dispatch(0, generatingData.chunkWorldNormalMap.width / 16, generatingData.chunkWorldNormalMap.height / 16, 1);
 	}
-
 
 
 	void GenerateDiffuseMap()
@@ -656,13 +654,19 @@ public class Chunk : IDisposable
 		return typeof(Chunk) + " treeDepth:" + treeDepth + " id:#" + id;
 	}
 
+
+	~Chunk()
+	{
+		Dispose();
+	}
+
 	public void Dispose()
 	{
+		if (vertexCPUBuffer.IsCreated) vertexCPUBuffer.Dispose();
+
 		generatingData = null;
 		FullyGeneratedData = null;
 		vertexGPUBuffer = null;
-
-		if (vertexCPUBuffer.IsCreated) vertexCPUBuffer.Dispose();
 	}
 
 
