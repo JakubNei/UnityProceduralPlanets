@@ -59,7 +59,7 @@ public class ChunkRenderer : MonoBehaviour
 		}
 
 		if (material && generatedData.chunkDiffuseMap) material.mainTexture = generatedData.chunkDiffuseMap;
-		//if (material && generatedData.chunkNormalMap) material.SetTexture("_BumpMap", generatedData.chunkNormalMap);
+		if (material && generatedData.chunkTangentNormalMap) material.SetTexture("_BumpMap", generatedData.chunkTangentNormalMap);
 	}
 
 	public void Hide()

@@ -25,8 +25,15 @@ float _heightMax;
 
 float _moveEdgeVerticesDown;
 
+struct PerVertexData
+{
+	float3 position;
+	float3 normal;
+	float3 tangent;
+};
 
-RWStructuredBuffer<float3> _vertices;
+
+RWStructuredBuffer<PerVertexData> _vertices;
 
 
 StructuredBuffer<float4> _craterSpherePositionRadius;
@@ -54,8 +61,11 @@ void generateUsingPlanetGlobalPos(uint3 id : SV_DispatchThreadID)
 	//DEBUG
 	//height = 0;
 	//height = clamp(height, 0, 1000);
-
-	_vertices[id.x + id.y * _numberOfVerticesOnEdge] = dir * height;
+	PerVertexData data;
+	data.position = dir * height;
+	data.normal = float3(1, 0, 0);
+	data.tangent = float3(1, 0, 0);
+	_vertices[id.x + id.y * _numberOfVerticesOnEdge] = data;
 }
 
 double height01ToHeightReal(double height01)
@@ -65,8 +75,9 @@ double height01ToHeightReal(double height01)
 	return heightReal;
 }
 
-[numthreads(1, 1, 1)]
-void generateUsingChunkLocalPos(uint3 id : SV_DispatchThreadID)
+
+
+float3 calculateVertexPosition(uint2 id, float moveEdgeVerticesDown)
 {
 	float maxId = _numberOfVerticesOnEdge - 1;
 	float2 uv = float2(id.x / maxId, id.y / maxId);
@@ -113,17 +124,96 @@ void generateUsingChunkLocalPos(uint3 id : SV_DispatchThreadID)
 	}
 
 	heightReal += craterOffset;
-
 	
-	if (_moveEdgeVerticesDown > 0 && id.x == 0 || id.x == maxId || id.y == 0 || id.y == maxId)
+	if (moveEdgeVerticesDown > 0 && (id.x == 0 || id.x == maxId || id.y == 0 || id.y == maxId))
 	{
-		heightReal -= _moveEdgeVerticesDown;
+		heightReal -= moveEdgeVerticesDown;
+	}
+	
+	//DEBUG
+	//heightReal = 0;
+
+	return dir * heightReal - origin + offset;
+}
+
+
+float3 calculateVertexNormal(uint2 id)
+{
+	int maxId = _numberOfVerticesOnEdge - 1;
+	float3 n = float3(0, 0, 0);
+	int c = 0;
+
+	//   /\ y
+	//   
+	//    ---- p12 ----
+	//   |             |
+	// p01 --- p11 --- p21
+	//   |             |
+	//    ---- p10 ----    ---> x
+	
+
+	float3 p11 = calculateVertexPosition(id.xy, 0);	
+
+	if (id.x > 0)
+	{
+		float3 p01 = calculateVertexPosition(id.xy + uint2(-1, 0), 0);
+
+		if (id.y < maxId)
+		{
+			float3 p12 = calculateVertexPosition(id.xy + uint2(0, +1), 0);
+			n += cross(normalize(p12 - p11), normalize(p01 - p11));
+			++c;
+		}
+		
+		if (id.y > 0)
+		{
+			float3 p10 = calculateVertexPosition(id.xy + uint2(0, -1), 0);
+			n += cross(normalize(p01 - p11), normalize(p10 - p11));
+			++c;
+		}
 	}
 
+	if (id.x < maxId)
+	{
+		float3 p21 = calculateVertexPosition(id.xy + uint2(+1, 0), 0);
 
-	//DEBUG
-	//height = 0;
+		if (id.y < maxId)
+		{
+			float3 p12 = calculateVertexPosition(id.xy + uint2(0, +1), 0);
+			n += cross(normalize(p21 - p11), normalize(p12 - p11));
+			++c;
+		}
 
-	_vertices[id.x + id.y * _numberOfVerticesOnEdge] = dir * heightReal - origin + offset;
+		if (id.y > 0)
+		{
+			float3 p10 = calculateVertexPosition(id.xy + uint2(0, -1), 0);
+			n += cross(normalize(p10 - p11), normalize(p21 - p11));
+			++c;
+		}
+	}
+
+	/*
+	float3 p11 = calculateVertexPosition(id.xy, 0);	
+	float3 p01 = calculateVertexPosition(id.xy + uint2(-1, 0), 0);
+	float3 p12 = calculateVertexPosition(id.xy + uint2(0, +1), 0);
+	float3 p21 = calculateVertexPosition(id.xy + uint2(+1, 0), 0);
+	float3 p10 = calculateVertexPosition(id.xy + uint2(0, -1), 0);
+	n += cross(normalize(p12 - p11), normalize(p01 - p11));
+	n += cross(normalize(p01 - p11), normalize(p10 - p11));
+	n += cross(normalize(p21 - p11), normalize(p12 - p11));
+	n += cross(normalize(p10 - p11), normalize(p21 - p11));
+	c = 4;*/
+
+	return normalize(n / c);
+}
+
+[numthreads(1, 1, 1)]
+void generateUsingChunkLocalPos(uint3 id : SV_DispatchThreadID)
+{
+	PerVertexData data;
+	data.position = calculateVertexPosition(id.xy, _moveEdgeVerticesDown);
+	data.normal = calculateVertexNormal(id.xy);
+	data.tangent = float3(1, 0, 0);
+	_vertices[id.x + id.y * _numberOfVerticesOnEdge] = data;
 }
 

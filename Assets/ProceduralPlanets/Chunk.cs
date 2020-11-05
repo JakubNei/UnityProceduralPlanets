@@ -45,7 +45,8 @@ public class Chunk : IDisposable
 	public class GeneratedData : IDisposable
 	{
 		public RenderTexture chunkHeightMap;
-		public RenderTexture chunkNormalMap;
+		public RenderTexture chunkWorldNormalMap;
+		public RenderTexture chunkTangentNormalMap;
 		public RenderTexture chunkDiffuseMap;
 		public RenderTexture chunkSlopeMap;
 		public Mesh mesh;
@@ -61,8 +62,10 @@ public class Chunk : IDisposable
 
 			if (chunkHeightMap) chunkHeightMap.Release();
 			chunkHeightMap = null;
-			if (chunkNormalMap) chunkNormalMap.Release();
-			chunkNormalMap = null;
+			if (chunkWorldNormalMap) chunkWorldNormalMap.Release();
+			chunkWorldNormalMap = null;
+			if (chunkTangentNormalMap) chunkTangentNormalMap.Release();
+			chunkTangentNormalMap = null;
 			if (chunkDiffuseMap) chunkDiffuseMap.Release();
 			chunkDiffuseMap = null;
 			if (chunkSlopeMap) chunkSlopeMap.Release();
@@ -70,7 +73,7 @@ public class Chunk : IDisposable
 		}
 	};
 
-	public GeneratedData FullyGeneratedData { get; private set;}
+	public GeneratedData FullyGeneratedData { get; private set; }
 	GeneratedData generatingData;
 	public bool GenerationInProgress => generatingData != null;
 	public bool HasFullyGeneratedData => FullyGeneratedData != null;
@@ -257,7 +260,7 @@ public class Chunk : IDisposable
 		GenerateHeightMap();
 		MyProfiler.EndSample();
 		yield return null;
-		
+
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Normal map");
 		GenerateNormalMap();
 		MyProfiler.EndSample();
@@ -315,7 +318,7 @@ public class Chunk : IDisposable
 
 		c.SetTexture(kernelIndex, "_planetHeightMap", planetConfig.planetHeightMap);
 		if (generatingData.chunkHeightMap != null) c.SetTexture(kernelIndex, "_chunkHeightMap", generatingData.chunkHeightMap);
-		if (generatingData.chunkNormalMap != null) c.SetTexture(kernelIndex, "_chunkNormalMap", generatingData.chunkNormalMap);
+		if (generatingData.chunkWorldNormalMap != null) c.SetTexture(kernelIndex, "_chunkNormalMap", generatingData.chunkWorldNormalMap);
 		if (generatingData.chunkSlopeMap != null) c.SetTexture(kernelIndex, "_chunkSlopeMap", generatingData.chunkSlopeMap);
 
 		c.SetFloat("_slopeModifier", SlopeModifier);
@@ -379,7 +382,7 @@ public class Chunk : IDisposable
 			heightRough.Release();
 		}
 
-		{ 
+		{
 			if (generatingData.chunkHeightMap == null)
 			{
 				generatingData.chunkHeightMap = new RenderTexture(HeightMapResolution, HeightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
@@ -397,10 +400,10 @@ public class Chunk : IDisposable
 			c.SetFloat("_heightMax", heightMax);
 
 			c.SetBool("_hasParent", parent != null);
-			if (parent != null && parent.HasFullyGeneratedData && parent.FullyGeneratedData.chunkHeightMap) 
-			c.SetTexture(0, "_parentChunkHeightMap", parent.FullyGeneratedData.chunkHeightMap);
+			if (parent != null && parent.HasFullyGeneratedData && parent.FullyGeneratedData.chunkHeightMap)
+				c.SetTexture(0, "_parentChunkHeightMap", parent.FullyGeneratedData.chunkHeightMap);
 
-			c.SetTexture(0, "_chunkHeightMap", generatingData.chunkHeightMap );
+			c.SetTexture(0, "_chunkHeightMap", generatingData.chunkHeightMap);
 			c.Dispatch(0, generatingData.chunkHeightMap.width / 16, generatingData.chunkHeightMap.height / 16, 1);
 		}
 	}
@@ -411,7 +414,7 @@ public class Chunk : IDisposable
 
 	void GenerateMesh()
 	{
-		vertexGPUBuffer = new ComputeBuffer(chunkConfig.NumberOfVerticesNeededTotal, 3 * sizeof(float));
+		vertexGPUBuffer = new ComputeBuffer(chunkConfig.NumberOfVerticesNeededTotal, 3 * 3 * sizeof(float));
 		var c = chunkConfig.generateChunkVertices;
 		var verticesOnEdge = chunkConfig.numberOfVerticesOnEdge;
 
@@ -437,14 +440,22 @@ public class Chunk : IDisposable
 
 	}
 
-	NativeArray<Vector3> vertexCPUBuffer;
+	[System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+	struct PerVertexData
+	{
+		public Vector3 position;
+		public Vector3 normal;
+		public Vector3 tangent;
+	}
+
+	NativeArray<PerVertexData> vertexCPUBuffer;
 
 
 	void RequestMeshData()
 	{
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Get data from GPU to CPU / Request / new NativeArray");
 		if (vertexCPUBuffer.IsCreated) vertexCPUBuffer.Dispose();
-		vertexCPUBuffer = new NativeArray<Vector3>(chunkConfig.NumberOfVerticesNeededTotal, Allocator.Persistent);
+		vertexCPUBuffer = new NativeArray<PerVertexData>(chunkConfig.NumberOfVerticesNeededTotal, Allocator.Persistent);
 		MyProfiler.EndSample();
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Get data from GPU to CPU / Request / RequestIntoNativeArray");
@@ -467,10 +478,10 @@ public class Chunk : IDisposable
 			int bIndex = verticesOnEdge - 1;
 			int cIndex = verticesOnEdge * verticesOnEdge - 1;
 			int dIndex = cIndex - (verticesOnEdge - 1);
-			rangePosToCalculateScreenSizeOn_localToPlanet.a = vertexCPUBuffer[aIndex];
-			rangePosToCalculateScreenSizeOn_localToPlanet.b = vertexCPUBuffer[bIndex];
-			rangePosToCalculateScreenSizeOn_localToPlanet.c = vertexCPUBuffer[cIndex];
-			rangePosToCalculateScreenSizeOn_localToPlanet.d = vertexCPUBuffer[dIndex];
+			rangePosToCalculateScreenSizeOn_localToPlanet.a = vertexCPUBuffer[aIndex].position;
+			rangePosToCalculateScreenSizeOn_localToPlanet.b = vertexCPUBuffer[bIndex].position;
+			rangePosToCalculateScreenSizeOn_localToPlanet.c = vertexCPUBuffer[cIndex].position;
+			rangePosToCalculateScreenSizeOn_localToPlanet.d = vertexCPUBuffer[dIndex].position;
 
 			if (!GenerateUsingPlanetGlobalPos)
 			{
@@ -490,6 +501,8 @@ public class Chunk : IDisposable
 			new[]
 			{
 				new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
+				new VertexAttributeDescriptor(VertexAttribute.Normal, VertexAttributeFormat.Float32, 3),
+				new VertexAttributeDescriptor(VertexAttribute.Tangent, VertexAttributeFormat.Float32, 3),
 			}
 		);
 		generatingData.mesh.SetVertexBufferData(vertexCPUBuffer, 0, 0, vertexCPUBuffer.Length);
@@ -502,8 +515,8 @@ public class Chunk : IDisposable
 			//generatedData.mesh.RecalculateNormals();
 			//generatedData.mesh.RecalculateTangents();
 
-			generatingData.mesh.normals = RecalculateNormals(ref vertexCPUBuffer, planet.GetChunkMeshTriangles(), planet.GetChunkMeshUVs(), planet.GetChunkMeshIndiciesEdge());
-			generatingData.mesh.tangents = RecalculateTangents(ref vertexCPUBuffer, planet.GetChunkMeshTriangles(), planet.GetChunkMeshUVs(), planet.GetChunkMeshIndiciesEdge());
+			//generatingData.mesh.normals = RecalculateNormals(ref vertexCPUBuffer, planet.GetChunkMeshTriangles(), planet.GetChunkMeshUVs(), planet.GetChunkMeshIndiciesEdge());
+			//generatingData.mesh.tangents = RecalculateTangents(ref vertexCPUBuffer, planet.GetChunkMeshTriangles(), planet.GetChunkMeshUVs(), planet.GetChunkMeshIndiciesEdge());
 		}
 		else
 		{
@@ -525,21 +538,21 @@ public class Chunk : IDisposable
 		var c = chunkConfig.generateChunkNormapMap;
 		if (c == null) return;
 
-		if (generatingData.chunkNormalMap != null && generatingData.chunkNormalMap.width != NormalMapResolution)
+		if (generatingData.chunkWorldNormalMap != null && generatingData.chunkWorldNormalMap.width != NormalMapResolution)
 		{
-			generatingData.chunkNormalMap.Release();
-			generatingData.chunkNormalMap = null;
+			generatingData.chunkWorldNormalMap.Release();
+			generatingData.chunkWorldNormalMap = null;
 		}
 
-		if (generatingData.chunkNormalMap == null)
+		if (generatingData.chunkWorldNormalMap == null)
 		{
-			generatingData.chunkNormalMap = new RenderTexture(NormalMapResolution, NormalMapResolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
-			generatingData.chunkNormalMap.wrapMode = TextureWrapMode.Clamp;
-			generatingData.chunkNormalMap.filterMode = FilterMode.Bilinear;
-			generatingData.chunkNormalMap.enableRandomWrite = true;
-			generatingData.chunkNormalMap.Create();
+			generatingData.chunkWorldNormalMap = new RenderTexture(NormalMapResolution, NormalMapResolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+			generatingData.chunkWorldNormalMap.wrapMode = TextureWrapMode.Clamp;
+			generatingData.chunkWorldNormalMap.filterMode = FilterMode.Bilinear;
+			generatingData.chunkWorldNormalMap.enableRandomWrite = true;
+			generatingData.chunkWorldNormalMap.Create();
 		}
-		
+
 		if (generatingData.chunkSlopeMap != null && generatingData.chunkSlopeMap.width != SlopeMapResolution)
 		{
 			generatingData.chunkSlopeMap.Release();
@@ -557,11 +570,11 @@ public class Chunk : IDisposable
 
 		SetAll(c, 0);
 
-		var _normalLength = chunkRadius / generatingData.chunkNormalMap.width / (planetConfig.radiusHeightMapMultiplier * HeightRange);
+		var _normalLength = chunkRadius / generatingData.chunkWorldNormalMap.width / (planetConfig.radiusHeightMapMultiplier * HeightRange);
 		//UnityEngine.Debug.Log(_normalLength);
 		c.SetFloat("_normalLength", _normalLength);
 
-		c.Dispatch(0, generatingData.chunkNormalMap.width / 16, generatingData.chunkNormalMap.height / 16, 1);
+		c.Dispatch(0, generatingData.chunkWorldNormalMap.width / 16, generatingData.chunkWorldNormalMap.height / 16, 1);
 	}
 
 
