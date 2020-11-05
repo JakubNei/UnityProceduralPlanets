@@ -6,8 +6,6 @@ using UnityEngine.Networking;
 [RequireComponent(typeof(FloatingOriginTransform))]
 public class PlanetAffectedCamera : MonoBehaviour
 {
-	public int targetFrameRate = 60;
-
 	public float velocityChangeSpeed = 10.0f;
 	public float mouseSensitivty = 100f;
 
@@ -179,11 +177,20 @@ public class PlanetAffectedCamera : MonoBehaviour
 
 			{
 				RaycastHit hit;
-				if (Physics.Raycast(position, planet.Center - position, out hit))
+				if (Physics.Raycast(position, planet.Center - position, out hit, planet.planetConfig.radiusStart, ~LayerMask.GetMask("Ignore Raycast")))
 				{
 					distanceToClosestPlanet = Vector3.Distance(hit.point, position);
 				}
 			}
+
+			if (Input.GetKeyDown(KeyCode.R))
+			{
+				planet.markedForRegeneration = true;
+			}
+		}
+		else
+		{
+			distanceToClosestPlanet = float.MaxValue;
 		}
 
 		//if (Cursor.lockState)

@@ -8,8 +8,8 @@
 Texture2D<float> _chunkHeightMap;
 SamplerState sampler_chunkHeightMap;
 
-Texture2D<float2> _chunkSlopeAndCurvatureMap;
-SamplerState sampler_chunkSlopeAndCurvatureMap;
+Texture2D<float2> _chunkSlopeMap;
+SamplerState sampler_chunkSlopeMap;
 
 int _numberOfVerticesOnEdge;
 float _planetRadiusStart;
@@ -89,7 +89,7 @@ void generateUsingChunkLocalPos(uint3 id : SV_DispatchThreadID)
 	double3 offset = 0;
 	{
 
-		double2 slopeXY = _chunkSlopeAndCurvatureMap.SampleLevel(sampler_chunkSlopeAndCurvatureMap, uv, 0).xy;
+		double2 slopeXY = _chunkSlopeMap.SampleLevel(sampler_chunkSlopeMap, uv, 0).xy;
 		double slope = saturate(length(slopeXY));
 
 		double rockWeight = smoothstep(0.25, 1, slope);

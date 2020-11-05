@@ -15,9 +15,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 	{
 		public Texture planetHeightMap;
 
-		public ComputeShader generatePlanetHeightMapPass1;
-		public ComputeShader generatePlanetHeightCalculateHumidity;
-		public ComputeShader generatePlanetHeightMapPass2;
+		public ComputeShader generatePlanetHeightMap;
 		public int generatedPlanetHeightMapResolution = 2048; // must be multiplier of 16
 
 		public Texture2D biomesControlMap;
@@ -43,12 +41,9 @@ public partial class Planet : MonoBehaviour, IDisposable
 
 		public Material chunkMaterial;
 		public ComputeShader generateChunkVertices;
-		public ComputeShader generateChunkHeightMapPass1;
-		public ComputeShader generateChunkHeightMapPass2;
+		public ComputeShader generateChunkHeightMap;
 		public ComputeShader generateChunkDiffuseMap;
 		public ComputeShader generateChunkNormapMap;
-		public ComputeShader generateSlopeAndCurvatureMap;
-		public ComputeShader generateChunkBiomesMap;
 
 		public Texture2D grass;
 		public Texture2D clay;
@@ -131,20 +126,8 @@ public partial class Planet : MonoBehaviour, IDisposable
 		heightMap.Create();
 		planetConfig.planetHeightMap = heightMap;
 
-		var heightMapTemp = RenderTexture.GetTemporary(heightMap.descriptor);
-		heightMapTemp.filterMode = FilterMode.Trilinear;
-		heightMapTemp.wrapMode = TextureWrapMode.Repeat;
-		heightMapTemp.enableRandomWrite = true;
-		heightMapTemp.Create();
-
-		planetConfig.generatePlanetHeightMapPass1.SetTexture(0, "_planetHeightMap", heightMapTemp);
-		planetConfig.generatePlanetHeightMapPass1.Dispatch(0, planetConfig.planetHeightMap.width / 16, planetConfig.planetHeightMap.height / 16, 1);
-
-		planetConfig.generatePlanetHeightMapPass2.SetTexture(0, "_planetHeightMapIn", heightMapTemp);
-		planetConfig.generatePlanetHeightMapPass2.SetTexture(0, "_planetHeightMapOut", planetConfig.planetHeightMap);
-		planetConfig.generatePlanetHeightMapPass2.Dispatch(0, planetConfig.planetHeightMap.width / 16, planetConfig.planetHeightMap.height / 16, 1);
-
-		RenderTexture.ReleaseTemporary(heightMapTemp);
+		planetConfig.generatePlanetHeightMap.SetTexture(0, "_planetHeightMap", heightMap);
+		planetConfig.generatePlanetHeightMap.Dispatch(0, planetConfig.planetHeightMap.width / 16, planetConfig.planetHeightMap.height / 16, 1);
 
 		MyProfiler.EndSample();
 	}
@@ -352,7 +335,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers / toStartRendering / get free renderers");
 		foreach (var chunk in toStartRendering)
 		{
-			var renderer = ProceduralPlanets.main.GetFreeChunkRenderer(this);
+			var renderer = ProceduralPlanets.main.GetFreeChunkRenderer();
 			freeRenderers.Push(renderer);
 		}
 		MyProfiler.EndSample();

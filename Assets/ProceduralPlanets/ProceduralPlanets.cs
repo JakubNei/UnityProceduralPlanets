@@ -42,14 +42,14 @@ public class ProceduralPlanets : MonoBehaviour
 	
 	Queue<ChunkRenderer> chunkRenderersToReuse = new Queue<ChunkRenderer>();
 
-	public ChunkRenderer GetFreeChunkRenderer(Planet planet)
+	public ChunkRenderer GetFreeChunkRenderer()
 	{
 		if (chunkRenderersToReuse.Count > 0)
 		{
 			return chunkRenderersToReuse.Dequeue();
 		}
 
-		var r = ChunkRenderer.CreateFor(planet);
+		var r = ChunkRenderer.CreateNew();
 		return r;
 	}
 	public void ReturnChunkRendererToPool(ChunkRenderer chunkRenderer)

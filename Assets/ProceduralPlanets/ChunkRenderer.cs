@@ -4,8 +4,6 @@ using UnityEngine;
 
 public class ChunkRenderer : MonoBehaviour
 {
-	Planet planet;
-
 	public Chunk chunk;
 
 	public Chunk.GeneratedData generatedData; // chunk may refresh, and create new generated data so lets keep alive the data we are showing
@@ -14,13 +12,12 @@ public class ChunkRenderer : MonoBehaviour
 	MeshFilter meshFilter;
 	MeshCollider meshCollider;
 	FloatingOriginTransform floatingTransform;
+	MeshRenderer meshRenderer;
 
-	public static ChunkRenderer CreateFor(Planet planet)
+	public static ChunkRenderer CreateNew()
 	{
 		var go = new GameObject(nameof(ChunkRenderer));
-		//go.transform.parent = planet.transform;
 		var renderer = go.AddComponent<ChunkRenderer>();
-		renderer.planet = planet;
 		renderer.CreateComponents();
 		return renderer;
 	}
@@ -30,19 +27,9 @@ public class ChunkRenderer : MonoBehaviour
 		MyProfiler.BeginSample("Procedural Planet / ChunkRenderer / CreateComponents");
 
 		meshFilter = gameObject.AddComponent<MeshFilter>();
-		
 		floatingTransform = gameObject.AddComponent<FloatingOriginTransform>();
-
-		material = new Material(planet.chunkConfig.chunkMaterial);
-		var meshRenderer = gameObject.AddComponent<MeshRenderer>();
-		meshRenderer.sharedMaterial = material;
-
-		if (planet.chunkConfig.createColliders)
-		{
-			MyProfiler.BeginSample("Procedural Planet / ChunkRenderer / CreateComponents / Collider");
-			meshCollider = gameObject.AddComponent<MeshCollider>();	
-			MyProfiler.EndSample();
-		}
+		meshRenderer = gameObject.AddComponent<MeshRenderer>();
+		meshCollider = gameObject.AddComponent<MeshCollider>();
 
 		MyProfiler.EndSample();
 	}
@@ -51,20 +38,28 @@ public class ChunkRenderer : MonoBehaviour
 	{
 		this.chunk = chunk;
 
-		if (chunk.GenerateUsingPlanetGlobalPos)
-			floatingTransform.BigPosition = planet.BigPosition;
-		else
-			floatingTransform.BigPosition = planet.BigPosition + chunk.bigPositionLocalToPlanet;
 
-		this.transform.rotation = planet.transform.rotation;
+
+		if (chunk.GenerateUsingPlanetGlobalPos)
+			floatingTransform.BigPosition = chunk.planet.BigPosition;
+		else
+			floatingTransform.BigPosition = chunk.planet.BigPosition + chunk.bigPositionLocalToPlanet;
+
+		this.transform.rotation = chunk.planet.transform.rotation;
 
 		generatedData = chunk.FullyGeneratedData;
 
 		meshFilter.sharedMesh = generatedData.mesh;
 		if (meshCollider) meshCollider.sharedMesh = generatedData.mesh;
 
+		if (material == null || material.shader != chunk.planet.chunkConfig.chunkMaterial.shader)
+		{ 
+			material = new Material(chunk.planet.chunkConfig.chunkMaterial);
+			meshRenderer.sharedMaterial = material;
+		}
+
 		if (material && generatedData.chunkDiffuseMap) material.mainTexture = generatedData.chunkDiffuseMap;
-		if (material && generatedData.chunkNormalMap) material.SetTexture("_BumpMap", generatedData.chunkNormalMap);
+		//if (material && generatedData.chunkNormalMap) material.SetTexture("_BumpMap", generatedData.chunkNormalMap);
 	}
 
 	public void Hide()
@@ -78,7 +73,7 @@ public class ChunkRenderer : MonoBehaviour
 
 	private void OnDrawGizmosSelected()
 	{
-		if (gameObject && gameObject.activeSelf && chunk != null)
+		if (gameObject && gameObject.activeSelf && chunk != null && chunk.planet != null)
 		{
 			Gizmos.color = Color.cyan;
 			//rangePosRealSubdivided.DrawGizmos();

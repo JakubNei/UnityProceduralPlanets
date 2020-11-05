@@ -17,6 +17,17 @@ float bigHills(float3 dir, float size)
 	return x;
 }
 
+float bigHills2(float3 dir, float size)
+{
+	float x = (abs(snoise(dir / size, 7, 2)));
+	x += abs(snoise(dir.xzy / size, 7, 2));
+	float2 w = worley(dir / size);
+	w += worley(dir.xzy / size);
+	x *= smoothstep(0.4, 1, w.y - w.x);
+	return x;
+}
+
+
 float craters(float3 dir, float size)
 {
 	float distanceToCenter = worley(dir / size);
@@ -49,6 +60,10 @@ float getProceduralHeight01(float3 dir)
 	h += bigHills(dir.yzx, 0.92);
 	h += bigHills(dir, 0.56);
 	h += bigHills(dir, 0.22);
+
+	//h += bigHills2(dir.xyx, 0.97);
+	//h += bigHills2(dir.zyx, 0.95);
+	//h += bigHills2(dir.xzy, 0.92);
 	
 	h += craters(dir, 0.93);
 	h += craters(dir, 0.45);
@@ -124,7 +139,7 @@ float getProceduralHeight01(float3 dir)
 	
 
 
-	return h * 0.5;
+	return h * 0.3;
 
 }
 

@@ -46,7 +46,7 @@ void main(uint3 id : SV_DispatchThreadID)
 	//double height = getProceduralHeight01(dir);
 
 	//<<<<<<<<<<< uncoment once slope is fixed
-	//height += snoise(dir * 1000, 20, 1.2) * 0.0001; // high frequency small amplitude noise, to hide planet height map sampling artefacts
+	height += snoise(dir * 1000, 20, 1.2) * 0.0001; // high frequency small amplitude noise, to hide planet height map sampling artefacts
 
 	height = (height - _heightMin) / (_heightMax - _heightMin);
 

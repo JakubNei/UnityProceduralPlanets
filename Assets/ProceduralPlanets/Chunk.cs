@@ -47,8 +47,7 @@ public class Chunk : IDisposable
 		public RenderTexture chunkHeightMap;
 		public RenderTexture chunkNormalMap;
 		public RenderTexture chunkDiffuseMap;
-		public RenderTexture chunkSlopeAndCurvatureMap;
-		public RenderTexture chunkBiomesMap;
+		public RenderTexture chunkSlopeMap;
 		public Mesh mesh;
 		~GeneratedData()
 		{
@@ -66,10 +65,8 @@ public class Chunk : IDisposable
 			chunkNormalMap = null;
 			if (chunkDiffuseMap) chunkDiffuseMap.Release();
 			chunkDiffuseMap = null;
-			if (chunkSlopeAndCurvatureMap) chunkSlopeAndCurvatureMap.Release();
-			chunkSlopeAndCurvatureMap = null;
-			if (chunkBiomesMap) chunkBiomesMap.Release();
-			chunkBiomesMap = null;
+			if (chunkSlopeMap) chunkSlopeMap.Release();
+			chunkSlopeMap = null;
 		}
 	};
 
@@ -260,6 +257,11 @@ public class Chunk : IDisposable
 		GenerateHeightMap();
 		MyProfiler.EndSample();
 		yield return null;
+		
+		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Normal map");
+		GenerateNormalMap();
+		MyProfiler.EndSample();
+		yield return null;
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Generate on GPU");
 		GenerateMesh();
@@ -268,11 +270,6 @@ public class Chunk : IDisposable
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Get data from GPU to CPU / Request");
 		RequestMeshData();
 		MyProfiler.EndSample();
-
-		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Normal map");
-		GenerateNormalMap();
-		MyProfiler.EndSample();
-		yield return null;
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Diffuse map");
 		GenerateDiffuseMap();
@@ -319,11 +316,9 @@ public class Chunk : IDisposable
 		c.SetTexture(kernelIndex, "_planetHeightMap", planetConfig.planetHeightMap);
 		if (generatingData.chunkHeightMap != null) c.SetTexture(kernelIndex, "_chunkHeightMap", generatingData.chunkHeightMap);
 		if (generatingData.chunkNormalMap != null) c.SetTexture(kernelIndex, "_chunkNormalMap", generatingData.chunkNormalMap);
-		if (generatingData.chunkSlopeAndCurvatureMap != null) c.SetTexture(kernelIndex, "_chunkSlopeAndCurvatureMap", generatingData.chunkSlopeAndCurvatureMap);
-		if (generatingData.chunkBiomesMap != null) c.SetTexture(kernelIndex, "_chunkBiomesMap", generatingData.chunkBiomesMap);
+		if (generatingData.chunkSlopeMap != null) c.SetTexture(kernelIndex, "_chunkSlopeMap", generatingData.chunkSlopeMap);
 
 		c.SetFloat("_slopeModifier", SlopeModifier);
-
 
 
 		var parentUvStart = Vector2.zero;
@@ -349,7 +344,6 @@ public class Chunk : IDisposable
 
 	void GenerateHeightMap()
 	{
-		// pass 0
 		if (chunkConfig.rescaleToMinMax)
 		{
 			var heightRough = new RenderTexture(HeightMapResolution / 2, HeightMapResolution / 2, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
@@ -358,7 +352,8 @@ public class Chunk : IDisposable
 			heightRough.enableRandomWrite = true;
 			heightRough.Create();
 
-			var c = chunkConfig.generateChunkHeightMapPass1;
+			var c = chunkConfig.generateChunkHeightMap;
+			SetAll(c, 0);
 			c.SetTexture(0, "_planetHeightMap", planetConfig.planetHeightMap);
 			rangeUnitCubePosToGenerateInto.SetParams(c, "_rangeUnitCubePos");
 			c.SetFloat("_heightMin", 0);
@@ -384,35 +379,7 @@ public class Chunk : IDisposable
 			heightRough.Release();
 		}
 
-		// pass 1
-		RenderTexture height1;
-		{
-			height1 = new RenderTexture(HeightMapResolution, HeightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
-			height1.wrapMode = TextureWrapMode.Clamp;
-			height1.filterMode = FilterMode.Bilinear;
-			height1.enableRandomWrite = true;
-			height1.Create();
-
-			var c = chunkConfig.generateChunkHeightMapPass1;
-			c.SetTexture(0, "_planetHeightMap", planetConfig.planetHeightMap);
-			rangeUnitCubePosToGenerateInto.SetParams(c, "_rangeUnitCubePos");
-			c.SetFloat("_heightMin", heightMin);
-			c.SetFloat("_heightMax", heightMax);
-
-
-
-			c.SetBool("_hasParent", parent != null);
-			if (parent != null && parent.HasFullyGeneratedData && parent.FullyGeneratedData.chunkHeightMap) 
-			c.SetTexture(0, "_parentChunkHeightMap", parent.FullyGeneratedData.chunkHeightMap);
-
-			c.SetTexture(0, "_chunkHeightMap", height1);
-			c.Dispatch(0, height1.width / 16, height1.height / 16, 1);
-
-			GenerateSlopeAndCurvatureMap(height1);
-		}
-
-		// pass 2
-		{
+		{ 
 			if (generatingData.chunkHeightMap == null)
 			{
 				generatingData.chunkHeightMap = new RenderTexture(HeightMapResolution, HeightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
@@ -422,69 +389,20 @@ public class Chunk : IDisposable
 				generatingData.chunkHeightMap.Create();
 			}
 
-			var c = chunkConfig.generateChunkHeightMapPass2;
+			var c = chunkConfig.generateChunkHeightMap;
 			SetAll(c, 0);
-			c.SetTexture(0, "_chunkHeightMap", height1);
+			c.SetTexture(0, "_planetHeightMap", planetConfig.planetHeightMap);
+			rangeUnitCubePosToGenerateInto.SetParams(c, "_rangeUnitCubePos");
+			c.SetFloat("_heightMin", heightMin);
+			c.SetFloat("_heightMax", heightMax);
 
-			c.SetTexture(0, "_chunkHeightMapNew", generatingData.chunkHeightMap);
+			c.SetBool("_hasParent", parent != null);
+			if (parent != null && parent.HasFullyGeneratedData && parent.FullyGeneratedData.chunkHeightMap) 
+			c.SetTexture(0, "_parentChunkHeightMap", parent.FullyGeneratedData.chunkHeightMap);
+
+			c.SetTexture(0, "_chunkHeightMap", generatingData.chunkHeightMap );
 			c.Dispatch(0, generatingData.chunkHeightMap.width / 16, generatingData.chunkHeightMap.height / 16, 1);
-
-			if (generatingData.chunkHeightMap.useMipMap) generatingData.chunkHeightMap.GenerateMips();
-
-			//GenerateSlopeAndCurvatureMap(chunkHeightMap);
 		}
-
-		height1.Release();
-
-
-	}
-
-
-	void GenerateSlopeAndCurvatureMap(RenderTexture heightMap)
-	{
-		if (generatingData.chunkSlopeAndCurvatureMap == null)
-		{
-			generatingData.chunkSlopeAndCurvatureMap = new RenderTexture(SlopeMapResolution, SlopeMapResolution, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
-			generatingData.chunkSlopeAndCurvatureMap.wrapMode = TextureWrapMode.Clamp;
-			generatingData.chunkSlopeAndCurvatureMap.filterMode = FilterMode.Bilinear;
-			generatingData.chunkSlopeAndCurvatureMap.enableRandomWrite = true;
-			generatingData.chunkSlopeAndCurvatureMap.Create();
-		}
-
-
-		var c = chunkConfig.generateSlopeAndCurvatureMap;
-
-		var kernelIndex = 0;
-		if (parent != null) kernelIndex = c.FindKernel("parentExists");
-		else kernelIndex = c.FindKernel("parentDoesNotExist");
-
-		SetAll(c, kernelIndex);
-		if (parent != null && parent.HasFullyGeneratedData && parent.FullyGeneratedData.chunkSlopeAndCurvatureMap) 
-		c.SetTexture(kernelIndex, "_parentChunkSlopeAndCurvatureMap", parent.FullyGeneratedData.chunkSlopeAndCurvatureMap);
-		c.SetTexture(kernelIndex, "_chunkHeightMap", heightMap);
-
-		c.SetTexture(kernelIndex, "_chunkSlopeAndCurvatureMap", generatingData.chunkSlopeAndCurvatureMap);
-		c.Dispatch(kernelIndex, generatingData.chunkSlopeAndCurvatureMap.width / 16, generatingData.chunkSlopeAndCurvatureMap.height / 16, 1);
-	}
-
-
-	void GenerateChunkBiomesMap()
-	{
-
-		if (generatingData.chunkBiomesMap == null)
-		{
-			generatingData.chunkBiomesMap = new RenderTexture(BiomesMapResolution, BiomesMapResolution, 0, RenderTextureFormat.R8, RenderTextureReadWrite.Linear);
-			generatingData.chunkBiomesMap.wrapMode = TextureWrapMode.Clamp;
-			generatingData.chunkBiomesMap.filterMode = FilterMode.Bilinear;
-			generatingData.chunkBiomesMap.enableRandomWrite = true;
-			generatingData.chunkBiomesMap.Create();
-		}
-
-		var c = chunkConfig.generateChunkBiomesMap;
-		SetAll(c, 0);
-
-		c.SetTexture(0, "_chunkBiomesMap", generatingData.chunkBiomesMap);
-		c.Dispatch(0, generatingData.chunkBiomesMap.width / 16, generatingData.chunkBiomesMap.height / 16, 1);
 	}
 
 
@@ -501,12 +419,12 @@ public class Chunk : IDisposable
 		if (GenerateUsingPlanetGlobalPos) kernelIndex = c.FindKernel("generateUsingPlanetGlobalPos");
 		else kernelIndex = c.FindKernel("generateUsingChunkLocalPos");
 
+		SetAll(c, kernelIndex);
 		rangeUnitCubePosToGenerateInto.SetParams(c, "_rangeUnitCubePos");
 		c.SetInt("_numberOfVerticesOnEdge", verticesOnEdge);
 		c.SetFloat("_planetRadiusStart", planetConfig.radiusStart);
 		c.SetFloat("_planetRadiusHeightMapMultiplier", planetConfig.radiusHeightMapMultiplier);
 		c.SetTexture(kernelIndex, "_chunkHeightMap", generatingData.chunkHeightMap);
-		c.SetTexture(kernelIndex, "_chunkSlopeAndCurvatureMap", generatingData.chunkSlopeAndCurvatureMap);
 
 		c.SetFloat("_heightMin", heightMin);
 		c.SetFloat("_heightMax", heightMax);
@@ -579,7 +497,7 @@ public class Chunk : IDisposable
 		generatingData.mesh.uv = planet.GetChunkMeshUVs();
 		generatingData.mesh.RecalculateBounds();
 
-		if (!chunkConfig.generateChunkNormapMap)
+		if (true || !chunkConfig.generateChunkNormapMap)
 		{
 			//generatedData.mesh.RecalculateNormals();
 			//generatedData.mesh.RecalculateTangents();
@@ -620,6 +538,21 @@ public class Chunk : IDisposable
 			generatingData.chunkNormalMap.filterMode = FilterMode.Bilinear;
 			generatingData.chunkNormalMap.enableRandomWrite = true;
 			generatingData.chunkNormalMap.Create();
+		}
+		
+		if (generatingData.chunkSlopeMap != null && generatingData.chunkSlopeMap.width != SlopeMapResolution)
+		{
+			generatingData.chunkSlopeMap.Release();
+			generatingData.chunkSlopeMap = null;
+		}
+
+		if (generatingData.chunkSlopeMap == null)
+		{
+			generatingData.chunkSlopeMap = new RenderTexture(SlopeMapResolution, SlopeMapResolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+			generatingData.chunkSlopeMap.wrapMode = TextureWrapMode.Clamp;
+			generatingData.chunkSlopeMap.filterMode = FilterMode.Bilinear;
+			generatingData.chunkSlopeMap.enableRandomWrite = true;
+			generatingData.chunkSlopeMap.Create();
 		}
 
 		SetAll(c, 0);

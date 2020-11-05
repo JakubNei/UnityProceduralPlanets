@@ -2,8 +2,6 @@
 
 #include "Planet.Compute.cginc"
 
-Texture2D<float4> _chunkSlopeAndCurvatureMap;
-SamplerState sampler_chunkSlopeAndCurvatureMap;
 
 Texture2D<float> _chunkHeightMap;
 SamplerState sampler_chunkHeightMap;
@@ -21,50 +19,8 @@ float _heightMin;
 float _heightMax;
 
 RWTexture2D<float4> _chunkNormalMap;
-
-
-
-float2 getSlope(int2 idXy, int w, int h)
-{
-	int3 off = int3(-1, 0, 1);
-	int2 s11pos = idXy;
-	s11pos = max(s11pos, int2(1, 1));
-	s11pos = min(s11pos, int2(w - 2, h - 2));
-	// s00 __ s10 __ s20
-	//  |      |      |
-	// s01 __ s11 __ s21
-	//  |      |      |
-	// s02 __ s12 __ s22
-	float s00 = _chunkHeightMap[s11pos + off.xx].r;
-	float s10 = _chunkHeightMap[s11pos + off.yx].r;
-	//float s20 = _chunkHeightMap[s11pos + off.zx].r;
-
-	float s01 = _chunkHeightMap[s11pos + off.xy].r;
-	//float s11 = _chunkHeightMap[s11pos].r;
-	//float s21 = _chunkHeightMap[s11pos + off.zy].r;
-
-	//float s02 = _chunkHeightMap[s11pos + off.xz].r;
-	//float s12 = _chunkHeightMap[s11pos + off.yz].r;
-	//float s22 = _chunkHeightMap[s11pos + off.zz].r;
-
-	// modified https://en.wikipedia.org/wiki/Sobel_operator
-	//-1 __ 0 __ 1
-	// |    |    |
-	//-2 __ 0 __ 2
-	// |    |    |
-	//-1 __ 0 __ 1
-	float sx = s10 - s00;
-	//-1 __-2 __-1
-	// |    |    |
-	// 0 __ 0 __ 0
-	// |    |    |
-	// 1 __ 2 __ 1
-	float sy = s01 - s00;
-
-	return float2(sx, sy);
-}
-
-
+//RWTexture2D<float4> _chunkTangentNormalMap;
+RWTexture2D<float4> _chunkSlopeMap;
 
 
 double3 positionAt(float2 uv)
@@ -101,15 +57,26 @@ void main(uint3 id : SV_DispatchThreadID)
 	double3 tangent = normalize(c10 - c00);
 	double3 bitangent = normalize(c01 - c00);
 
-
-	double3 modelNormal = cross(tangent, bitangent);
+	double3 worldNormal = cross(tangent, bitangent);
 
 
 	//DEBUG
-	//modelNormal = float3(0.5, 0.5, 1);
-	//modelNormal = float3(1, 0, 0);
-	//modelNormal = normal;
+	//worldNormal = float3(0.5, 0.5, 1);
+	//worldNormal = float3(1, 0, 0);
+	//worldNormal = normal;
 
-	modelNormal = normalize(modelNormal);
-	_chunkNormalMap[id.xy] = float4(PACK_NORMAL(modelNormal), 1);
+	worldNormal = normalize(worldNormal);
+	_chunkNormalMap[id.xy] = float4(PACK_NORMAL(worldNormal), 1);
+
+	
+
+	float3 unitCubePos = lerp(
+		lerp(_rangeUnitCubePosA, _rangeUnitCubePosB, uv.x),
+		lerp(_rangeUnitCubePosD, _rangeUnitCubePosC, uv.x),
+		uv.y
+	);
+
+	double3 dir = unitCubeToUnitSphere(unitCubePos);
+
+	_chunkSlopeMap[id.xy] = float4(1 - dot(worldNormal, dir), 0, 0, 0);
 }
