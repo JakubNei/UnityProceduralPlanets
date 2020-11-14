@@ -1,0 +1,383 @@
+﻿#include "Planet.Compute.cginc"
+
+
+Texture2D<float> _chunkHeightMap;
+SamplerState sampler_chunkHeightMap;
+
+float _moveEdgeVerticesDown;
+int _numberOfVerticesOnEdge;
+float _planetRadiusStart;
+float _planetRadiusHeightMapMultiplier;
+
+float3 _rangeUnitCubePosA;
+float3 _rangeUnitCubePosB;
+float3 _rangeUnitCubePosC;
+float3 _rangeUnitCubePosD;
+
+float _heightMin;
+float _heightMax;
+
+
+double3 calculatePixelPosition(float2 uv)
+{
+	float3 unitCubePos = lerp(
+		lerp(_rangeUnitCubePosA, _rangeUnitCubePosB, uv.x),
+		lerp(_rangeUnitCubePosD, _rangeUnitCubePosC, uv.x),
+		uv.y
+		);
+
+	double3 dir = unitCubeToUnitSphere(unitCubePos);
+
+	double height = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r;
+	height = height * (_heightMax - _heightMin) + _heightMin;
+	height *= _planetRadiusHeightMapMultiplier;
+	height += _planetRadiusStart;
+
+	double3 origin = normalize((_rangeUnitCubePosA + _rangeUnitCubePosB + _rangeUnitCubePosC + _rangeUnitCubePosD) / 4.0) * _planetRadiusStart;
+
+	return dir * height - origin;
+}
+
+float3 calculateVertexPosition(uint2 id, float moveEdgeVerticesDown)
+{
+	uint maxId = _numberOfVerticesOnEdge - 1;
+	float2 uv = id.xy / float(maxId);
+
+	float3 unitCubePos = lerp(
+		lerp(_rangeUnitCubePosA, _rangeUnitCubePosB, uv.x),
+		lerp(_rangeUnitCubePosD, _rangeUnitCubePosC, uv.x),
+		uv.y
+		);
+
+	double3 dir = unitCubeToUnitSphere(unitCubePos);
+
+	double height = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r;
+	height = height * (_heightMax - _heightMin) + _heightMin;
+	height *= _planetRadiusHeightMapMultiplier;
+	height += _planetRadiusStart;
+
+	double3 origin = normalize((_rangeUnitCubePosA + _rangeUnitCubePosB + _rangeUnitCubePosC + _rangeUnitCubePosD) / 4.0) * _planetRadiusStart;
+
+	if (moveEdgeVerticesDown > 0 && (id.x == 0 || id.x == maxId || id.y == 0 || id.y == maxId))
+	{
+		height -= moveEdgeVerticesDown;
+	}
+
+	return float3(dir * height - origin);
+}
+
+
+float3 calculatePixelNormal(uint2 id)
+{
+	int w, h;
+	_chunkHeightMap.GetDimensions(w, h);
+	const uint2 maxId = uint2(w - 1, h - 1);
+	const float2 uv = id.xy / float2(w - 1, h - 1);
+	const float offset = 0.05;
+	float3 normal = 0;
+
+	//   /\ y
+	//   
+	//    ---- p12 ----
+	//   |             |
+	// p01 --- p11 --- p21
+	//   |             |
+	//    ---- p10 ----    ---> x	
+
+	const double3 p11 = calculatePixelPosition(uv);
+	const double3 p01 = calculatePixelPosition(uv + float2(-offset, 0));
+	const double3 p12 = calculatePixelPosition(uv + float2(0, +offset));
+	const double3 p21 = calculatePixelPosition(uv + float2(+offset, 0));
+	const double3 p10 = calculatePixelPosition(uv + float2(0, -offset));
+
+	const float3 p12_p11 = normalize(float3(p12 - p11));
+	const float3 p01_p11 = normalize(float3(p01 - p11));
+	const float3 p10_p11 = normalize(float3(p10 - p11));
+	const float3 p21_p11 = normalize(float3(p21 - p11));
+
+	if (id.x > 0)
+	{
+		if (id.y < maxId.y)
+		{
+			normal += cross(p12_p11, p01_p11);
+		}
+
+		if (id.y > 0)
+		{
+			normal += cross(p01_p11, p10_p11);
+		}
+	}
+
+	if (id.x < maxId.x)
+	{
+		if (id.y < maxId.y)
+		{
+			normal += cross(p21_p11, p12_p11);
+		}
+
+		if (id.y > 0)
+		{
+			normal += cross(p10_p11, p21_p11);
+		}
+	}
+
+	return normalize(normal);
+}
+
+
+
+
+float3 calculateVertexNormal(uint2 id)
+{
+	const uint maxId = _numberOfVerticesOnEdge - 1;
+	float3 normal = float3(0, 0, 0);
+
+	//   /\ y
+	//   
+	//    ---- p12 ----
+	//   |             |
+	// p01 --- p11 --- p21
+	//   |             |
+	//    ---- p10 ----    ---> x	
+
+	const float3 p11 = calculateVertexPosition(id.xy, 0);
+	const float3 p01 = calculateVertexPosition(id.xy + uint2(-1, 0), 0);
+	const float3 p12 = calculateVertexPosition(id.xy + uint2(0, +1), 0);
+	const float3 p21 = calculateVertexPosition(id.xy + uint2(+1, 0), 0);
+	const float3 p10 = calculateVertexPosition(id.xy + uint2(0, -1), 0);
+
+	const float3 p11_p12 = normalize(p12 - p11);
+	const float3 p11_p01 = normalize(p01 - p11);
+	const float3 p11_p10 = normalize(p10 - p11);
+	const float3 p11_p21 = normalize(p21 - p11);
+
+	if (id.x > 0)
+	{
+		if (id.y < maxId)
+		{
+			normal += cross(p11_p12, p11_p01);
+		}
+
+		if (id.y > 0)
+		{
+			normal += cross(p11_p01, p11_p10);
+		}
+	}
+
+	if (id.x < maxId)
+	{
+		if (id.y < maxId)
+		{
+			normal += cross(p11_p21, p11_p12);
+		}
+
+		if (id.y > 0)
+		{
+			normal += cross(p11_p10, p11_p21);
+		}
+	}
+
+	return normalize(normal);
+}
+
+void calculateVertexNormalAndTangent(uint2 id, out float3 normal, out float3 tangent)
+{
+	const uint maxId = _numberOfVerticesOnEdge - 1;
+	normal = float3(0, 0, 0);
+	tangent = float3(0, 0, 0);
+
+	//   /\ y
+	//   
+	//    ---- p12 ----
+	//   |             |
+	// p01 --- p11 --- p21
+	//   |             |
+	//    ---- p10 ----    ---> x	
+
+	const float3 p11 = calculateVertexPosition(id.xy, 0);
+	const float3 p01 = calculateVertexPosition(id.xy + uint2(-1, 0), 0);
+	const float3 p12 = calculateVertexPosition(id.xy + uint2(0, +1), 0);
+	const float3 p21 = calculateVertexPosition(id.xy + uint2(+1, 0), 0);
+	const float3 p10 = calculateVertexPosition(id.xy + uint2(0, -1), 0);
+
+	const float3 p11_p12 = normalize(p12 - p11);
+	const float3 p11_p01 = normalize(p01 - p11);
+	const float3 p11_p10 = normalize(p10 - p11);
+	const float3 p11_p21 = normalize(p21 - p11);
+
+	if (id.x > 0)
+	{
+		if (id.y < maxId)
+		{
+			normal += cross(p11_p12, p11_p01);
+		}
+
+		if (id.y > 0)
+		{
+			normal += cross(p11_p01, p11_p10);
+		}
+	}
+
+	if (id.x < maxId)
+	{
+		if (id.y < maxId)
+		{
+			normal += cross(p11_p21, p11_p12);
+		}
+
+		if (id.y > 0)
+		{
+			normal += cross(p11_p10, p11_p21);
+		}
+	}
+
+	// vector in uv Y+ direction
+	if (id.y < maxId)
+	{
+		tangent += p11_p12;
+	}
+
+	if (id.y > 0)
+	{
+		tangent -= p11_p10;
+	}
+
+	normal = normalize(normal);
+	tangent = normalize(tangent);
+}
+
+
+#pragma kernel generateChunkVertices
+
+struct PerVertexData
+{
+	float3 position;
+	float3 normal;
+	float3 tangent;
+};
+
+RWStructuredBuffer<PerVertexData> _vertices;
+
+[numthreads(1, 1, 1)]
+void generateChunkVertices(uint3 id : SV_DispatchThreadID)
+{
+	PerVertexData data;
+	data.position = calculateVertexPosition(id.xy, _moveEdgeVerticesDown);
+	calculateVertexNormalAndTangent(id.xy, data.normal, data.tangent);
+	_vertices[id.x + id.y * _numberOfVerticesOnEdge] = data;
+}
+
+
+PerVertexData getInterpolatedVertexData(float2 uv)
+{
+	float2 fid = uv * (_numberOfVerticesOnEdge - 1);
+	float2 f = frac(fid);
+	float4 weights = float4(
+		(1 - f.x) * (1 - f.y),
+		(f.x) * (1 - f.y),
+		(1 - f.x) * (f.y),
+		(f.x) * (f.y)
+	);
+
+	uint2 id = floor(fid);
+	PerVertexData d0 = _vertices[(id.x + 0) + (id.y + 0) * _numberOfVerticesOnEdge];
+	PerVertexData d1 = _vertices[(id.x + 1) + (id.y + 0) * _numberOfVerticesOnEdge];
+	PerVertexData d2 = _vertices[(id.x + 0) + (id.y + 1) * _numberOfVerticesOnEdge];
+	PerVertexData d3 = _vertices[(id.x + 1) + (id.y + 1) * _numberOfVerticesOnEdge];
+
+	PerVertexData result;
+	result.position = normalize(mul(weights, float4x3(d0.position, d1.position, d2.position, d3.position)));
+	result.normal = normalize(mul(weights, float4x3(d0.normal, d1.normal, d2.normal, d3.normal)));
+	result.tangent = normalize(mul(weights, float4x3(d0.tangent, d1.tangent, d2.tangent, d3.tangent)));
+
+	return result;
+}
+
+
+
+
+
+// Unpack normal as DXT5nm (1, y, 1, x) or BC5 (x, y, 0, 1)
+// Note neutral texture like "bump" is (0, 0, 1, 1) to work with both plain RGB normal and DXT5nm/BC5
+float3 UnpackNormalmapRGorAG(float4 packednormal)
+{
+    // This do the trick
+   packednormal.x *= packednormal.w;
+
+    float3 normal;
+    normal.xy = packednormal.xy * 2 - 1;
+    normal.z = sqrt(1 - saturate(dot(normal.xy, normal.xy)));
+    return normal;
+}
+
+inline float3 UnpackNormal(float4 packednormal)
+{
+#if defined(UNITY_NO_DXT5nm)
+    return packednormal.xyz * 2 - 1;
+#else
+	packednormal.x *= packednormal.w;
+    float3 normal;
+    normal.xy = packednormal.xy * 2 - 1;
+    normal.z = sqrt(1 - saturate(dot(normal.xy, normal.xy)));
+    return normal;
+#endif
+}
+
+// inverse of UnpackNormal from Unity's builtin shaders
+inline float4 PackNormal(float3 normal)
+{
+	return float4((normal.xyz + 1) / 2, 1);
+
+#if defined(UNITY_NO_DXT5nm)
+    return float4((normal.xyz + 1) / 2, 1);
+#else
+	normal.xy = (normal.xy + 1) / 2;
+    return float4(normal.x, normal.y, 0, 1);
+#endif
+}
+
+#pragma kernel generateChunkNormapMap
+
+RWTexture2D<float4> _chunkWorldNormalMap;
+RWTexture2D<float4> _chunkTangentNormalMap;
+
+[numthreads(16, 16, 1)]
+void generateChunkNormapMap(uint3 id : SV_DispatchThreadID)
+{
+	float3 pixelWorldNormal = calculatePixelNormal(id.xy);
+	//DEBUG
+	//pixelWorldNormal = float3(0.5, 0.5, 1);
+	//pixelWorldNormal = float3(1, 0, 0);
+	//pixelWorldNormal = normal;
+
+	int w, h;
+	_chunkHeightMap.GetDimensions(w, h);
+	int2 maxId = int2(w - 1, h - 1);
+	float2 uv = id.xy / float2(w - 1, h - 1);
+
+	float3 unitCubePos = lerp(
+		lerp(_rangeUnitCubePosA, _rangeUnitCubePosB, uv.x),
+		lerp(_rangeUnitCubePosD, _rangeUnitCubePosC, uv.x),
+		uv.y
+		);
+
+	float3 dir = unitCubeToUnitSphere(unitCubePos);
+
+	float slope = saturate(1 - dot(pixelWorldNormal, dir));
+	_chunkWorldNormalMap[id.xy] = float4(PACK_NORMAL(pixelWorldNormal), slope);
+
+
+	PerVertexData vertex = getInterpolatedVertexData(uv);
+	float3 vertexBiTangent = cross(vertex.normal, vertex.tangent);
+
+	float3x3 worldToTangent = transpose(float3x3(vertex.tangent, vertexBiTangent, vertex.normal));
+
+	float3 tangentNormal = mul(pixelWorldNormal, worldToTangent);
+
+	_chunkTangentNormalMap[id.xy] = PackNormal(tangentNormal);
+	//_chunkTangentNormalMap[id.xy] = PackNormal(float3(0, 0, 1));
+	//_chunkTangentNormalMap[id.xy] = float4(0.5, 0.5, 1, 1);
+}
+
+
+

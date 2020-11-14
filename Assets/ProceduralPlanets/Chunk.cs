@@ -9,7 +9,6 @@ using UnityEngine.Rendering;
 [Serializable]
 public class Chunk : IDisposable
 {
-
 	public Planet planet;
 
 	public ulong id;
@@ -20,11 +19,9 @@ public class Chunk : IDisposable
 	public Range rangeUnitCubePosToGenerateInto;
 	public Range rangePosToCalculateScreenSizeOn_localToPlanet;
 
-
 	public Vector3 offsetFromPlanetCenter;
 
 	public float chunkRangeMaxAngleDeg;
-
 
 	// float slope = (abs(sx0 - s0) + abs(sy0 - s0)) / _chunkRelativeSize * (w / 256.0);
 	//public float ChunkRelativeSize { get { return chunkRadius / planetConfig.radiusStart; } }
@@ -44,11 +41,15 @@ public class Chunk : IDisposable
 	[Serializable]
 	public class GeneratedData : IDisposable
 	{
-		public RenderTexture chunkHeightMap;
-		public RenderTexture chunkWorldNormalMap;
+		public Mesh mesh;
 		public RenderTexture chunkTangentNormalMap;
 		public RenderTexture chunkDiffuseMap;
-		public Mesh mesh;
+
+		public RenderTexture chunkHeightMap;
+		public RenderTexture chunkWorldNormalMap;
+		public RenderTexture chunkMeshNormals;
+		public RenderTexture chunkMeshTangents;
+
 		~GeneratedData()
 		{
 			Dispose();
@@ -58,16 +59,25 @@ public class Chunk : IDisposable
 		{
 			if (mesh) Mesh.Destroy(mesh);
 			mesh = null;
-
-			if (chunkHeightMap) chunkHeightMap.Release();
-			chunkHeightMap = null;
-			if (chunkWorldNormalMap) chunkWorldNormalMap.Release();
-			chunkWorldNormalMap = null;
 			if (chunkTangentNormalMap) chunkTangentNormalMap.Release();
 			chunkTangentNormalMap = null;
 			if (chunkDiffuseMap) chunkDiffuseMap.Release();
 			chunkDiffuseMap = null;
+			ReleaseTemporary();
 		}
+
+		public void ReleaseTemporary()
+		{
+			if (chunkHeightMap) RenderTexture.ReleaseTemporary(chunkHeightMap);
+			chunkHeightMap = null;
+			if (chunkWorldNormalMap) RenderTexture.ReleaseTemporary(chunkWorldNormalMap);
+			chunkWorldNormalMap = null;
+			if (chunkMeshNormals) RenderTexture.ReleaseTemporary(chunkMeshNormals);
+			chunkMeshNormals = null;
+			if (chunkMeshTangents) RenderTexture.ReleaseTemporary(chunkMeshTangents);
+			chunkMeshTangents = null;
+		}
+
 	};
 
 	public GeneratedData FullyGeneratedData { get; private set; }
@@ -255,37 +265,44 @@ public class Chunk : IDisposable
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Height map");
 		GenerateHeightMap();
 		MyProfiler.EndSample();
-		yield return null;
+		yield return new WaitForEndOfFrame();
 
-		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Normal map");
-		GenerateNormalMap();
+		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Simulate erosion");
+		SimulateErosion();
 		MyProfiler.EndSample();
-		yield return null;
+		yield return new WaitForEndOfFrame();
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Generate on GPU");
 		GenerateMesh();
 		MyProfiler.EndSample();
+		yield return new WaitForEndOfFrame();
+
+		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Normal map");
+		GenerateNormalMap();
+		MyProfiler.EndSample();
+		yield return new WaitForEndOfFrame();
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Get data from GPU to CPU / Request");
 		RequestMeshData();
 		MyProfiler.EndSample();
+		yield return new WaitForEndOfFrame();
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Diffuse map");
 		GenerateDiffuseMap();
 		MyProfiler.EndSample();
-		yield return null;
+		yield return new WaitForEndOfFrame();
 
 		while (!getMeshDataReadbackRequest.done) yield return new WaitForEndOfFrame();
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Create on CPU");
 		CreateMesh();
 		MyProfiler.EndSample();
-		yield return null;
+		yield return new WaitForEndOfFrame();
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Upload to GPU");
 		UploadMesh();
 		MyProfiler.EndSample();
-		yield return null;
+		yield return new WaitForEndOfFrame();
 
 		CleanupAfterGeneration();
 
@@ -381,7 +398,7 @@ public class Chunk : IDisposable
 		{
 			if (generatingData.chunkHeightMap == null)
 			{
-				generatingData.chunkHeightMap = new RenderTexture(HeightMapResolution, HeightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
+				generatingData.chunkHeightMap = RenderTexture.GetTemporary(HeightMapResolution, HeightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
 				generatingData.chunkHeightMap.wrapMode = TextureWrapMode.Clamp;
 				generatingData.chunkHeightMap.filterMode = FilterMode.Bilinear;
 				generatingData.chunkHeightMap.enableRandomWrite = true;
@@ -404,6 +421,85 @@ public class Chunk : IDisposable
 		}
 	}
 
+	void SimulateErosion()
+	{
+		return;
+		{
+			if (generatingData.chunkHeightMap == null)
+			{
+				generatingData.chunkHeightMap = RenderTexture.GetTemporary(HeightMapResolution, HeightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
+				generatingData.chunkHeightMap.wrapMode = TextureWrapMode.Clamp;
+				generatingData.chunkHeightMap.filterMode = FilterMode.Bilinear;
+				generatingData.chunkHeightMap.enableRandomWrite = true;
+				generatingData.chunkHeightMap.Create();
+			}
+
+			var c = chunkConfig.generateChunkHeightMap;
+			SetAll(c, 0);
+			c.SetTexture(0, "_planetHeightMap", planetConfig.planetHeightMap);
+			rangeUnitCubePosToGenerateInto.SetParams(c, "_rangeUnitCubePos");
+			c.SetFloat("_heightMin", heightMin);
+			c.SetFloat("_heightMax", heightMax);
+
+			c.SetBool("_hasParent", parent != null);
+			if (parent != null && parent.HasFullyGeneratedData && parent.FullyGeneratedData.chunkHeightMap)
+				c.SetTexture(0, "_parentChunkHeightMap", parent.FullyGeneratedData.chunkHeightMap);
+
+			c.SetTexture(0, "_chunkHeightMap", generatingData.chunkHeightMap);
+			c.Dispatch(0, generatingData.chunkHeightMap.width / 16, generatingData.chunkHeightMap.height / 16, 1);
+		}
+	}
+
+	
+	void GenerateNormalMap()
+	{
+		var c = chunkConfig.GenerateChunkNormalMapOrVertices;
+		var k = c.FindKernel("generateChunkNormapMap");
+
+
+		if (generatingData.chunkWorldNormalMap != null && generatingData.chunkWorldNormalMap.width != WorldNormalMapResolution)
+		{
+			RenderTexture.ReleaseTemporary(generatingData.chunkWorldNormalMap);
+			generatingData.chunkWorldNormalMap = null;
+		}
+
+		if (generatingData.chunkWorldNormalMap == null)
+		{
+			generatingData.chunkWorldNormalMap = RenderTexture.GetTemporary(WorldNormalMapResolution, WorldNormalMapResolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+			generatingData.chunkWorldNormalMap.wrapMode = TextureWrapMode.Clamp;
+			generatingData.chunkWorldNormalMap.filterMode = FilterMode.Bilinear;
+			generatingData.chunkWorldNormalMap.enableRandomWrite = true;
+			generatingData.chunkWorldNormalMap.Create();
+		}
+
+
+		if (generatingData.chunkTangentNormalMap != null && generatingData.chunkTangentNormalMap.width != TangentNormalMapResolution)
+		{
+			generatingData.chunkTangentNormalMap.Release();
+			generatingData.chunkTangentNormalMap = null;
+		}
+
+		if (generatingData.chunkTangentNormalMap == null)
+		{
+			generatingData.chunkTangentNormalMap = new RenderTexture(TangentNormalMapResolution, TangentNormalMapResolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+			generatingData.chunkTangentNormalMap.wrapMode = TextureWrapMode.Clamp;
+			generatingData.chunkTangentNormalMap.filterMode = FilterMode.Bilinear;
+			generatingData.chunkTangentNormalMap.enableRandomWrite = true;
+			generatingData.chunkTangentNormalMap.Create();
+		}
+
+
+		SetAll(c, k);
+
+		var _normalLength = chunkRadius / generatingData.chunkWorldNormalMap.width / (planetConfig.radiusHeightMapMultiplier * HeightRange);
+		//UnityEngine.Debug.Log(_normalLength);
+		c.SetFloat("_normalLength", _normalLength);
+		c.SetBuffer(k, "_vertices", vertexGPUBuffer);
+
+		c.Dispatch(k, generatingData.chunkWorldNormalMap.width / 16, generatingData.chunkWorldNormalMap.height / 16, 1);
+	}
+
+
 
 	//ComputeBuffer vertexGPUBuffer { get { return planet.chunkVertexGPUBuffer; } }
 	ComputeBuffer vertexGPUBuffer;
@@ -411,28 +507,25 @@ public class Chunk : IDisposable
 	void GenerateMesh()
 	{
 		vertexGPUBuffer = new ComputeBuffer(chunkConfig.NumberOfVerticesNeededTotal, 3 * 3 * sizeof(float));
-		var c = chunkConfig.generateChunkVertices;
+		var c = chunkConfig.GenerateChunkNormalMapOrVertices;
+		var k = c.FindKernel("generateChunkVertices");
 		var verticesOnEdge = chunkConfig.numberOfVerticesOnEdge;
 
-		var kernelIndex = 0;
-		if (GenerateUsingPlanetGlobalPos) kernelIndex = c.FindKernel("generateUsingPlanetGlobalPos");
-		else kernelIndex = c.FindKernel("generateUsingChunkLocalPos");
-
-		SetAll(c, kernelIndex);
+		SetAll(c, k);
 		rangeUnitCubePosToGenerateInto.SetParams(c, "_rangeUnitCubePos");
 		c.SetInt("_numberOfVerticesOnEdge", verticesOnEdge);
 		c.SetFloat("_planetRadiusStart", planetConfig.radiusStart);
 		c.SetFloat("_planetRadiusHeightMapMultiplier", planetConfig.radiusHeightMapMultiplier);
-		c.SetTexture(kernelIndex, "_chunkHeightMap", generatingData.chunkHeightMap);
+		c.SetTexture(k, "_chunkHeightMap", generatingData.chunkHeightMap);
 
 		c.SetFloat("_heightMin", heightMin);
 		c.SetFloat("_heightMax", heightMax);
-		c.SetFloat("_moveEdgeVerticesDown", chunkConfig.useSkirts ? chunkRadius / 20.0f : 0);
+		c.SetFloat("_moveEdgeVerticesDown", chunkConfig.useSkirts ? chunkRadius / 20.0f : k);
 
-		c.SetBuffer(kernelIndex, "_craterSpherePositionRadius", planet.craters.gpuBuffer);
+		c.SetBuffer(k, "_craterSpherePositionRadius", planet.craters.gpuBuffer);
 
-		c.SetBuffer(kernelIndex, "_vertices", vertexGPUBuffer);
-		c.Dispatch(kernelIndex, verticesOnEdge, verticesOnEdge, 1);
+		c.SetBuffer(k, "_vertices", vertexGPUBuffer);
+		c.Dispatch(k, verticesOnEdge, verticesOnEdge, 1);
 
 	}
 
@@ -506,19 +599,19 @@ public class Chunk : IDisposable
 		generatingData.mesh.uv = planet.GetChunkMeshUVs();
 		generatingData.mesh.RecalculateBounds();
 
-		if (true || !chunkConfig.generateChunkNormapMap)
-		{
-			//generatedData.mesh.RecalculateNormals();
-			//generatedData.mesh.RecalculateTangents();
+		//if (generateNormalsAndTangentsOnCPU)
+		//{
+		//	//generatedData.mesh.RecalculateNormals();
+		//	//generatedData.mesh.RecalculateTangents();
 
-			//generatingData.mesh.normals = RecalculateNormals(ref vertexCPUBuffer, planet.GetChunkMeshTriangles(), planet.GetChunkMeshUVs(), planet.GetChunkMeshIndiciesEdge());
-			//generatingData.mesh.tangents = RecalculateTangents(ref vertexCPUBuffer, planet.GetChunkMeshTriangles(), planet.GetChunkMeshUVs(), planet.GetChunkMeshIndiciesEdge());
-		}
-		else
-		{
-			generatingData.mesh.normals = new Vector3[] { };
-			generatingData.mesh.tangents = new Vector4[] { };
-		}
+		//	//generatingData.mesh.normals = RecalculateNormals(ref vertexCPUBuffer, planet.GetChunkMeshTriangles(), planet.GetChunkMeshUVs(), planet.GetChunkMeshIndiciesEdge());
+		//	//generatingData.mesh.tangents = RecalculateTangents(ref vertexCPUBuffer, planet.GetChunkMeshTriangles(), planet.GetChunkMeshUVs(), planet.GetChunkMeshIndiciesEdge());
+		//}
+		//else
+		//{
+		//	generatingData.mesh.normals = new Vector3[] { };
+		//	generatingData.mesh.tangents = new Vector4[] { };
+		//}
 	}
 
 	void UploadMesh()
@@ -526,54 +619,6 @@ public class Chunk : IDisposable
 		generatingData.mesh.UploadMeshData(false);
 
 		if (vertexCPUBuffer.IsCreated) vertexCPUBuffer.Dispose();
-	}
-
-
-	void GenerateNormalMap()
-	{
-		var c = chunkConfig.generateChunkNormapMap;
-		if (c == null) return;
-
-
-		if (generatingData.chunkWorldNormalMap != null && generatingData.chunkWorldNormalMap.width != WorldNormalMapResolution)
-		{
-			generatingData.chunkWorldNormalMap.Release();
-			generatingData.chunkWorldNormalMap = null;
-		}
-
-		if (generatingData.chunkWorldNormalMap == null)
-		{
-			generatingData.chunkWorldNormalMap = new RenderTexture(WorldNormalMapResolution, WorldNormalMapResolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
-			generatingData.chunkWorldNormalMap.wrapMode = TextureWrapMode.Clamp;
-			generatingData.chunkWorldNormalMap.filterMode = FilterMode.Bilinear;
-			generatingData.chunkWorldNormalMap.enableRandomWrite = true;
-			generatingData.chunkWorldNormalMap.Create();
-		}
-
-
-		if (generatingData.chunkTangentNormalMap != null && generatingData.chunkTangentNormalMap.width != TangentNormalMapResolution)
-		{
-			generatingData.chunkTangentNormalMap.Release();
-			generatingData.chunkTangentNormalMap = null;
-		}
-
-		if (generatingData.chunkTangentNormalMap == null)
-		{
-			generatingData.chunkTangentNormalMap = new RenderTexture(TangentNormalMapResolution, TangentNormalMapResolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
-			generatingData.chunkTangentNormalMap.wrapMode = TextureWrapMode.Clamp;
-			generatingData.chunkTangentNormalMap.filterMode = FilterMode.Bilinear;
-			generatingData.chunkTangentNormalMap.enableRandomWrite = true;
-			generatingData.chunkTangentNormalMap.Create();
-		}
-
-
-		SetAll(c, 0);
-
-		var _normalLength = chunkRadius / generatingData.chunkWorldNormalMap.width / (planetConfig.radiusHeightMapMultiplier * HeightRange);
-		//UnityEngine.Debug.Log(_normalLength);
-		c.SetFloat("_normalLength", _normalLength);
-
-		c.Dispatch(0, generatingData.chunkWorldNormalMap.width / 16, generatingData.chunkWorldNormalMap.height / 16, 1);
 	}
 
 
@@ -613,11 +658,9 @@ public class Chunk : IDisposable
 
 	void CleanupAfterGeneration()
 	{
-		if (Application.platform == RuntimePlatform.WindowsEditor)
-			return; // in editor we want to see and debug stuff
+		//if (Application.platform == RuntimePlatform.WindowsEditor) return; // in editor we want to see and debug stuff
 
-		if (generatingData.chunkHeightMap) generatingData.chunkHeightMap.Release();
-		generatingData.chunkHeightMap = null;
+		generatingData.ReleaseTemporary();
 	}
 
 	private float GetSizeOnScreen(Planet.PointOfInterest data)

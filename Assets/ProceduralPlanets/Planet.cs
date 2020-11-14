@@ -40,10 +40,9 @@ public partial class Planet : MonoBehaviour, IDisposable
 		public int NumberOfVerticesNeededTotal { get { return numberOfVerticesOnEdge * numberOfVerticesOnEdge; } }
 
 		public Material chunkMaterial;
-		public ComputeShader generateChunkVertices;
 		public ComputeShader generateChunkHeightMap;
 		public ComputeShader generateChunkDiffuseMap;
-		public ComputeShader generateChunkNormapMap;
+		public ComputeShader GenerateChunkNormalMapOrVertices;
 
 		public Texture2D grass;
 		public Texture2D clay;
@@ -74,6 +73,10 @@ public partial class Planet : MonoBehaviour, IDisposable
 	public BigPosition BigPosition => floatingOrigin.BigPosition;
 	public Vector3 Center { get { return transform.position; } }
 
+	~Planet()
+	{
+		Dispose();
+	}
 	
 	void Start()
 	{
@@ -121,7 +124,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 	{
 		MyProfiler.BeginSample("Procedural Planet / generate base height map");
 
-		var heightMap = new RenderTexture(planetConfig.generatedPlanetHeightMapResolution, planetConfig.generatedPlanetHeightMapResolution, 0, RenderTextureFormat.R8, RenderTextureReadWrite.Linear);
+		var heightMap = new RenderTexture(planetConfig.generatedPlanetHeightMapResolution, planetConfig.generatedPlanetHeightMapResolution, 0, RenderTextureFormat.RInt, RenderTextureReadWrite.Linear);
 		heightMap.filterMode = FilterMode.Trilinear;
 		heightMap.wrapMode = TextureWrapMode.Repeat;
 		heightMap.enableRandomWrite = true;

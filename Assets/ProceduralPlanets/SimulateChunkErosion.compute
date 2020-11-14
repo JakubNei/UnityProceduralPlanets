@@ -1,0 +1,65 @@
+﻿#pragma kernel main
+
+#include "Planet.Compute.cginc"
+
+// inspired by https://github.com/bshishov/UnityTerrainErosionGPU/blob/master/Assets/Shaders/Erosion.compute
+
+Texture2D<float> _chunkHeightMapIn;
+SamplerState sampler_chunkHeightMapIn;
+
+
+int _numberOfVerticesOnEdge;
+
+RWTexture2D<float4> _erosionDataMap;
+
+
+RWTexture2D<float> _chunkHeightMapOut;
+
+
+float getHeightAt(uint2 id)
+{
+	float maxId = _numberOfVerticesOnEdge - 1;
+	float2 uv = float2(id.x / maxId, id.y / maxId);
+	float height01 = _chunkHeightMapIn.SampleLevel(sampler_chunkHeightMapIn, uv, 0).r;
+	return height01;
+}
+
+[numthreads(16, 16, 1)]
+void main(uint3 id : SV_DispatchThreadID)
+{
+	//   /\ y
+	//   
+	//  02 --- 12 --- 22
+	//   |            |
+	//  01 --- 11 --- 21
+	//   |            |
+	//  00 --- 10 --- 20   ---> x
+
+	const float h00 = getHeightAt(id.xy + uint2(-1, -1));
+	const float h10 = getHeightAt(id.xy + uint2(+0, -1));
+	const float h20 = getHeightAt(id.xy + uint2(+1, -1));
+
+	const float h01 = getHeightAt(id.xy + uint2(-1, +0));
+	const float h11 = getHeightAt(id.xy + uint2(+0, +0));
+	const float h21 = getHeightAt(id.xy + uint2(+1, +0));
+
+	const float h02 = getHeightAt(id.xy + uint2(-1, +1));
+	const float h12 = getHeightAt(id.xy + uint2(+0, +1));
+	const float h22 = getHeightAt(id.xy + uint2(+1, +1));
+
+	
+	const float bottom = getHeightAt(id.xy + uint2(+0, -1));
+	const float left = getHeightAt(id.xy + uint2(-1, +0));
+	const float right = getHeightAt(id.xy + uint2(+1, +0));
+	const float top = getHeightAt(id.xy + uint2(+0, +1));
+
+	float3 dhdx = float3(2, right - left, 0);
+	float3 dhdy = float3(0, top - bottom, 2);
+	float3 normal = cross(dhdx, dhdy);
+	
+	float4 data = _erosionDataMap[id.xy];
+
+	float waterAmount = 
+
+	_chunkHeightMapOut[id.xy] = h00;
+}
