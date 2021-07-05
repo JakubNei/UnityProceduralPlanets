@@ -7,12 +7,12 @@ using UnityEngine;
 using UnityEngine.Rendering;
 
 [Serializable]
-public class Chunk : IDisposable
+public class ChunkData : IDisposable
 {
 	public Planet planet;
 
 	public ulong id;
-	public Chunk parent;
+	public ChunkData parent;
 	public int treeDepth;
 
 	public Range rangeUnitCubePosRealSubdivided;
@@ -30,7 +30,7 @@ public class Chunk : IDisposable
 	public bool GenerateUsingPlanetGlobalPos { get { return chunkConfig.generateUsingPlanetGlobalPos; } }
 	//public int SlopeModifier { get { return (int)Mathf.Pow(2, generation); } }
 	//public float SlopeModifier { get { return (float)((planetConfig.radiusStart / chunkRadius / 4 * (heightMapResolution / 1024.0)) / 44.0 * HeightRange); } }
-	public float SlopeModifier { get { return (float)(Mathf.Pow(2, treeDepth) * (HeightMapResolution / 1024.0) * HeightRange); } }
+	public float SlopeModifier { get { return (float)(Mathf.Pow(2, treeDepth) * HeightRange); } }
 	public float HeightRange { get { return heightMax - heightMin; } }
 
 	public BigPosition bigPositionLocalToPlanet => new BigPosition(GenerateUsingPlanetGlobalPos ? Vector3.zero : offsetFromPlanetCenter);
@@ -104,7 +104,7 @@ public class Chunk : IDisposable
 
 
 	[NonSerialized]
-	public List<Chunk> children = new List<Chunk>(4);
+	public List<ChunkData> children = new List<ChunkData>(4);
 	public float chunkRadius;
 
 	int HeightMapResolution { get { return chunkConfig.textureResolution; } }
@@ -112,11 +112,11 @@ public class Chunk : IDisposable
 	int WorldNormalMapResolution { get { return HeightMapResolution; } }
 	int DiffuseMapResolution { get { return TangentNormalMapResolution; } }
 
-	public static Chunk Create(Planet planet, Range range, ulong id, Chunk parent = null, int treeDepth = 0, ChildPosition childPosition = ChildPosition.NoneNoParent)
+	public static ChunkData Create(Planet planet, Range range, ulong id, ChunkData parent = null, int treeDepth = 0, ChildPosition childPosition = ChildPosition.NoneNoParent)
 	{
 		MyProfiler.BeginSample("Procedural Planet / Create chunk");
 
-		var chunk = new Chunk();
+		var chunk = new ChunkData();
 
 		chunk.planet = planet;
 		chunk.id = id;
@@ -676,29 +676,29 @@ public class Chunk : IDisposable
 		var cot = 1.0 / Mathf.Tan(fov / 2f * Mathf.Deg2Rad);
 		var radiusCameraSpace = radiusWorldSpace * cot / distanceToCamera;
 
-		lastDistanceToCamera = distanceToCamera;
-		lastRadiusWorldSpace = radiusWorldSpace;
+		debugLastDistanceToCamera = distanceToCamera;
+		debugLastRadiusWorldSpace = radiusWorldSpace;
 
 		return (float)radiusCameraSpace;
 	}
 
-	public double lastDistanceToCamera;
-	public double lastRadiusWorldSpace;
-	public float lastGenerationWeight;
+	public double debugLastDistanceToCamera;
+	public double debugLastRadiusWorldSpace;
+	public float debugLastGenerationWeight;
 	public float GetRelevanceWeight(Planet.PointOfInterest data)
 	{
 		var weight = GetSizeOnScreen(data);
-		lastGenerationWeight = weight;
+		debugLastGenerationWeight = weight;
 		return weight;
 	}
 
 	public override string ToString()
 	{
-		return typeof(Chunk) + " treeDepth:" + treeDepth + " id:#" + id;
+		return typeof(ChunkData) + " treeDepth:" + treeDepth + " id:#" + id;
 	}
 
 
-	~Chunk()
+	~ChunkData()
 	{
 		Dispose();
 	}

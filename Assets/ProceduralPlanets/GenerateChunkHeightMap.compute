@@ -1,5 +1,7 @@
 ﻿#pragma kernel main
 
+
+
 #include "Planet.Compute.cginc"
 
 
@@ -15,7 +17,7 @@ float3 _rangeUnitCubePosD;
 float _heightMin;
 float _heightMax;
 
-
+float _slopeModifier;
 
 bool _hasParent;
 float2 _parentUvStart;
@@ -24,6 +26,25 @@ SamplerState sampler_parentChunkHeightMap;
 
 RWTexture2D<float> _chunkHeightMap;
 
+
+float calculateHeightAt(float2 uv)
+{
+	float3 dir = lerp(
+		lerp(_rangeUnitCubePosA, _rangeUnitCubePosB, uv.x),
+		lerp(_rangeUnitCubePosD, _rangeUnitCubePosC, uv.x),
+		uv.y
+	);
+	dir = unitCubeToUnitSphere(dir);
+
+	float2 heightMapUv = dirFromCenterToBaseMapUv(dir);
+	
+	float height = sampleCubicFloat(_planetHeightMap, heightMapUv);
+	//double height = sampleCubicDouble(_planetHeightMap, heightMapUv);
+	//double height = _planetHeightMap.SampleLevel(sampler_planetHeightMap, heightMapUv, 0);
+	//double height = getProceduralHeight01(dir);
+
+	return height;
+}
 
 
 [numthreads(16, 16, 1)]
@@ -38,32 +59,38 @@ void main(uint3 id : SV_DispatchThreadID)
 	);
 	dir = unitCubeToUnitSphere(dir);
 
-	float2 heightMapUv = dirFromCenterToBaseMapUv(dir);
+	float height = calculateHeightAt(uv);
 
-	float height = sampleCubicFloat(_planetHeightMap, heightMapUv);
-	//double height = sampleCubicDouble(_planetHeightMap, heightMapUv);
-	//double height = _planetHeightMap.SampleLevel(sampler_planetHeightMap, heightMapUv, 0);
-	//double height = getProceduralHeight01(dir);
+	float off = 0.003 * _slopeModifier;
+	float slope = 
+		abs(height - calculateHeightAt(uv + float2(off, 0))) +
+		abs(height - calculateHeightAt(uv + float2(0, off)));
 
-	//<<<<<<<<<<< uncoment once slope is fixed
-	height += snoise(dir * 100, 20, 1.2) * 0.001; // high frequency small amplitude noise, to hide planet height map sampling artefacts
 
-	height = (height - _heightMin) / (_heightMax - _heightMin);
+	float3 pos = dir * 10;
+	double n = 1;
+	double amp = 1;
+	for (int i = 0; i < 10; i++)
+	{
+		n += snoise(pos) * amp;
+		pos *= 1.5;
+		amp /= 1.3;
+	}
+	height += n * slope;
 
-	//height = clamp(height, 0, 1);
-	/*
-	dir *= 100;
-	float amp = 0.01;
+	/*float3 pos = dir;
+	double n = 1;
+	double amp = 1;
 	for (int i = 0; i < 30; i++)
 	{
-		height += snoise(dir) * amp;
-		dir *= 1.2;
-		amp /= 1.2;
-	}*/
+		n += snoise(pos) * amp;
+		pos *= 1.5;
+		amp /= 1.3;
+	}
+	height += n * slope;*/
 
-	// DEBUG
-	//height = uv.x;
-	//height = 0.5;
+	//height = (height - _heightMin) / (_heightMax - _heightMin);
+
 
 	height = clamp(height, 0, 1);
 	_chunkHeightMap[id.xy] = height;

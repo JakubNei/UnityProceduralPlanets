@@ -1,4 +1,9 @@
-﻿#include "Planet.Compute.cginc"
+﻿#pragma kernel generateChunkVertices
+#pragma kernel generateChunkNormapMap
+
+
+
+#include "Planet.Compute.cginc"
 
 
 Texture2D<float> _chunkHeightMap;
@@ -17,7 +22,6 @@ float3 _rangeUnitCubePosD;
 float _heightMin;
 float _heightMax;
 
-
 double3 calculatePixelPosition(float2 uv)
 {
 	float3 unitCubePos = lerp(
@@ -27,7 +31,6 @@ double3 calculatePixelPosition(float2 uv)
 		);
 
 	double3 dir = unitCubeToUnitSphere(unitCubePos);
-
 	double height = _chunkHeightMap.SampleLevel(sampler_chunkHeightMap, uv, 0).r;
 	height = height * (_heightMax - _heightMin) + _heightMin;
 	height *= _planetRadiusHeightMapMultiplier;
@@ -247,8 +250,6 @@ void calculateVertexNormalAndTangent(uint2 id, out float3 normal, out float3 tan
 }
 
 
-#pragma kernel generateChunkVertices
-
 struct PerVertexData
 {
 	float3 position;
@@ -336,7 +337,6 @@ inline float4 PackNormal(float3 normal)
 #endif
 }
 
-#pragma kernel generateChunkNormapMap
 
 RWTexture2D<float4> _chunkWorldNormalMap;
 RWTexture2D<float4> _chunkTangentNormalMap;

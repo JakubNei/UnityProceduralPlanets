@@ -1,6 +1,9 @@
 ﻿#pragma kernel main
 
+
+
 #include "Planet.Compute.cginc"
+
 
 
 Texture2D<float> _planetHeightMap;
@@ -170,6 +173,8 @@ void main(uint3 id : SV_DispatchThreadID)
 	else
 		color = float3(1, 0, 0);
 
+	if (altidute <= 0.01)
+		color = float3(0, 0, 1); // sea
 
 	// DEBUG
 	//color = _grass.SampleLevel(sampler_grass, pos.yz, 0);

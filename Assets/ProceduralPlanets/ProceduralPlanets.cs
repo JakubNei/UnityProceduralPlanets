@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class ProceduralPlanets : MonoBehaviour
 {
-	HashSet<Planet> allPlanets = new HashSet<Planet>();
+	List<Planet> allPlanets = new List<Planet>();
 
 	public static ProceduralPlanets main { get; private set; }
 

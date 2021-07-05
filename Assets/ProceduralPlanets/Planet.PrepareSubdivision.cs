@@ -19,12 +19,12 @@ public partial class Planet
 		struct ToGenerateChunk
 		{
 			public float weight;
-			public Chunk chunk;
+			public ChunkData chunk;
 		}
 
 		List<ToGenerateChunk> toGenerateChunks = new List<ToGenerateChunk>();
-		List<Chunk> toConsiderForSubdivision = new List<Chunk>();
-		List<Chunk> toRenderChunks = new List<Chunk>();
+		List<ChunkData> toConsiderForSubdivision = new List<ChunkData>();
+		List<ChunkData> toRenderChunks = new List<ChunkData>();
 
 		PointOfInterest fromPosition;
 		float weightNeededToSubdivide;
@@ -40,7 +40,7 @@ public partial class Planet
 			toRenderChunks.Clear();
 		}
 
-		public Chunk GetNextChunkToGenerate()
+		public ChunkData GetNextChunkToStartGeneration()
 		{
 			if (toGenerateChunks.Count == 0) return null;
 			int i = toGenerateChunks.Count - 1;
@@ -49,7 +49,7 @@ public partial class Planet
 			return chunk;
 		}
 
-		public List<Chunk> GetChunksToRender()
+		public List<ChunkData> GetChunksToRender()
 		{
 			return toRenderChunks;
 		}

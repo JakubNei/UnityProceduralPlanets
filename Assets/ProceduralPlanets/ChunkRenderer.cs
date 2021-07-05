@@ -1,12 +1,11 @@
 ﻿using System;
-using UnityEditor;
 using UnityEngine;
 
 public class ChunkRenderer : MonoBehaviour
 {
-	public Chunk chunk;
+	public ChunkData chunk;
 
-	public Chunk.GeneratedData generatedData; // chunk may refresh, and create new generated data so lets keep alive the data we are showing
+	public ChunkData.GeneratedData generatedData; // chunk may refresh, and create new generated data so lets keep alive the data we are showing
 
 	Material material;
 	MeshFilter meshFilter;
@@ -18,6 +17,7 @@ public class ChunkRenderer : MonoBehaviour
 	{
 		var go = new GameObject(nameof(ChunkRenderer));
 		var renderer = go.AddComponent<ChunkRenderer>();
+		//go.hideFlags = HideFlags.HideInHierarchy; // so Hierarchy Windows in editor doesn't lag
 		renderer.CreateComponents();
 		return renderer;
 	}
@@ -34,11 +34,9 @@ public class ChunkRenderer : MonoBehaviour
 		MyProfiler.EndSample();
 	}
 
-	public void RenderChunk(Chunk chunk)
+	public void RenderChunk(ChunkData chunk)
 	{
 		this.chunk = chunk;
-
-
 
 		if (chunk.GenerateUsingPlanetGlobalPos)
 			floatingTransform.BigPosition = chunk.planet.BigPosition;
@@ -71,6 +69,7 @@ public class ChunkRenderer : MonoBehaviour
 		if (meshCollider) meshCollider.sharedMesh = null;
 	}
 
+	#if UNITY_EDITOR
 	private void OnDrawGizmosSelected()
 	{
 		if (gameObject && gameObject.activeSelf && chunk != null && chunk.planet != null)
@@ -83,12 +82,13 @@ public class ChunkRenderer : MonoBehaviour
 
 			Gizmos.DrawSphere(unityCenter, 0.1f);
 
-			Handles.Label(unityCenter, 
-				"weight " + chunk.lastGenerationWeight.ToString() + "\n" +
-				"dist " + chunk.lastDistanceToCamera.ToString() + "\n" +
-				"radius " + chunk.lastRadiusWorldSpace.ToString() + "\n" +
+			UnityEditor.Handles.Label(unityCenter, 
+				"weight " + chunk.debugLastGenerationWeight.ToString() + "\n" +
+				"dist " + chunk.debugLastDistanceToCamera.ToString() + "\n" +
+				"radius " + chunk.debugLastRadiusWorldSpace.ToString() + "\n" +
 				"slopeModifier " + chunk.SlopeModifier.ToString() + "\n"
 			);
 		}
 	}
+	#endif
 }

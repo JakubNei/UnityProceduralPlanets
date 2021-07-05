@@ -116,7 +116,7 @@ public static class MyProfiler
 	static Dictionary<string, string> sampleNameToGUIText = new Dictionary<string, string>();
 
 
-	public static void AddAvergaNumberSample(string name, int number)
+	public static void AddAverageNumberSample(string name, int number)
 	{
 		SlidingWindowAverageLong w;
 		if (!sampleNameToAverageNumber.TryGetValue(name, out w))
