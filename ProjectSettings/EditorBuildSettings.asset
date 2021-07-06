@@ -4,7 +4,5 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes:
-  - enabled: 1
-    path: Assets/Procedural Planets.unity
-    guid: e0af2f33237e3044bbfd9988864900d9
+  m_Scenes: []
+  m_configObjects: {}
