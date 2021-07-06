@@ -64,6 +64,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 	public ulong id;
 
 	public List<ChunkData> rootChildren;
+	public List<ChunkData> allChunks;
 
 	public bool markedForRegeneration;
 
@@ -76,7 +77,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 	{
 		Dispose();
 	}
-	
+
 	void Start()
 	{
 		ProceduralPlanets.main.AddPlanet(this);
@@ -93,7 +94,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 	{
 		double m = planetConfig.radiusHeightMapMultiplier;
 		double r = planetConfig.radiusStart;
-		
+
 		double altidute = distanceFromCenter - r;
 		if (altidute > r * 0.5f) return 0f;
 		if (altidute < m) return 9.81f;
@@ -102,14 +103,14 @@ public partial class Planet : MonoBehaviour, IDisposable
 	}
 
 	public void AddCrater(BigPosition bigPosition, float radius)
-	{ 
+	{
 		var planetLocalPos = this.BigPosition.Towards(bigPosition).ToVector3();
 		craters.cpuBuffer[craters.nextIndex] = new Vector4(planetLocalPos.x, planetLocalPos.y, planetLocalPos.z, radius);
 		++craters.nextIndex;
 		if (craters.nextIndex >= craters.cpuBuffer.Length) craters.nextIndex = 0;
 		craters.gpuBuffer.SetData(craters.cpuBuffer);
 
-		foreach(var c in CollectAllChunks())
+		foreach (var c in CollectAllChunks())
 		{
 			var s = c.rangePosToCalculateScreenSizeOn_localToPlanet.ToBoundingSphere();
 			if (Vector3.Distance(s.center, planetLocalPos) < s.radius + radius)
@@ -164,7 +165,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 	}
 
 	Dictionary<ChunkData, ChunkRenderer> chunksCurrentlyRendered = new Dictionary<ChunkData, ChunkRenderer>();
-	List<ChunkData> toStopRendering = new List<ChunkData>();
+	HashSet<ChunkData> toStopRendering = new HashSet<ChunkData>();
 	List<ChunkData> toStartRendering = new List<ChunkData>();
 
 	ChunkDivisionCalculation subdivisonCalculationInProgress = new ChunkDivisionCalculation();
@@ -189,7 +190,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 		if (milisecondsBudget < 0) milisecondsBudget = 0;
 		if (milisecondsBudget > 15) milisecondsBudget = 15;
 
-		MyProfiler.AddAverageNumberSample("milisecondsBudget", milisecondsBudget);
+		MyProfiler.AddNumberSample("milisecondsBudget", milisecondsBudget);
 
 
 		var pointOfInterest = new PointOfInterest()
@@ -203,6 +204,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 		MyProfiler.BeginSample("Procedural Planet / Calculate desired subdivision");
 		if (subdivisonCalculationCoroutine == null)
 		{
+			//subdivisonCalculationInProgress.GatherCurrentState(allChunks);
 			subdivisonCalculationCoroutine = subdivisonCalculationInProgress.StartCoroutine(this, pointOfInterest);
 		}
 		else if (!subdivisonCalculationCoroutine.MoveNext())
@@ -217,7 +219,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 
 		if (shouldUpdateRenderers)
 		{
-			UpdateChunkRenderers(frameStart, milisecondsBudget);
+			UpdateChunkRenderers_old(frameStart, milisecondsBudget);
 		}
 
 
@@ -282,46 +284,33 @@ public partial class Planet : MonoBehaviour, IDisposable
 
 		MyProfiler.EndSample();
 
-		MyProfiler.AddAverageNumberSample("Procedural Planet / Generate chunks / coroutines executed", couroutinesExecuted);
-		MyProfiler.AddAverageNumberSample("Procedural Planet / Generate chunks / concurrent coroutines", chunkGenerationCoroutines.Count);
-		MyProfiler.AddAverageNumberSample("Procedural Planet / Generate chunks / to generate", subdivisonCalculationLast.NumChunksToGenerate);
+		MyProfiler.AddNumberSample("Procedural Planet / Generate chunks / coroutines executed", couroutinesExecuted);
+		MyProfiler.AddNumberSample("Procedural Planet / Generate chunks / concurrent coroutines", chunkGenerationCoroutines.Count);
+		MyProfiler.AddNumberSample("Procedural Planet / Generate chunks / to generate", subdivisonCalculationLast.NumChunksToGenerate);
 	}
 
 
 	HashSet<ChunkData> toRenderChunks = new HashSet<ChunkData>();
 	Stack<ChunkRenderer> freeRenderers = new Stack<ChunkRenderer>();
 
-	private void UpdateChunkRenderers(Stopwatch frameStart, int milisecondsBudget)
+	private void UpdateChunkRenderers_old(Stopwatch frameStart, int milisecondsBudget)
 	{
 		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers");
 
 		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers / Calculations 1");
 		toRenderChunks.Clear();
 		toRenderChunks.UnionWith(subdivisonCalculationLast.GetChunksToRender());
-		toStopRendering.Clear();
-		foreach (var kvp in chunksCurrentlyRendered)
-		{
-			if (!toRenderChunks.Contains(kvp.Key)) toStopRendering.Add(kvp.Key);
-		}
-		MyProfiler.EndSample();
 
-		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers / Return to pool");
-		foreach (var chunk in toStopRendering)
-		{
-			freeRenderers.Push(chunksCurrentlyRendered[chunk]);
-			chunksCurrentlyRendered.Remove(chunk);
-		}
-		MyProfiler.EndSample();
-
-		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers / Calculations 2");
+		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers / calculate toStartRendering");
 		toStartRendering.Clear();
 		foreach (var chunk in toRenderChunks)
 		{
 			if (!chunksCurrentlyRendered.ContainsKey(chunk)) toStartRendering.Add(chunk);
+			if (toStartRendering.Count > 1) break;
 		}
 		MyProfiler.EndSample();
 
-		// refresh again generated chunk that is currently being shown
+		// if chunks are regenerated, refresh their rendering
 		foreach (var c in chunkGenerationFinished)
 		{
 			if (toRenderChunks.Contains(c) && chunksCurrentlyRendered.ContainsKey(c))
@@ -330,32 +319,93 @@ public partial class Planet : MonoBehaviour, IDisposable
 			}
 		}
 		chunkGenerationFinished.Clear();
+		
+		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers / toStopRendering / calculate");
+		toStopRendering.Clear();
+		foreach (var kvp in chunksCurrentlyRendered)
+		{
+			if (!toRenderChunks.Contains(kvp.Key)) toStopRendering.Add(kvp.Key);
+		}
+		MyProfiler.EndSample();
 
-		MyProfiler.AddAverageNumberSample("Procedural Planet / Update ChunkRenderers / to start rendering", toStartRendering.Count);
-		MyProfiler.AddAverageNumberSample("Procedural Planet / Update ChunkRenderers / to render", toRenderChunks.Count);
+		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers / toStopRendering / execute");
+		foreach (var chunk in toStopRendering)
+		{
+			bool bIsAnyParentRendered = false;
+			{
+				ChunkData parent = chunk.parent;
+				while (parent != null)
+				{
+					if (!toStopRendering.Contains(parent) && chunksCurrentlyRendered.ContainsKey(parent))
+					{
+						bIsAnyParentRendered = true;
+						break;
+					}
+
+					parent = parent.parent;
+				}
+			}
+
+			bool bAllChildrenRendered = chunk.AreAllChildrenRendered;
+			//bool bAllChildrenRendered = true;
+			//{
+			//	if (chunk.children.Count == 0)
+			//	{
+			//		bAllChildrenRendered = false;
+			//	}
+			//	else
+			//	{ 
+			//		foreach (var child in chunk.children)
+			//		{
+			//			if (!chunksCurrentlyRendered.ContainsKey(child))
+			//			{
+			//				if (!child.AreAllChildrenRendered)
+			//				{
+			//					bAllChildrenRendered = false;
+			//					break;
+			//				}
+			//			}
+			//		}
+			//	}
+			//}
+
+			if (bIsAnyParentRendered || bAllChildrenRendered) // make sure we hide chunk only if there is some other chunk rendering mesh in its place
+			{
+				freeRenderers.Push(chunksCurrentlyRendered[chunk]);
+				chunksCurrentlyRendered.Remove(chunk);
+			}
+		}
+		MyProfiler.EndSample();
 
 		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers / toStartRendering / get free renderers");
-		while (freeRenderers.Count < toStartRendering.Count) 
+		while (freeRenderers.Count < toStartRendering.Count)
 		{
-			var renderer = ProceduralPlanets.main.GetFreeChunkRenderer();
+			var renderer = ProceduralPlanets.main.GetFreeChunkRendererFromPool();
 			freeRenderers.Push(renderer);
 		}
 		MyProfiler.EndSample();
 
-		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers / toStartRendering / RenderChunk");
+		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers / toStartRendering / execute");
 		foreach (var chunk in toStartRendering)
 		{
 			var renderer = freeRenderers.Pop();
 			renderer.RenderChunk(chunk);
 			chunksCurrentlyRendered.Add(chunk, renderer);
-			//if (frameStart.ElapsedMilliseconds > milisecondsBudget) break;
 		}
 		MyProfiler.EndSample();
 
+		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers / Return to pool");
 		while (freeRenderers.Count > 0)
 		{
 			ProceduralPlanets.main.ReturnChunkRendererToPool(freeRenderers.Pop());
 		}
+		MyProfiler.EndSample();
+
+		
+		MyProfiler.AddNumberSample("Procedural Planet / Update ChunkRenderers / to start rendering", toStartRendering.Count);
+		MyProfiler.AddNumberSample("Procedural Planet / Update ChunkRenderers / to stop rendering", toStopRendering.Count);
+		MyProfiler.AddNumberSample("Procedural Planet / Update ChunkRenderers / to render", toRenderChunks.Count);
+		MyProfiler.AddNumberSample("Procedural Planet / chunksCurrentlyRendered", chunksCurrentlyRendered.Count);
 
 		MyProfiler.EndSample();
 	}
@@ -417,6 +467,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 			id: id
 		);
 
+		allChunks.Add(child);
 		rootChildren.Add(child);
 	}
 
@@ -467,7 +518,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 		{
 			Gizmos.color = Color.red;
 			for (int i = 0; i < craters.nextIndex; ++i)
-			{ 
+			{
 				var c = craters.cpuBuffer[i];
 				Gizmos.DrawWireSphere(this.transform.position + new Vector3(c.x, c.y, c.z), c.w);
 			}

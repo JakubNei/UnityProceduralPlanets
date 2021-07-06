@@ -24,7 +24,13 @@ public partial class Planet
 
 		List<ToGenerateChunk> toGenerateChunks = new List<ToGenerateChunk>();
 		List<ChunkData> toConsiderForSubdivision = new List<ChunkData>();
-		List<ChunkData> toRenderChunks = new List<ChunkData>();
+
+		struct ToRenderChunks
+		{
+			public float weight;
+			public ChunkData chunk;
+		}
+		List<ToRenderChunks> toRenderChunks = new List<ToRenderChunks>();
 
 		PointOfInterest fromPosition;
 		float weightNeededToSubdivide;
@@ -49,14 +55,14 @@ public partial class Planet
 			return chunk;
 		}
 
-		public List<ChunkData> GetChunksToRender()
+		public IEnumerable<ChunkData> GetChunksToRender()
 		{
-			return toRenderChunks;
+			return toRenderChunks.Select(c => c.chunk);
 		}
 
 		public IEnumerator StartCoroutine(Planet planet, PointOfInterest fromPosition)
 		{
-			Phase_1_Start (planet, fromPosition);
+			Phase_1_Start(planet, fromPosition);
 			yield return null;
 			while (Phase_2_Loop(100))
 			{
@@ -64,14 +70,13 @@ public partial class Planet
 			}
 			yield return null;
 			Phase_3_Sort();
+			yield return null;
+			Phase_4_Sort();
 		}
 
 		void Phase_1_Start(Planet planet, PointOfInterest fromPosition)
 		{
-			toGenerateChunks.Clear();
-			toRenderChunks.Clear();
-			toConsiderForSubdivision.Clear();
-
+			Clear();
 			toConsiderForSubdivision.AddRange(planet.rootChildren);
 
 			this.fromPosition = fromPosition;
@@ -91,9 +96,9 @@ public partial class Planet
 				if (weight > weightNeededToSubdivide && chunk.treeDepth < subdivisionMaxRecurisonDepth) // want subdivide ?
 				{
 					if (chunk.HasFullyGeneratedData) // children require generated data from parent
-					{ 
+					{
 						chunk.EnsureChildrenInstancesAreCreated();
-					
+
 						//toConsiderForSubdivision.AddRange(chunk.children);
 						//i += chunk.children.Count;
 						//continue;
@@ -101,7 +106,7 @@ public partial class Planet
 						bool areAllChildrenGenerated = true;
 						for (int j = 0; j < chunk.children.Count; ++j)
 						{
-							if (!chunk.children[j].HasFullyGeneratedData) 
+							if (!chunk.children[j].HasFullyGeneratedData)
 							{
 								areAllChildrenGenerated = false;
 								break;
@@ -120,7 +125,8 @@ public partial class Planet
 						}
 						else
 						{
-							toRenderChunks.Add(chunk);
+							toRenderChunks.Add(new ToRenderChunks() { weight = weight, chunk = chunk });
+
 							if (chunk.WantsRefresh)
 							{
 								toGenerateChunks.Add(new ToGenerateChunk() { weight = weight * 2f, chunk = chunk });
@@ -139,15 +145,16 @@ public partial class Planet
 				}
 				else
 				{
-					if (chunk.HasFullyGeneratedData) 
+					if (chunk.HasFullyGeneratedData)
 					{
-						toRenderChunks.Add(chunk);
+						toRenderChunks.Add(new ToRenderChunks() { weight = weight, chunk = chunk });
+
 						if (chunk.WantsRefresh)
 						{
 							toGenerateChunks.Add(new ToGenerateChunk() { weight = weight * 2f, chunk = chunk });
 						}
 					}
-					else 
+					else
 					{
 						toGenerateChunks.Add(new ToGenerateChunk() { weight = weight, chunk = chunk });
 					}
@@ -158,8 +165,13 @@ public partial class Planet
 		}
 
 		void Phase_3_Sort()
-		{ 
+		{
 			toGenerateChunks.Sort((ToGenerateChunk a, ToGenerateChunk b) => b.weight.CompareTo(a.weight));
+		}
+
+		void Phase_4_Sort()
+		{
+			toRenderChunks.Sort((ToRenderChunks a, ToRenderChunks b) => b.weight.CompareTo(a.weight));
 		}
 
 	}

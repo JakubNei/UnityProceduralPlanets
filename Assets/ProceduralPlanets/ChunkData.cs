@@ -38,6 +38,7 @@ public class ChunkData : IDisposable
 	public Planet.PlanetConfig planetConfig { get { return planet.planetConfig; } }
 	public Planet.ChunkConfig chunkConfig { get { return planet.chunkConfig; } }
 
+
 	[Serializable]
 	public class GeneratedData : IDisposable
 	{
@@ -86,6 +87,32 @@ public class ChunkData : IDisposable
 	public bool HasFullyGeneratedData => FullyGeneratedData != null;
 	public bool WantsRefresh;
 
+	public ChunkRenderer currentChunkRenderer;
+	public bool IsCurrentlyRendered => currentChunkRenderer != null;
+
+	public bool AreAllChildrenRendered 
+	{
+		get
+		{
+			if (children.Count == 0)
+			{
+				return false;
+			}
+
+			foreach (var child in children)
+			{
+				if (!child.IsCurrentlyRendered)
+				{
+					if (!child.AreAllChildrenRendered)
+					{
+						return false;
+					}
+				}
+			}
+
+			return true;
+		}
+	}
 
 	public float heightMin = 0;
 	public float heightMax = 1;
@@ -223,6 +250,7 @@ public class ChunkData : IDisposable
 		);
 
 		children.Add(child);
+		planet.allChunks.Add(child);
 	}
 
 	public void EnsureChildrenInstancesAreCreated()
@@ -501,8 +529,7 @@ public class ChunkData : IDisposable
 
 
 
-	//ComputeBuffer vertexGPUBuffer { get { return planet.chunkVertexGPUBuffer; } }
-	ComputeBuffer vertexGPUBuffer;
+	ComputeBuffer vertexGPUBuffer; // TODO: pooling
 
 	void GenerateMesh()
 	{
@@ -526,7 +553,6 @@ public class ChunkData : IDisposable
 
 		c.SetBuffer(k, "_vertices", vertexGPUBuffer);
 		c.Dispatch(k, verticesOnEdge, verticesOnEdge, 1);
-
 	}
 
 	[System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
@@ -537,7 +563,7 @@ public class ChunkData : IDisposable
 		public Vector3 tangent;
 	}
 
-	NativeArray<PerVertexData> vertexCPUBuffer;
+	NativeArray<PerVertexData> vertexCPUBuffer; // TODO: pooling
 
 
 	void RequestMeshData()
@@ -616,7 +642,7 @@ public class ChunkData : IDisposable
 
 	void UploadMesh()
 	{
-		generatingData.mesh.UploadMeshData(false);
+		generatingData.mesh.UploadMeshData(false); // false because mesh is used for MeshCollision component
 
 		if (vertexCPUBuffer.IsCreated) vertexCPUBuffer.Dispose();
 	}

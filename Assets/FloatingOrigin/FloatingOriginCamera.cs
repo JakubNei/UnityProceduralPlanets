@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEditor.SceneManagement;
 using UnityEngine;
 
 [RequireComponent(typeof(Camera))]
 public class FloatingOriginCamera : MonoBehaviour
 {
+	[SerializeField]
+	float tresholdDistance = 1000;
+
 	public static FloatingOriginCamera main 
 	{
 		get
@@ -76,7 +78,7 @@ public class FloatingOriginCamera : MonoBehaviour
 
 	private void FixedUpdate()
 	{
-		if (this.transform.position.sqrMagnitude > 1000 * 1000)
+		if (this.transform.position.sqrMagnitude > tresholdDistance * tresholdDistance)
 		{
 			MyProfiler.BeginSample("Floating origin / scene origin changed");
 

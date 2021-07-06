@@ -36,7 +36,15 @@ public class ChunkRenderer : MonoBehaviour
 
 	public void RenderChunk(ChunkData chunk)
 	{
+		if (this.chunk != null)
+		{ 
+			// reuse for another chunk
+			this.chunk.currentChunkRenderer = null;
+			this.chunk = null;
+		}
+
 		this.chunk = chunk;
+		this.chunk.currentChunkRenderer = this;
 
 		if (chunk.GenerateUsingPlanetGlobalPos)
 			floatingTransform.BigPosition = chunk.planet.BigPosition;
@@ -58,15 +66,24 @@ public class ChunkRenderer : MonoBehaviour
 
 		if (material && generatedData.chunkDiffuseMap) material.mainTexture = generatedData.chunkDiffuseMap;
 		if (material && generatedData.chunkTangentNormalMap) material.SetTexture("_BumpMap", generatedData.chunkTangentNormalMap);
+
+		gameObject.SetActive(true);
 	}
 
 	public void Hide()
 	{
 		generatedData = null;
-		chunk = null;
+		
+		if (chunk != null)
+		{ 
+			chunk.currentChunkRenderer = null;
+			chunk = null;
+		}
 
 		meshFilter.sharedMesh = null;
 		if (meshCollider) meshCollider.sharedMesh = null;
+
+		gameObject.SetActive(false);
 	}
 
 	#if UNITY_EDITOR

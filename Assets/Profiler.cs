@@ -42,6 +42,11 @@ public static class MyProfiler
 			Samples.Enqueue(sample);
 			SumValue += sample;
 		}
+
+		public override string ToString()
+		{
+			return AverageValue.ToString();
+		}
 	}
 
 	class SlidingWindowAverageDouble
@@ -70,6 +75,7 @@ public static class MyProfiler
 		TimeSpan SumValue;
 		int MaxSamples = 500; 
 		Queue<TimeSpan> Samples = new Queue<TimeSpan>();
+		TimeSpan Last;
 
 		public void AddSample(TimeSpan sample)
 		{
@@ -83,6 +89,7 @@ public static class MyProfiler
 
 			if (sample > Max) Max = sample;
 			if (sample < Min) Min = sample;
+			Last = sample;
 		}
 
 
@@ -103,12 +110,34 @@ public static class MyProfiler
 		public override string ToString()
 		{
 			var averageTimeSpan = new TimeSpan(SumValue.Ticks / Samples.Count);
-			return TimeSpanToString(averageTimeSpan) + " (min " + TimeSpanToString(Min) + ", max " + TimeSpanToString(Max) + ")";
+			return ": cur " + TimeSpanToString(Last) + ", avg " + TimeSpanToString(averageTimeSpan) + ", min " + TimeSpanToString(Min) + ", max " + TimeSpanToString(Max);
 		}
 	}
 
+	class NumberSample
+	{
+		SlidingWindowAverageLong average = new SlidingWindowAverageLong();
 
-	static Dictionary<string, SlidingWindowAverageLong> sampleNameToAverageNumber = new Dictionary<string, SlidingWindowAverageLong>();
+		int min = int.MaxValue;
+		int max = int.MinValue;
+		int last;
+
+		public void AddSample(int sample)
+		{
+			average.AddSample(sample);
+
+			if (sample < min) min = sample;
+			if (sample > max) max = sample;
+			last = sample;
+		}
+
+		public override string ToString()
+		{
+			return ": cur " + last + ", avg " + average.ToString() + ", min " + min + ", max " + max;
+		}
+	}
+
+	static Dictionary<string, NumberSample> numberSample = new Dictionary<string, NumberSample>();
 	
 	static Dictionary<string, TimingStat> sampleNameToAverageTiming = new Dictionary<string, TimingStat>();
 
@@ -116,17 +145,17 @@ public static class MyProfiler
 	static Dictionary<string, string> sampleNameToGUIText = new Dictionary<string, string>();
 
 
-	public static void AddAverageNumberSample(string name, int number)
+	public static void AddNumberSample(string name, int number)
 	{
-		SlidingWindowAverageLong w;
-		if (!sampleNameToAverageNumber.TryGetValue(name, out w))
+		NumberSample w;
+		if (!numberSample.TryGetValue(name, out w))
 		{
-			w = sampleNameToAverageNumber[name] = new SlidingWindowAverageLong();
+			w = numberSample[name] = new NumberSample();
 		}
 
 		w.AddSample(number);
 	
-		sampleNameToGUIText[name] = w.AverageValue.ToString();
+		sampleNameToGUIText[name] = w.ToString();
 
 		Behavior.MakeSureExists();
 	}
