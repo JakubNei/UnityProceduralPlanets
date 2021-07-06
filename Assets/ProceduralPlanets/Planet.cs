@@ -178,16 +178,16 @@ public partial class Planet : MonoBehaviour, IDisposable
 	IEnumerator subdivisonCalculationCoroutine;
 
 	// inspired by https://stackoverflow.com/a/3719378/782022
-	public class LeastRecentlyUsedCache_old_noTime<K>
+	public class LeastRecentlyUsedCache<K>
 	{
-		private Dictionary<K, LinkedListNode<K>> cacheMap = new Dictionary<K, LinkedListNode<K>>();
-		private LinkedList<K> lruList = new LinkedList<K>();
+		private Dictionary<K, LinkedListNode<Tuple<int, K>>> cacheMap = new Dictionary<K, LinkedListNode<Tuple<int, K>>>();
+		private LinkedList<Tuple<int, K>> lruList = new LinkedList<Tuple<int, K>>();
 
-		public int Count => lruList.Count;
+		public int Count => cacheMap.Count;
 
 		public void Remove(K key)
 		{
-			LinkedListNode<K> node;
+			LinkedListNode<Tuple<int, K>> node;
 			if (cacheMap.TryGetValue(key, out node))
 			{
 				lruList.Remove(node);
@@ -197,67 +197,27 @@ public partial class Planet : MonoBehaviour, IDisposable
 
 		public void Add(K key)
 		{
-			LinkedListNode<K> node;
+			LinkedListNode<Tuple<int, K>> node;
 			if (cacheMap.TryGetValue(key, out node))
 			{
 				lruList.Remove(node);
 			}
 			else
 			{
-				node = new LinkedListNode<K>(key);
+				node = new LinkedListNode<Tuple<int, K>>(new Tuple<int, K>(Time.frameCount, key));
 				cacheMap.Add(key, node);
 			}
 
 			lruList.AddLast(node);
 		}
 
-		public K GetAndRemoveLeastRecentlyUsed()
+		public K GetAndRemoveLeastRecentlyUsed(int addedOverFramesAgo = 120)
 		{
 			var node = lruList.First;
+			if (node.Value.Item1 > Time.frameCount - addedOverFramesAgo) return default(K);
 			lruList.Remove(node);
-			cacheMap.Remove(node.Value);
-			return node.Value;
-		}
-	}
-	public class LeastRecentlyUsedCache<K>
-	{
-		private Dictionary<K, int> keyToIndex = new Dictionary<K, int>();
-		private List<Tuple<int, K>> frameAddedAndKey = new List<Tuple<int, K>>();
-
-		public int Count => frameAddedAndKey.Count;
-
-		public void Remove(K key)
-		{
-			int index;
-			if (keyToIndex.TryGetValue(key, out index))
-			{
-				if (index != frameAddedAndKey.Count - 1)
-				{
-					frameAddedAndKey[index] = frameAddedAndKey[frameAddedAndKey.Count - 1];
-					keyToIndex[frameAddedAndKey[index].Item2] = index;
-				}
-
-				frameAddedAndKey.RemoveAt(frameAddedAndKey.Count - 1);
-				keyToIndex.Remove(key);
-			}
-		}
-
-		public void Add(K key)
-		{
-			Remove(key);
-
-			keyToIndex.Add(key, frameAddedAndKey.Count);
-			frameAddedAndKey.Add(new Tuple<int, K>(Time.frameCount, key));
-		}
-
-		public K GetAndRemoveLeastRecentlyUsed()
-		{
-			if (frameAddedAndKey.Count == 0) return default(K);
-			if (frameAddedAndKey[0].Item1 > Time.frameCount - 120) return default(K);
-
-			var key = frameAddedAndKey[0].Item2;
-			Remove(key);
-			return key;
+			cacheMap.Remove(node.Value.Item2);
+			return node.Value.Item2;
 		}
 	}
 
