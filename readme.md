@@ -109,14 +109,14 @@ Child chunk height map is based off of parent chunk height map
 [Star Citizen Live: Making Mountains](https://www.youtube.com/watch?v=ksMQ4hYhfSA)
 
 # Screenshots
-![](https://image.prntscr.com/image/lv0pwbK-R0CGY1vul4sscQ.png)
-![](https://image.prntscr.com/image/Er1Jco2CQIWRK78frl0r_A.png)
-![](https://image.prntscr.com/image/70iHXoC0SRuWO9_dFqGeHQ.png)
-![](https://image.prntscr.com/image/KH_JAmfrTiqcKP1Nkud8wg.png)
-![](https://image.prntscr.com/image/phJL6VqzTFCSYSSzSg4Fww.png)
+![](readme_images/1.png)
+![](readme_images/2.png)
+![](readme_images/3.png)
+![](readme_images/4.png)
+![](readme_images/5.png)
 
 Trippy planet, broken triplanar mapping
-![](https://i.imgur.com/A5GUZCv.png)
+![](readme_images/trippy_planet,_broken_triplanar_mapping.png)
 
 Actually interesting concept made by mistake, triplanar pos = direction from planet center * height
-![](https://i.imgur.com/yQg9s90.png)
+![](readme_images/triplanar_pos_sediment_layers.png)
