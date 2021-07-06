@@ -58,12 +58,26 @@ public class ChunkData : IDisposable
 
 		public void Dispose()
 		{
-			if (mesh) Mesh.Destroy(mesh);
-			mesh = null;
-			if (chunkTangentNormalMap) chunkTangentNormalMap.Release();
-			chunkTangentNormalMap = null;
-			if (chunkDiffuseMap) chunkDiffuseMap.Release();
-			chunkDiffuseMap = null;
+			if (mesh != null) 
+			{
+				Mesh.Destroy(mesh);
+				mesh = null;
+			}
+
+			if (chunkTangentNormalMap != null)
+			{
+				chunkTangentNormalMap.Release();
+				RenderTexture.Destroy(chunkTangentNormalMap);
+				chunkTangentNormalMap = null;
+			}
+
+			if (chunkDiffuseMap != null) 
+			{
+				chunkDiffuseMap.Release();
+				RenderTexture.Destroy(chunkDiffuseMap);
+				chunkDiffuseMap = null;
+			}
+
 			ReleaseTemporary();
 		}
 
@@ -294,45 +308,60 @@ public class ChunkData : IDisposable
 		GenerateHeightMap();
 		MyProfiler.EndSample();
 		yield return new WaitForEndOfFrame();
+		if (generatingData == null) yield break; // aborted
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Simulate erosion");
 		SimulateErosion();
 		MyProfiler.EndSample();
 		yield return new WaitForEndOfFrame();
+		if (generatingData == null) yield break; // aborted
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Generate on GPU");
 		GenerateMesh();
 		MyProfiler.EndSample();
 		yield return new WaitForEndOfFrame();
+		if (generatingData == null) yield break; // aborted
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Normal map");
 		GenerateNormalMap();
 		MyProfiler.EndSample();
 		yield return new WaitForEndOfFrame();
+		if (generatingData == null) yield break; // aborted
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Get data from GPU to CPU / Request");
 		RequestMeshData();
 		MyProfiler.EndSample();
 		yield return new WaitForEndOfFrame();
+		if (generatingData == null) yield break; // aborted
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Diffuse map");
 		GenerateDiffuseMap();
 		MyProfiler.EndSample();
 		yield return new WaitForEndOfFrame();
+		if (generatingData == null) yield break; // aborted
 
-		while (!getMeshDataReadbackRequest.done) yield return new WaitForEndOfFrame();
+		while (!getMeshDataReadbackRequest.done) 
+		{
+			yield return new WaitForEndOfFrame();
+			if (generatingData == null) yield break; // aborted
+		}
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Create on CPU");
 		CreateMesh();
 		MyProfiler.EndSample();
 		yield return new WaitForEndOfFrame();
+		if (generatingData == null) yield break; // aborted
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Upload to GPU");
 		UploadMesh();
 		MyProfiler.EndSample();
 		yield return new WaitForEndOfFrame();
+		if (generatingData == null) yield break; // aborted
 
+		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Cleanup");
 		CleanupAfterGeneration();
+		MyProfiler.EndSample();
+		if (generatingData == null) yield break; // aborted
 
 		FullyGeneratedData = generatingData;
 		generatingData = null;
@@ -381,7 +410,7 @@ public class ChunkData : IDisposable
 			else if (childPosition == ChildPosition.BottomRight) parentUvStart += new Vector2(-off, -off);
 		}
 
-		c.SetVector("_parentUvStart", parentUvStart);
+		//c.SetVector("_parentUvStart", parentUvStart);
 
 	}
 
@@ -402,6 +431,7 @@ public class ChunkData : IDisposable
 			rangeUnitCubePosToGenerateInto.SetParams(c, "_rangeUnitCubePos");
 			c.SetFloat("_heightMin", 0);
 			c.SetFloat("_heightMax", 1);
+			c.SetBuffer(0, "_craterSpherePositionRadius", planet.craters.gpuBuffer);
 
 			c.SetTexture(0, "_chunkHeightMap", heightRough);
 			c.Dispatch(0, heightRough.width / 16, heightRough.height / 16, 1);
@@ -440,9 +470,8 @@ public class ChunkData : IDisposable
 			c.SetFloat("_heightMin", heightMin);
 			c.SetFloat("_heightMax", heightMax);
 
-			c.SetBool("_hasParent", parent != null);
-			if (parent != null && parent.HasFullyGeneratedData && parent.FullyGeneratedData.chunkHeightMap)
-				c.SetTexture(0, "_parentChunkHeightMap", parent.FullyGeneratedData.chunkHeightMap);
+			//c.SetBool("_hasParent", parent != null);
+			//if (parent != null && parent.HasFullyGeneratedData && parent.FullyGeneratedData.chunkHeightMap) c.SetTexture(0, "_parentChunkHeightMap", parent.FullyGeneratedData.chunkHeightMap);
 
 			c.SetTexture(0, "_chunkHeightMap", generatingData.chunkHeightMap);
 			c.Dispatch(0, generatingData.chunkHeightMap.width / 16, generatingData.chunkHeightMap.height / 16, 1);
@@ -469,9 +498,8 @@ public class ChunkData : IDisposable
 			c.SetFloat("_heightMin", heightMin);
 			c.SetFloat("_heightMax", heightMax);
 
-			c.SetBool("_hasParent", parent != null);
-			if (parent != null && parent.HasFullyGeneratedData && parent.FullyGeneratedData.chunkHeightMap)
-				c.SetTexture(0, "_parentChunkHeightMap", parent.FullyGeneratedData.chunkHeightMap);
+			//c.SetBool("_hasParent", parent != null);
+			//if (parent != null && parent.HasFullyGeneratedData && parent.FullyGeneratedData.chunkHeightMap) c.SetTexture(0, "_parentChunkHeightMap", parent.FullyGeneratedData.chunkHeightMap);
 
 			c.SetTexture(0, "_chunkHeightMap", generatingData.chunkHeightMap);
 			c.Dispatch(0, generatingData.chunkHeightMap.width / 16, generatingData.chunkHeightMap.height / 16, 1);
@@ -533,6 +561,12 @@ public class ChunkData : IDisposable
 
 	void GenerateMesh()
 	{
+		if (vertexGPUBuffer != null && vertexGPUBuffer.IsValid())
+		{
+			vertexGPUBuffer.Dispose();
+			vertexGPUBuffer = null;
+		}
+
 		vertexGPUBuffer = new ComputeBuffer(chunkConfig.NumberOfVerticesNeededTotal, 3 * 3 * sizeof(float));
 		var c = chunkConfig.GenerateChunkNormalMapOrVertices;
 		var k = c.FindKernel("generateChunkVertices");
@@ -548,8 +582,6 @@ public class ChunkData : IDisposable
 		c.SetFloat("_heightMin", heightMin);
 		c.SetFloat("_heightMax", heightMax);
 		c.SetFloat("_moveEdgeVerticesDown", chunkConfig.useSkirts ? chunkRadius / 20.0f : k);
-
-		c.SetBuffer(k, "_craterSpherePositionRadius", planet.craters.gpuBuffer);
 
 		c.SetBuffer(k, "_vertices", vertexGPUBuffer);
 		c.Dispatch(k, verticesOnEdge, verticesOnEdge, 1);
@@ -580,12 +612,6 @@ public class ChunkData : IDisposable
 
 	void CreateMesh()
 	{
-		if (vertexGPUBuffer != null && vertexGPUBuffer.IsValid())
-		{
-			vertexGPUBuffer.Dispose();
-			vertexGPUBuffer = null;
-		}
-
 		var verticesOnEdge = chunkConfig.numberOfVerticesOnEdge;
 
 		{
@@ -675,7 +701,6 @@ public class ChunkData : IDisposable
 		c.SetTexture(0, "_rock", chunkConfig.rock);
 		c.SetTexture(0, "_snow", chunkConfig.snow);
 		c.SetTexture(0, "_tundra", chunkConfig.tundra);
-		c.SetBuffer(0, "_craterSpherePositionRadius", planet.craters.gpuBuffer);
 		c.SetTexture(0, "_chunkDiffuseMap", generatingData.chunkDiffuseMap);
 		c.Dispatch(0, generatingData.chunkDiffuseMap.width / 16, generatingData.chunkDiffuseMap.height / 16, 1);
 
@@ -731,17 +756,36 @@ public class ChunkData : IDisposable
 
 	public void Dispose()
 	{
-		if (vertexCPUBuffer.IsCreated) vertexCPUBuffer.Dispose();
+		if (vertexCPUBuffer.IsCreated) 
+		{
+			vertexCPUBuffer.Dispose();
+		}
 
-		generatingData = null;
-		FullyGeneratedData = null;
-		vertexGPUBuffer = null;
+		if (generatingData != null)
+		{
+			generatingData.Dispose();
+			generatingData = null;
+		}
+
+		if (FullyGeneratedData != null)
+		{
+			FullyGeneratedData.Dispose();
+			FullyGeneratedData = null;
+		}
+
+		if (vertexGPUBuffer != null && vertexGPUBuffer.IsValid())
+		{
+			vertexGPUBuffer.Dispose();
+			vertexGPUBuffer = null;
+		}
 	}
 
+	public void ReleaseGeneratedData()
+	{
+		Dispose();
+	}
 
-
-
-	public static Vector3[] RecalculateNormals(ref NativeArray<Vector3> vertices, int[] triangleIndicies, Vector2[] uvs, HashSet<int> ignoreIndicies = null)
+	static Vector3[] RecalculateNormals(ref NativeArray<Vector3> vertices, int[] triangleIndicies, Vector2[] uvs, HashSet<int> ignoreIndicies = null)
 	{
 		int verticesNum = vertices.Length;
 		int indiciesNum = triangleIndicies.Length;
@@ -784,7 +828,7 @@ public class ChunkData : IDisposable
 	}
 
 
-	public static Vector4[] RecalculateTangents(ref NativeArray<Vector3> vertices, int[] triangleIndicies, Vector2[] uvs, HashSet<int> ignoreIndicies = null)
+	static Vector4[] RecalculateTangents(ref NativeArray<Vector3> vertices, int[] triangleIndicies, Vector2[] uvs, HashSet<int> ignoreIndicies = null)
 	{
 		// inspired by http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-13-normal-mapping/
 

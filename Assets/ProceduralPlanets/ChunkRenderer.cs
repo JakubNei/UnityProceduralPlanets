@@ -43,6 +43,8 @@ public class ChunkRenderer : MonoBehaviour
 			this.chunk = null;
 		}
 
+		gameObject.SetActive(true);
+
 		this.chunk = chunk;
 		this.chunk.currentChunkRenderer = this;
 
@@ -66,8 +68,6 @@ public class ChunkRenderer : MonoBehaviour
 
 		if (material && generatedData.chunkDiffuseMap) material.mainTexture = generatedData.chunkDiffuseMap;
 		if (material && generatedData.chunkTangentNormalMap) material.SetTexture("_BumpMap", generatedData.chunkTangentNormalMap);
-
-		gameObject.SetActive(true);
 	}
 
 	public void Hide()
@@ -78,6 +78,12 @@ public class ChunkRenderer : MonoBehaviour
 		{ 
 			chunk.currentChunkRenderer = null;
 			chunk = null;
+		}
+
+		if (meshRenderer.sharedMaterial)
+		{
+			Material.Destroy(meshRenderer.sharedMaterial);
+			meshRenderer.sharedMaterial = null;
 		}
 
 		meshFilter.sharedMesh = null;

@@ -19,12 +19,16 @@ float _heightMax;
 
 float _slopeModifier;
 
-bool _hasParent;
-float2 _parentUvStart;
-Texture2D<float> _parentChunkHeightMap;
-SamplerState sampler_parentChunkHeightMap;
+//bool _hasParent;
+//float2 _parentUvStart;
+//Texture2D<float> _parentChunkHeightMap;
+//SamplerState sampler_parentChunkHeightMap;
 
 RWTexture2D<float> _chunkHeightMap;
+
+
+StructuredBuffer<float4> _craterSpherePositionRadius;
+
 
 
 float calculateHeightAt(float2 uv)
@@ -42,6 +46,16 @@ float calculateHeightAt(float2 uv)
 	//double height = sampleCubicDouble(_planetHeightMap, heightMapUv);
 	//double height = _planetHeightMap.SampleLevel(sampler_planetHeightMap, heightMapUv, 0);
 	//double height = getProceduralHeight01(dir);
+
+	
+	float craterOffset = 0;
+	for (int i = 0; i < 100; ++i)
+	{
+		float4 c = _craterSpherePositionRadius[i];
+		float w = smoothstep(c.w, 0, distance(c.xyz, dir));
+		craterOffset = max(craterOffset, w);
+	}
+	craterOffset -= height;
 
 	return height;
 }

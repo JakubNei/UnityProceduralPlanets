@@ -35,6 +35,7 @@ public partial class Planet
 		PointOfInterest fromPosition;
 		float weightNeededToSubdivide;
 		int subdivisionMaxRecurisonDepth;
+		int maxChunksToRender = 500;
 
 		public int NumChunksToGenerate => toGenerateChunks.Count;
 		public int NumChunksToRender => toRenderChunks.Count;
@@ -82,6 +83,7 @@ public partial class Planet
 			this.fromPosition = fromPosition;
 			weightNeededToSubdivide = planet.chunkConfig.weightNeededToSubdivide;
 			subdivisionMaxRecurisonDepth = planet.SubdivisionMaxRecurisonDepth;
+			maxChunksToRender = planet.chunkConfig.maxChunksToRender;
 		}
 
 		bool Phase_2_Loop(int step)
@@ -95,7 +97,8 @@ public partial class Planet
 
 				if (weight > weightNeededToSubdivide && chunk.treeDepth < subdivisionMaxRecurisonDepth) // want subdivide ?
 				{
-					if (chunk.HasFullyGeneratedData) // children require generated data from parent
+					bool childrenRequireFullyGeneratedParent = false;
+					if (!childrenRequireFullyGeneratedParent || chunk.HasFullyGeneratedData)
 					{
 						chunk.EnsureChildrenInstancesAreCreated();
 
@@ -104,16 +107,16 @@ public partial class Planet
 						//continue;
 
 						bool areAllChildrenGenerated = true;
-						for (int j = 0; j < chunk.children.Count; ++j)
-						{
-							if (!chunk.children[j].HasFullyGeneratedData)
-							{
-								areAllChildrenGenerated = false;
-								break;
-							}
-						}
+						//for (int j = 0; j < chunk.children.Count; ++j)
+						//{
+						//	if (!chunk.children[j].HasFullyGeneratedData)
+						//	{
+						//		areAllChildrenGenerated = false;
+						//		break;
+						//	}
+						//}
 
-						if (areAllChildrenGenerated) // must show all children at once
+						if (!childrenRequireFullyGeneratedParent || areAllChildrenGenerated) // must show all children at once
 						{
 							toConsiderForSubdivision.AddRange(chunk.children);
 							i += chunk.children.Count;
@@ -166,12 +169,19 @@ public partial class Planet
 
 		void Phase_3_Sort()
 		{
+			// bigger weight is first
 			toGenerateChunks.Sort((ToGenerateChunk a, ToGenerateChunk b) => b.weight.CompareTo(a.weight));
 		}
 
 		void Phase_4_Sort()
 		{
+			// bigger weight is first
 			toRenderChunks.Sort((ToRenderChunks a, ToRenderChunks b) => b.weight.CompareTo(a.weight));
+
+			if (toRenderChunks.Count > maxChunksToRender)
+			{ 
+				toRenderChunks.RemoveRange(maxChunksToRender, toRenderChunks.Count - maxChunksToRender);
+			}
 		}
 
 	}

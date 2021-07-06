@@ -70,6 +70,7 @@ float getProceduralHeight01(float3 dir)
 	h += craters(dir, 0.93);
 	h += craters(dir, 0.45);
 	h += craters(dir, 0.13);
+	h += craters(dir, 0.07);
 
 
 	// base nose

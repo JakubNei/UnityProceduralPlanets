@@ -48,10 +48,6 @@ Texture2D<float4> _chunkWorldNormalMap;
 RWTexture2D<float4> _chunkDiffuseMap;
 
 
-StructuredBuffer<float4> _craterSpherePositionRadius;
-
-
-
 struct MyBindingStruct
 {
 	float3 pos;
@@ -110,6 +106,44 @@ float3 GetTundra(float3 pos, float3 normal) {
 }
 
 
+struct BiomesResult
+{
+	float snowWeight;
+	float tundraWeight;
+	float rockWeight;
+	float clayWeight;
+	float grassWeight;
+	float seaWeight;
+
+};
+
+BiomesResult CalculateBiomes(double3 pos, float3 dir, float slope, float altidute01)
+{
+	float3 biomeAdjustmentNoise = snoise_grad(pos / 50, 10, 1.4);
+	//biomeAdjustmentNoise = 0;
+
+	BiomesResult result;
+
+	result.snowWeight = smoothstep(0.2, 0, slope) * (smoothstep(0.8, 1, abs(dir.z)) * 2 + altidute01 * 2);
+	result.tundraWeight = smoothstep(0.8, 0, slope) * (smoothstep(0.5, 1, abs(dir.z)) + altidute01 + 0.01*biomeAdjustmentNoise.z);
+	result.rockWeight = smoothstep(0.5, 1, slope)*5 + 0.003*biomeAdjustmentNoise.x;
+	result.clayWeight = smoothstep(0, 0.2, slope)*0.3 + 0.02*biomeAdjustmentNoise.y;
+	result.grassWeight = smoothstep(0.8, 0, slope) + 0.05*biomeAdjustmentNoise.z;	
+	result.seaWeight = smoothstep(0.0105, 0.0095, altidute01) * 5;
+	
+	float sum = result.snowWeight + result.tundraWeight + result.rockWeight + result.clayWeight + result.grassWeight + result.seaWeight;
+
+	result.snowWeight /= sum;
+	result.tundraWeight /= sum;
+	result.rockWeight /= sum;
+	result.clayWeight /= sum;
+	result.grassWeight /= sum;
+	result.seaWeight /= sum;
+
+	return result;
+}
+
+
 [numthreads(16, 16, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
@@ -136,45 +170,27 @@ void main(uint3 id : SV_DispatchThreadID)
 	float slope = worldNormalAndSlope.w * 7;
 	//slope = 0.2; // DEBUG
 
-	float altidute = height01;
-	float3 biomeAdjustmentNoise = snoise_grad(pos / 50, 10, 1.4);
-	//biomeAdjustmentNoise = 0;
-
-
-	float snowWeight = smoothstep(0.2, 0, slope) * (smoothstep(0.8, 1, abs(dir.z)) * 2 + altidute * 2);
-	float tundraWeight = smoothstep(0.8, 0, slope) * (smoothstep(0.5, 1, abs(dir.z)) + altidute + 0.01*biomeAdjustmentNoise.z);
-	float rockWeight = smoothstep(0.5, 1, slope)*5 + 0.003*biomeAdjustmentNoise.x;
-	float clayWeight = smoothstep(0, 0.2, slope)*0.3 + 0.02*biomeAdjustmentNoise.y;
-	float grassWeight = smoothstep(0.8, 0, slope) + 0.05*biomeAdjustmentNoise.z;
-
-
-	float craterOffset = 0;
-	for (int i = 0; i < 100; ++i)
-	{
-		float4 c = _craterSpherePositionRadius[i];
-		float w = smoothstep(c.w, 0, distance(c.xyz, pos));
-		craterOffset = max(craterOffset, w);
-	}
-	clayWeight += craterOffset * 10;
-
+	BiomesResult biomes = CalculateBiomes(pos, dir, slope, height01);
 
 	float3 color;
 
-	if (snowWeight >= snowWeight && snowWeight >= rockWeight && snowWeight >= tundraWeight && snowWeight >= grassWeight && snowWeight >= clayWeight)
+	if (biomes.snowWeight >= biomes.snowWeight && biomes.snowWeight >= biomes.rockWeight && biomes.snowWeight >= biomes.tundraWeight && biomes.snowWeight >= biomes.grassWeight && biomes.snowWeight >= biomes.clayWeight && biomes.snowWeight >= biomes.seaWeight)
 		color = GetSnow(triplanarPos, worldNormal);
-	else if (rockWeight >= snowWeight && rockWeight >= rockWeight && rockWeight >= tundraWeight && rockWeight >= grassWeight && rockWeight >= clayWeight)
+	else if (biomes.rockWeight >= biomes.snowWeight && biomes.rockWeight >= biomes.rockWeight && biomes.rockWeight >= biomes.tundraWeight && biomes.rockWeight >= biomes.grassWeight && biomes.rockWeight >= biomes.clayWeight && biomes.rockWeight >= biomes.seaWeight)
 		color = GetRock(triplanarPos, worldNormal);
-	else if (tundraWeight >= snowWeight && tundraWeight >= rockWeight && tundraWeight >= tundraWeight && tundraWeight >= grassWeight && tundraWeight >= clayWeight)
+	else if (biomes.tundraWeight >= biomes.snowWeight && biomes.tundraWeight >= biomes.rockWeight && biomes.tundraWeight >= biomes.tundraWeight && biomes.tundraWeight >= biomes.grassWeight && biomes.tundraWeight >= biomes.clayWeight && biomes.tundraWeight >= biomes.seaWeight)
 		color = GetTundra(triplanarPos, worldNormal);
-	else if (grassWeight >= snowWeight && grassWeight >= rockWeight && grassWeight >= tundraWeight && grassWeight >= grassWeight && grassWeight >= clayWeight)
+	else if (biomes.grassWeight >= biomes.snowWeight && biomes.grassWeight >= biomes.rockWeight && biomes.grassWeight >= biomes.tundraWeight && biomes.grassWeight >= biomes.grassWeight && biomes.grassWeight >= biomes.clayWeight && biomes.grassWeight >= biomes.seaWeight)
 		color = GetGrass(triplanarPos, worldNormal);
-	else if (clayWeight >= snowWeight && clayWeight >= rockWeight && clayWeight >= tundraWeight && clayWeight >= grassWeight && clayWeight >= clayWeight)
+	else if (biomes.clayWeight >= biomes.snowWeight && biomes.clayWeight >= biomes.rockWeight && biomes.clayWeight >= biomes.tundraWeight && biomes.clayWeight >= biomes.grassWeight && biomes.clayWeight >= biomes.clayWeight && biomes.clayWeight >= biomes.seaWeight)
 		color = GetClay(triplanarPos, worldNormal);
+	else if (biomes.seaWeight >= biomes.snowWeight && biomes.seaWeight >= biomes.rockWeight && biomes.seaWeight >= biomes.tundraWeight && biomes.seaWeight >= biomes.grassWeight && biomes.seaWeight >= biomes.clayWeight && biomes.seaWeight >= biomes.seaWeight)
+		color = float3(0, 0, 1); // sea
 	else
 		color = float3(1, 0, 0);
 
-	if (altidute <= 0.01)
-		color = float3(0, 0, 1); // sea
+	
+		
 
 	// DEBUG
 	//color = _grass.SampleLevel(sampler_grass, pos.yz, 0);
@@ -191,7 +207,7 @@ void main(uint3 id : SV_DispatchThreadID)
 	//color = _chunkHeightMap[id.xy].xyz;
 	//color = ramp(slope);
 	//color = slope;
-	//color = ramp(snowWeight);
+	//color = ramp(biomes.snowWeight);
 	//color = ramp(lerp(0.8, 1, snoise(pos / 1000, 10, 1.5)));
 
 	// SAFE

@@ -160,9 +160,16 @@ public static class MyProfiler
 		Behavior.MakeSureExists();
 	}
 
-	public static void BeginSample(string name)
+	public static void BeginSample(string name, string metadata = null)
 	{
-		Profiler.BeginSample(name);
+		if (metadata != null)
+		{
+			Profiler.BeginSample(name + metadata );
+		}
+		else
+		{
+			Profiler.BeginSample(name);
+		}
 
 		timingSamplesStack.Push(new TimingSample(name));
 	}
