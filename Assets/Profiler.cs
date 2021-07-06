@@ -213,15 +213,19 @@ public static class MyProfiler
 				show = !show;
 		}
 
+		StringBuilder stringBuilder = new StringBuilder();
 		private void OnGUI()
 		{
 			if (!show)
 				return;
 
+			stringBuilder.Clear();
 			foreach (var pair in sampleNameToGUIText.OrderBy((pair) => pair.Key))
 			{
-				GUILayout.Label(pair.Key + " " + pair.Value);
+				stringBuilder.AppendLine(pair.Key + " " + pair.Value);
 			}
+
+			GUILayout.Label(stringBuilder.ToString());
 		}
 	}
 }

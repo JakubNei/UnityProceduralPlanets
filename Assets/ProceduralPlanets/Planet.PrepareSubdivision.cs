@@ -95,67 +95,22 @@ public partial class Planet
 
 				float weight = chunk.GetRelevanceWeight(fromPosition);
 
+				if (chunk.WantsRefresh)
+				{
+					toGenerateChunks.Add(new ToGenerateChunk() { weight = weight * 2f, chunk = chunk });
+				}
+
 				if (weight > weightNeededToSubdivide && chunk.treeDepth < subdivisionMaxRecurisonDepth) // want subdivide ?
 				{
-					bool childrenRequireFullyGeneratedParent = false;
-					if (!childrenRequireFullyGeneratedParent || chunk.HasFullyGeneratedData)
-					{
-						chunk.EnsureChildrenInstancesAreCreated();
-
-						//toConsiderForSubdivision.AddRange(chunk.children);
-						//i += chunk.children.Count;
-						//continue;
-
-						bool areAllChildrenGenerated = true;
-						//for (int j = 0; j < chunk.children.Count; ++j)
-						//{
-						//	if (!chunk.children[j].HasFullyGeneratedData)
-						//	{
-						//		areAllChildrenGenerated = false;
-						//		break;
-						//	}
-						//}
-
-						if (!childrenRequireFullyGeneratedParent || areAllChildrenGenerated) // must show all children at once
-						{
-							toConsiderForSubdivision.AddRange(chunk.children);
-							i += chunk.children.Count;
-
-							if (chunk.WantsRefresh)
-							{
-								toGenerateChunks.Add(new ToGenerateChunk() { weight = weight * 0.1f, chunk = chunk });
-							}
-						}
-						else
-						{
-							toRenderChunks.Add(new ToRenderChunks() { weight = weight, chunk = chunk });
-
-							if (chunk.WantsRefresh)
-							{
-								toGenerateChunks.Add(new ToGenerateChunk() { weight = weight * 2f, chunk = chunk });
-							}
-
-							for (int j = 0; j < chunk.children.Count; ++j)
-							{
-								toGenerateChunks.Add(new ToGenerateChunk() { weight = weight, chunk = chunk.children[j] });
-							}
-						}
-					}
-					else
-					{
-						toGenerateChunks.Add(new ToGenerateChunk() { weight = weight * 4, chunk = chunk });
-					}
+					chunk.EnsureChildrenInstancesAreCreated();
+					toConsiderForSubdivision.AddRange(chunk.children);
+					i += chunk.children.Count;
 				}
 				else
 				{
 					if (chunk.HasFullyGeneratedData)
 					{
 						toRenderChunks.Add(new ToRenderChunks() { weight = weight, chunk = chunk });
-
-						if (chunk.WantsRefresh)
-						{
-							toGenerateChunks.Add(new ToGenerateChunk() { weight = weight * 2f, chunk = chunk });
-						}
 					}
 					else
 					{

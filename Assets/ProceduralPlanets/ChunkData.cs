@@ -83,13 +83,13 @@ public class ChunkData : IDisposable
 
 		public void ReleaseTemporary()
 		{
-			if (chunkHeightMap) RenderTexture.ReleaseTemporary(chunkHeightMap);
+			if (chunkHeightMap != null) RenderTexture.ReleaseTemporary(chunkHeightMap);
 			chunkHeightMap = null;
-			if (chunkWorldNormalMap) RenderTexture.ReleaseTemporary(chunkWorldNormalMap);
+			if (chunkWorldNormalMap != null) RenderTexture.ReleaseTemporary(chunkWorldNormalMap);
 			chunkWorldNormalMap = null;
-			if (chunkMeshNormals) RenderTexture.ReleaseTemporary(chunkMeshNormals);
+			if (chunkMeshNormals != null) RenderTexture.ReleaseTemporary(chunkMeshNormals);
 			chunkMeshNormals = null;
-			if (chunkMeshTangents) RenderTexture.ReleaseTemporary(chunkMeshTangents);
+			if (chunkMeshTangents != null) RenderTexture.ReleaseTemporary(chunkMeshTangents);
 			chunkMeshTangents = null;
 		}
 
@@ -302,6 +302,13 @@ public class ChunkData : IDisposable
 	public IEnumerator StartGenerateCoroutine()
 	{
 		WantsRefresh = false;
+		
+		if (generatingData != null)
+		{
+			generatingData.Dispose();
+			generatingData = null;
+		}
+
 		generatingData = new GeneratedData();
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Height map");
@@ -354,6 +361,12 @@ public class ChunkData : IDisposable
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Upload to GPU");
 		UploadMesh();
+		MyProfiler.EndSample();
+		yield return new WaitForEndOfFrame();
+		if (generatingData == null) yield break; // aborted
+
+		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Bake Collision");
+		BakePhysXCollisionData();
 		MyProfiler.EndSample();
 		yield return new WaitForEndOfFrame();
 		if (generatingData == null) yield break; // aborted
@@ -521,7 +534,7 @@ public class ChunkData : IDisposable
 
 		if (generatingData.chunkWorldNormalMap == null)
 		{
-			generatingData.chunkWorldNormalMap = RenderTexture.GetTemporary(WorldNormalMapResolution, WorldNormalMapResolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+			generatingData.chunkWorldNormalMap = RenderTexture.GetTemporary(WorldNormalMapResolution, WorldNormalMapResolution, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
 			generatingData.chunkWorldNormalMap.wrapMode = TextureWrapMode.Clamp;
 			generatingData.chunkWorldNormalMap.filterMode = FilterMode.Bilinear;
 			generatingData.chunkWorldNormalMap.enableRandomWrite = true;
@@ -537,7 +550,7 @@ public class ChunkData : IDisposable
 
 		if (generatingData.chunkTangentNormalMap == null)
 		{
-			generatingData.chunkTangentNormalMap = new RenderTexture(TangentNormalMapResolution, TangentNormalMapResolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+			generatingData.chunkTangentNormalMap = new RenderTexture(TangentNormalMapResolution, TangentNormalMapResolution, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
 			generatingData.chunkTangentNormalMap.wrapMode = TextureWrapMode.Clamp;
 			generatingData.chunkTangentNormalMap.filterMode = FilterMode.Bilinear;
 			generatingData.chunkTangentNormalMap.enableRandomWrite = true;
@@ -595,14 +608,20 @@ public class ChunkData : IDisposable
 		public Vector3 tangent;
 	}
 
+	bool vertexCPUBufferCreated;
 	NativeArray<PerVertexData> vertexCPUBuffer; // TODO: pooling
 
 
 	void RequestMeshData()
 	{
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Get data from GPU to CPU / Request / new NativeArray");
-		if (vertexCPUBuffer.IsCreated) vertexCPUBuffer.Dispose();
-		vertexCPUBuffer = new NativeArray<PerVertexData>(chunkConfig.NumberOfVerticesNeededTotal, Allocator.Persistent);
+		if (vertexCPUBufferCreated)
+		{
+			vertexCPUBuffer.Dispose();
+			vertexCPUBufferCreated = false;
+		}
+		vertexCPUBufferCreated = true;
+		vertexCPUBuffer = new NativeArray<PerVertexData>(chunkConfig.NumberOfVerticesNeededTotal, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
 		MyProfiler.EndSample();
 
 		MyProfiler.BeginSample("Procedural Planet / Generate chunk / Mesh / Get data from GPU to CPU / Request / RequestIntoNativeArray");
@@ -670,7 +689,18 @@ public class ChunkData : IDisposable
 	{
 		generatingData.mesh.UploadMeshData(false); // false because mesh is used for MeshCollision component
 
-		if (vertexCPUBuffer.IsCreated) vertexCPUBuffer.Dispose();
+		if (vertexCPUBufferCreated)
+		{
+			vertexCPUBuffer.Dispose();
+			vertexCPUBufferCreated = false;
+		}
+	}
+
+
+	void BakePhysXCollisionData()
+	{
+		// TODO: this causes Mesh.Bake.PhysX.CollisionData spike, instead do it in job https://docs.unity3d.com/ScriptReference/Physics.BakeMesh.html
+		Physics.BakeMesh(generatingData.mesh.GetInstanceID(), false);
 	}
 
 
@@ -756,11 +786,6 @@ public class ChunkData : IDisposable
 
 	public void Dispose()
 	{
-		if (vertexCPUBuffer.IsCreated) 
-		{
-			vertexCPUBuffer.Dispose();
-		}
-
 		if (generatingData != null)
 		{
 			generatingData.Dispose();
@@ -771,6 +796,12 @@ public class ChunkData : IDisposable
 		{
 			FullyGeneratedData.Dispose();
 			FullyGeneratedData = null;
+		}
+
+		if (vertexCPUBufferCreated)
+		{
+			vertexCPUBuffer.Dispose();
+			vertexCPUBufferCreated = false;
 		}
 
 		if (vertexGPUBuffer != null && vertexGPUBuffer.IsValid())

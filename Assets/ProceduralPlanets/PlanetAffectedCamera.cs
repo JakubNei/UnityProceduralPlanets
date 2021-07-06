@@ -130,8 +130,10 @@ public class PlanetAffectedCamera : MonoBehaviour
 
 
 		var mouseDelta = Vector2.zero;
-		if (!Cursor.visible)
+		if (Cursor.lockState == CursorLockMode.Locked)
+		{ 
 			mouseDelta = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
+		}
 
 		var scrollWheelDelta = Input.mouseScrollDelta.y;
 

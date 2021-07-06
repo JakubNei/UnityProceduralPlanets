@@ -762,6 +762,7 @@ MonoBehaviour:
     numberOfVerticesOnEdge: 32
     weightNeededToSubdivide: 0.8
     stopSegmentRecursionAtWorldSize: 20
+    maxChunksToRender: 200
     createColliders: 1
     textureResolution: 1024
     rescaleToMinMax: 0

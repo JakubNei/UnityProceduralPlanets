@@ -142,7 +142,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 	void ReGeneratePlanet()
 	{
 		subdivisonCalculationCoroutine = null;
-		chunkGenerationCoroutines.Clear();
+		chunkGenerationCoroutinesInProgress.Clear();
 		subdivisonCalculationInProgress.Clear();
 		subdivisonCalculationLast.Clear();
 
@@ -169,7 +169,8 @@ public partial class Planet : MonoBehaviour, IDisposable
 	Dictionary<ChunkData, ChunkRenderer> chunksCurrentlyRendered = new Dictionary<ChunkData, ChunkRenderer>();
 	HashSet<ChunkData> toStopRendering = new HashSet<ChunkData>();
 	List<ChunkData> toStartRendering = new List<ChunkData>();
-	LeastRecentlyUsedCache<ChunkData> hiddenChunks = new LeastRecentlyUsedCache<ChunkData>();
+
+	LeastRecentlyUsedCache<ChunkData> considerChunkForCleanup = new LeastRecentlyUsedCache<ChunkData>();
 
 	ChunkDivisionCalculation subdivisonCalculationInProgress = new ChunkDivisionCalculation();
 	ChunkDivisionCalculation subdivisonCalculationLast = new ChunkDivisionCalculation();
@@ -177,7 +178,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 	IEnumerator subdivisonCalculationCoroutine;
 
 	// inspired by https://stackoverflow.com/a/3719378/782022
-	public class LeastRecentlyUsedCache<K>
+	public class LeastRecentlyUsedCache_old_noTime<K>
 	{
 		private Dictionary<K, LinkedListNode<K>> cacheMap = new Dictionary<K, LinkedListNode<K>>();
 		private LinkedList<K> lruList = new LinkedList<K>();
@@ -196,35 +197,91 @@ public partial class Planet : MonoBehaviour, IDisposable
 
 		public void Add(K key)
 		{
-			if (cacheMap.ContainsKey(key))
+			LinkedListNode<K> node;
+			if (cacheMap.TryGetValue(key, out node))
 			{
-				Remove(key);
+				lruList.Remove(node);
+			}
+			else
+			{
+				node = new LinkedListNode<K>(key);
+				cacheMap.Add(key, node);
 			}
 
-			LinkedListNode<K> node = new LinkedListNode<K>(key);
 			lruList.AddLast(node);
-			cacheMap.Add(key, node);
 		}
 
 		public K GetAndRemoveLeastRecentlyUsed()
 		{
 			var node = lruList.First;
-			lruList.RemoveFirst();
+			lruList.Remove(node);
 			cacheMap.Remove(node.Value);
 			return node.Value;
 		}
 	}
-
-	class LRUCacheItem<K, V>
+	public class LeastRecentlyUsedCache<K>
 	{
-		public LRUCacheItem(K k, V v)
+		private Dictionary<K, int> keyToIndex = new Dictionary<K, int>();
+		private List<Tuple<int, K>> frameAddedAndKey = new List<Tuple<int, K>>();
+
+		public int Count => frameAddedAndKey.Count;
+
+		public void Remove(K key)
 		{
-			key = k;
-			value = v;
+			int index;
+			if (keyToIndex.TryGetValue(key, out index))
+			{
+				if (index != frameAddedAndKey.Count - 1)
+				{
+					frameAddedAndKey[index] = frameAddedAndKey[frameAddedAndKey.Count - 1];
+					keyToIndex[frameAddedAndKey[index].Item2] = index;
+				}
+
+				frameAddedAndKey.RemoveAt(frameAddedAndKey.Count - 1);
+				keyToIndex.Remove(key);
+			}
 		}
-		public K key;
-		public V value;
+
+		public void Add(K key)
+		{
+			Remove(key);
+
+			keyToIndex.Add(key, frameAddedAndKey.Count);
+			frameAddedAndKey.Add(new Tuple<int, K>(Time.frameCount, key));
+		}
+
+		public K GetAndRemoveLeastRecentlyUsed()
+		{
+			if (frameAddedAndKey.Count == 0) return default(K);
+			if (frameAddedAndKey[0].Item1 > Time.frameCount - 120) return default(K);
+
+			var key = frameAddedAndKey[0].Item2;
+			Remove(key);
+			return key;
+		}
 	}
+
+
+
+	class SlidingWindowAverageDouble
+	{
+		public double AverageValue => SumValue / (double)Samples.Count;
+		double SumValue = 0;
+		int MaxSamples = 100;
+		Queue<double> Samples = new Queue<double>();
+		public void AddSample(double sample)
+		{
+			while (Samples.Count > MaxSamples)
+			{
+				SumValue -= Samples.Dequeue();
+			}
+
+			Samples.Enqueue(sample);
+			SumValue += sample;
+		}
+	}
+
+	SlidingWindowAverageDouble averageFrameTime = new SlidingWindowAverageDouble();
 
 	void LateUpdate()
 	{
@@ -237,13 +294,15 @@ public partial class Planet : MonoBehaviour, IDisposable
 
 		var frameStart = Stopwatch.StartNew();
 
-		var targetFrameTime = 1000.0f / 60; // set here instead of Application.targetFrameRate, so frame time is limited only by this script
-		var currentFrameTime = 1000.0f * Time.unscaledDeltaTime;
-		int milisecondsBudget = Mathf.FloorToInt(targetFrameTime - currentFrameTime);
-		if (milisecondsBudget < 0) milisecondsBudget = 0;
-		if (milisecondsBudget > 15) milisecondsBudget = 15;
+		double targetFrameTime = 1.0f / 60; // set here instead of Application.targetFrameRate, so frame time is limited only by this script
+		double currentFrameTime = 1.0f * Time.unscaledDeltaTime;
+		averageFrameTime.AddSample(currentFrameTime);
+		long timeBudgetInTicks = (long)(TimeSpan.TicksPerSecond * (targetFrameTime - averageFrameTime.AverageValue));
+		var timeBudget = new TimeSpan(timeBudgetInTicks);
+		if (timeBudget.TotalMilliseconds > 10) timeBudget = new TimeSpan(0, 0, 0, 0, 10);
+		if (timeBudget.TotalMilliseconds < 1) timeBudget = new TimeSpan(0, 0, 0, 0, 1);
 
-		MyProfiler.BeginSample("Procedural Planet / milisecondsBudget", " " + milisecondsBudget.ToString());
+		MyProfiler.BeginSample("Procedural Planet / milisecondsBudget", " " + timeBudget.TotalMilliseconds.ToString());
 
 		var pointOfInterest = new PointOfInterest()
 		{
@@ -251,102 +310,88 @@ public partial class Planet : MonoBehaviour, IDisposable
 			fieldOfView = FloatingOriginCamera.main.fieldOfView,
 		};
 
-		bool shouldUpdateRenderers = false;
+		UpdateChunkRenderers(frameStart, timeBudget);
+
+		MyProfiler.BeginSample("Procedural Planet / ReleaseGeneratedData");
+		int countToCleanup = chunkGenerationJustFinished.Count; // try to free same amount of memory that was just needed for generation
+		if (countToCleanup <= 1) countToCleanup = 1;
+		while (--countToCleanup >= 0 && considerChunkForCleanup.Count > 0)
+		{
+			var chunk = considerChunkForCleanup.GetAndRemoveLeastRecentlyUsed();
+			if (chunk == null) break;
+			chunk.ReleaseGeneratedData();
+		}
+		MyProfiler.EndSample();
+
+		GenerateChunks(frameStart, timeBudget);
 
 		MyProfiler.BeginSample("Procedural Planet / Calculate desired subdivision");
 		if (subdivisonCalculationCoroutine == null)
 		{
-			//subdivisonCalculationInProgress.GatherCurrentState(allChunks);
 			subdivisonCalculationCoroutine = subdivisonCalculationInProgress.StartCoroutine(this, pointOfInterest);
 		}
-		else if (!subdivisonCalculationCoroutine.MoveNext())
+		do // do at least once
 		{
-			subdivisonCalculationCoroutine = null;
-			var temp = subdivisonCalculationInProgress;
-			subdivisonCalculationInProgress = subdivisonCalculationLast;
-			subdivisonCalculationLast = temp;
-			shouldUpdateRenderers = true;
-		}
+			if (!subdivisonCalculationCoroutine.MoveNext())
+			{
+				subdivisonCalculationCoroutine = null;
+				var temp = subdivisonCalculationInProgress;
+				subdivisonCalculationInProgress = subdivisonCalculationLast;
+				subdivisonCalculationLast = temp;
+				break;
+			}
+		} while (frameStart.Elapsed > timeBudget && subdivisonCalculationCoroutine != null);
 		MyProfiler.EndSample();
-
-		if (shouldUpdateRenderers)
-		{
-			UpdateChunkRenderers(frameStart, milisecondsBudget);
-		}
-
-		while (hiddenChunks.Count > 20)
-		{
-			hiddenChunks.GetAndRemoveLeastRecentlyUsed().ReleaseGeneratedData();
-		}
-
-		GenerateChunks(frameStart, milisecondsBudget);
 
 		MyProfiler.EndSample();
 	}
 
 
-	List<ChunkData> chunkGenerationFinished = new List<ChunkData>();
-	List<Tuple<ChunkData, IEnumerator>> chunkGenerationCoroutines = new List<Tuple<ChunkData, IEnumerator>>();
-	private void GenerateChunks(Stopwatch frameStart, int milisecondsBudget)
+	List<ChunkData> chunkGenerationJustFinished = new List<ChunkData>();
+	List<Tuple<ChunkData, IEnumerator>> chunkGenerationCoroutinesInProgress = new List<Tuple<ChunkData, IEnumerator>>();
+	private void GenerateChunks(Stopwatch frameStart, TimeSpan timeBudget)
 	{
-		MyProfiler.BeginSample("Procedural Planet / Generate chunks / coroutines execution");
-
-		int couroutinesExecuted = 0;
-
-		bool shouldStartNext = chunkGenerationCoroutines.Count == 0; // have at least 1 running
-		do
+		MyProfiler.BeginSample("Procedural Planet / Generate chunks / start new");
+		if (chunkGenerationCoroutinesInProgress.Count <= 300)
 		{
-			if (shouldStartNext)
+			// start only one new coroutine every frame, so their steps are interleaved
+			// we don't want all coroutines to do the same thing at once, because when they all request mesh from GPU at once, they may cause big render thread stall
+			while (subdivisonCalculationLast.NumChunksToGenerate > 0)
 			{
-				while (subdivisonCalculationLast.NumChunksToGenerate > 0)
-				{
-					ChunkData chunk = subdivisonCalculationLast.GetNextChunkToStartGeneration();
-					if (chunk == null) continue;
-					if (chunk.GenerationInProgress) continue;
-					chunkGenerationCoroutines.Add(new Tuple<ChunkData, IEnumerator>(chunk, chunk.StartGenerateCoroutine()));
-				};
-			}
-
-			if (chunkGenerationCoroutines.Count == 0) break;
-
-			int numWaitingForEndOfFrame = 0;
-			for (int i = chunkGenerationCoroutines.Count - 1; i >= 0; --i)
-			{
-				var c = chunkGenerationCoroutines[i];
-				MyProfiler.BeginSample("Procedural Planet / Generate chunks / coroutines execution / MoveNext()");
-				bool notFinished = c.Item2.MoveNext();
-				MyProfiler.EndSample();
-				if (notFinished) // coroutine execution
-				{
-					if (c.Item2.Current is WaitForEndOfFrame)
-					{
-						++numWaitingForEndOfFrame;
-					}
-					else
-					{
-						++couroutinesExecuted;
-					}
-				}
-				else
-				{
-					// finished
-					chunkGenerationCoroutines.RemoveAt(i);
-					chunkGenerationFinished.Add(c.Item1);
-				}
-
-				if (frameStart.ElapsedMilliseconds > milisecondsBudget) break;
-			}
-
-			shouldStartNext = numWaitingForEndOfFrame >= chunkGenerationCoroutines.Count;
-
-			shouldStartNext = shouldStartNext && chunkGenerationCoroutines.Count < 5;
-
-		} while (frameStart.ElapsedMilliseconds < milisecondsBudget);
-
+				ChunkData chunk = subdivisonCalculationLast.GetNextChunkToStartGeneration();
+				if (chunk == null) continue;
+				if (chunk.GenerationInProgress) continue;
+				chunkGenerationCoroutinesInProgress.Add(new Tuple<ChunkData, IEnumerator>(chunk, chunk.StartGenerateCoroutine()));
+				break;
+			};
+		}
 		MyProfiler.EndSample();
 
-		MyProfiler.AddNumberSample("Procedural Planet / Generate chunks / coroutines executed", couroutinesExecuted);
-		MyProfiler.AddNumberSample("Procedural Planet / Generate chunks / concurrent coroutines", chunkGenerationCoroutines.Count);
+		MyProfiler.BeginSample("Procedural Planet / Generate chunks / execution");
+		chunkGenerationJustFinished.Clear();
+		//do
+		{
+			for (int i = chunkGenerationCoroutinesInProgress.Count - 1; i >= 0; --i)
+			{
+				var c = chunkGenerationCoroutinesInProgress[i];
+				MyProfiler.BeginSample("Procedural Planet / Generate chunks / execution / MoveNext()");
+				bool finishedExecution = !c.Item2.MoveNext();
+				MyProfiler.EndSample();
+				if (finishedExecution)
+				{
+					chunkGenerationCoroutinesInProgress.RemoveAt(i);
+					chunkGenerationJustFinished.Add(c.Item1);
+					considerChunkForCleanup.Add(c.Item1);
+				}
+
+				if (frameStart.Elapsed > timeBudget) break;
+			}
+		}
+		// we dont want to execute again, as some coroutines might just be idling, waiting for getMeshDataReadbackRequest.done
+		//while (frameStart.Elapsed < timeBudget);
+		MyProfiler.EndSample();
+
+		MyProfiler.AddNumberSample("Procedural Planet / Generate chunks / concurrent coroutines", chunkGenerationCoroutinesInProgress.Count);
 		MyProfiler.AddNumberSample("Procedural Planet / Generate chunks / to generate", subdivisonCalculationLast.NumChunksToGenerate);
 	}
 
@@ -354,9 +399,11 @@ public partial class Planet : MonoBehaviour, IDisposable
 	HashSet<ChunkData> toRenderChunks = new HashSet<ChunkData>();
 	Stack<ChunkRenderer> freeRenderers = new Stack<ChunkRenderer>();
 
-	private void UpdateChunkRenderers(Stopwatch frameStart, int milisecondsBudget)
+	private void UpdateChunkRenderers(Stopwatch frameStart, TimeSpan timeBudget)
 	{
 		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers");
+
+		if (subdivisonCalculationLast == null) return;
 
 		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers / UnionWith");
 		toRenderChunks.Clear();
@@ -367,21 +414,21 @@ public partial class Planet : MonoBehaviour, IDisposable
 		toStartRendering.Clear();
 		foreach (var chunk in toRenderChunks)
 		{
-			if (!chunksCurrentlyRendered.ContainsKey(chunk)) toStartRendering.Add(chunk);
 			if (!chunk.HasFullyGeneratedData) continue;
-			if (toStartRendering.Count > 1) break;
+			if (!chunksCurrentlyRendered.ContainsKey(chunk)) toStartRendering.Add(chunk);
+			//if (toStartRendering.Count > 10) break;
 		}
 		MyProfiler.EndSample();
 
 		// if chunks are regenerated, refresh their rendering
-		foreach (var c in chunkGenerationFinished)
+		foreach (var chunk in chunkGenerationJustFinished)
 		{
-			if (toRenderChunks.Contains(c) && chunksCurrentlyRendered.ContainsKey(c))
+			if (chunksCurrentlyRendered.ContainsKey(chunk))
 			{
-				chunksCurrentlyRendered[c].RenderChunk(c);
+				chunksCurrentlyRendered[chunk].RenderChunk(chunk);
+				considerChunkForCleanup.Remove(chunk);
 			}
 		}
-		chunkGenerationFinished.Clear();
 
 		MyProfiler.BeginSample("Procedural Planet / Update ChunkRenderers / toStopRendering / calculate");
 		toStopRendering.Clear();
@@ -415,7 +462,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 			{
 				freeRenderers.Push(chunksCurrentlyRendered[chunk]);
 				chunksCurrentlyRendered.Remove(chunk);
-				hiddenChunks.Add(chunk);
+				considerChunkForCleanup.Add(chunk);
 			}
 		}
 		MyProfiler.EndSample();
@@ -434,7 +481,7 @@ public partial class Planet : MonoBehaviour, IDisposable
 			var renderer = freeRenderers.Pop();
 			renderer.RenderChunk(chunk);
 			chunksCurrentlyRendered.Add(chunk, renderer);
-			hiddenChunks.Remove(chunk);
+			considerChunkForCleanup.Remove(chunk);
 		}
 		MyProfiler.EndSample();
 

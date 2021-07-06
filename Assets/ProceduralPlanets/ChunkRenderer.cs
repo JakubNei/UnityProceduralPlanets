@@ -30,6 +30,7 @@ public class ChunkRenderer : MonoBehaviour
 		floatingTransform = gameObject.AddComponent<FloatingOriginTransform>();
 		meshRenderer = gameObject.AddComponent<MeshRenderer>();
 		meshCollider = gameObject.AddComponent<MeshCollider>();
+		meshCollider.convex = false;
 
 		MyProfiler.EndSample();
 	}
@@ -58,6 +59,7 @@ public class ChunkRenderer : MonoBehaviour
 		generatedData = chunk.FullyGeneratedData;
 
 		meshFilter.sharedMesh = generatedData.mesh;
+
 		if (meshCollider) meshCollider.sharedMesh = generatedData.mesh;
 
 		if (material == null || material.shader != chunk.planet.chunkConfig.chunkMaterial.shader)
